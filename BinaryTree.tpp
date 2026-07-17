@@ -2,7 +2,6 @@
 
 #include <stdexcept>
 
-
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::BinaryTree() {
   root = nullptr;
@@ -35,12 +34,21 @@ void BinaryTree<Key, Data>::insert(Key key, Data data) {
   else if (current->key > par->key) par->right = current;
 }
 
+/*
+ * 1. Найти реально удаляемый элемент y
+ * 2. Найти поддерево удаляемого элемента - р
+ *    Родительский узел для узла у - par
+ * 3. Переопределить родительский узел
+ * 4. Проверить случай, что у - это корень дерева
+ * 5. Переопределить дочерний узел для узла par
+ * 6. Скопировать необходимые данные
+ */
 template<typename Key, typename Data>
 void BinaryTree<Key, Data>::remove(Key key) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
   Node** current = &root;
-
+  
 }
 
 template <typename Key, typename Data>

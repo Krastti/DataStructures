@@ -50,13 +50,19 @@ Data &BinaryTree<Key, Data>::get(Key key) const {
   Node *current = root;
   try {
     while (current->key != key) {
-      if (current->key > key) current = current->left;
-      else if (current->key < key) current = current->right;
+      if (current->key > key) {
+        current = current->left;
+        if (current == nullptr) throw std::out_of_range("Key does not exist");
+      }
+      else if (current->key < key) {
+        current = current->right;
+        if (current == nullptr) throw std::out_of_range("Key does not exist");
+      }
     }
-    throw std::out_of_range("Key does not exist");
   }
   catch (std::exception &e) {
     std::cerr << e.what() << std::endl;
+    exit(-1);
   }
 
   return current->data;

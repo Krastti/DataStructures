@@ -8,10 +8,12 @@ private:
     Key key;
     Data data;
     Node *left, *right;
+    Node *parent;
 
-    explicit Node(Key key, Data data, Node* left=nullptr, Node* right=nullptr) : key(key), data(data) {
+    explicit Node(Key key, Data data, Node* left=nullptr, Node* right=nullptr, Node* parent=nullptr) : key(key), data(data) {
       this->left = left;
       this->right = right;
+      this->parent = parent;
     }
   };
 

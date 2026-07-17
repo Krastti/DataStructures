@@ -24,12 +24,15 @@ public:
 
   // Модификации
   void insert(Key key, Data data);
-  // void remove(Key key);
+  void remove(Key key);
   // void replace(Key key, Data data);
 
   // Геттеры
   Data& get_root() const;
   Data& get(Key key) const;
+  Data& min() const;
+  Data& max() const;
+
 
   ~BinaryTree();
 };

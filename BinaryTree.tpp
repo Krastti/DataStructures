@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <stdexcept>
 
 
@@ -36,9 +35,17 @@ void BinaryTree<Key, Data>::insert(Key key, Data data) {
   else if (current->key > par->key) par->right = current;
 }
 
+template<typename Key, typename Data>
+void BinaryTree<Key, Data>::remove(Key key) {
+  if (root == nullptr) throw std::logic_error("Root is NULL");
+
+  Node** current = &root;
+
+}
+
 template <typename Key, typename Data>
 Data &BinaryTree<Key, Data>::get_root() const {
-  if (root == nullptr) throw std::runtime_error("Root is NULL");
+  if (root == nullptr) throw std::logic_error("Root is NULL");
   return root->data;
 }
 
@@ -58,6 +65,24 @@ Data &BinaryTree<Key, Data>::get(Key key) const {
       if (current == nullptr) throw std::out_of_range("Key does not exist");
     }
   }
+  return current->data;
+}
+
+template<typename Key, typename Data>
+Data & BinaryTree<Key, Data>::min() const {
+  if (root == nullptr) throw std::logic_error("Root is NULL");
+
+  Node *current = root;
+  while (current->left != nullptr) current = current->left;
+  return current->data;
+}
+
+template<typename Key, typename Data>
+Data & BinaryTree<Key, Data>::max() const {
+  if (root == nullptr) throw std::logic_error("Root is NULL");
+
+  Node *current = root;
+  while (current->right != nullptr) current = current->right;
   return current->data;
 }
 

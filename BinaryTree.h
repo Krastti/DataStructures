@@ -18,6 +18,10 @@ private:
   };
 
   Node *root;
+  
+  Node* get_successor(Node* node);
+  Node* get_predecessor(Node* node);
+
 public:
   BinaryTree();
   explicit BinaryTree(Key key, Data data);
@@ -30,9 +34,11 @@ public:
   // Геттеры
   Data& get_root() const;
   Data& get(Key key) const;
+
   Data& min() const;
   Data& max() const;
 
+  Data& get_data_parent(Key key);
 
   ~BinaryTree();
 };

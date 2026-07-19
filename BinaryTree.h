@@ -20,7 +20,7 @@ private:
   Node *root;
   
   Node* get_successor(Node* node);
-  Node* get_predecessor(Node* node);
+  //  Node* get_predecessor(Node* node);
 
 public:
   BinaryTree();
@@ -37,8 +37,6 @@ public:
 
   Data min() const;
   Data max() const;
-
-  Data get_data_parent(Key key);
 
   ~BinaryTree();
 };

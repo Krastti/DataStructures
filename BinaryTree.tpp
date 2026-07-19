@@ -149,28 +149,5 @@ Data BinaryTree<Key, Data>::max() const {
   return current->data;
 }
 
-template<typename Key, typename Data>
-Data BinaryTree<Key, Data>::get_data_parent(Key key) {
-  if (root == nullptr) throw std::logic_error("Root is NULL");
-
-  Node *current = root;
-  while (current->key != key) {
-    if (current->key > key) {
-      current = current->left;
-      if (current == nullptr) throw std::out_of_range("Key does not exist");
-    }
-    else if (current->key < key) {
-      current = current->right;
-      if (current == nullptr) throw std::out_of_range("Key does not exist");
-    }
-  }
-  if (current->parent == nullptr) {
-    throw std::logic_error("Parent is NULL");
-  } else {
-    return current->parent->data;
-  }
-
-}
-
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::~BinaryTree() = default;

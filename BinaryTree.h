@@ -32,13 +32,13 @@ public:
   // void replace(Key key, Data data);
 
   // Геттеры
-  Data& get_root() const;
-  Data& get(Key key) const;
+  Data get_root() const;
+  Data get(Key key) const;
 
-  Data& min() const;
-  Data& max() const;
+  Data min() const;
+  Data max() const;
 
-  Data& get_data_parent(Key key);
+  Data get_data_parent(Key key);
 
   ~BinaryTree();
 };

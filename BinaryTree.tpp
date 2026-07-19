@@ -84,8 +84,8 @@ void BinaryTree<Key, Data>::remove(Key key) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
   Node** current = &root;
-  Node *par = nullptr;
-  Node *p = nullptr;
+  Node* par = nullptr;
+  Node* p = nullptr;
 
   while ((*current)->key != key) {
     if ((*current)->key > key) {
@@ -98,56 +98,35 @@ void BinaryTree<Key, Data>::remove(Key key) {
     }
   }
 
-  // Случай, когда нет потомков
-  if ((*current)->left == nullptr && (*current)->right == nullptr) {
-    par = (*current)->parent;
-
-    if (par->left == *current) {
-      delete par->left;
-      par->left = nullptr;
-    }
-    else if (par->right == *current) {
-      delete par->right;
-      par->right = nullptr;
-    }
-  }
-
-  // Случай, когда один потомок
-  else if ((*current)->right == nullptr || (*current)->left == nullptr) {
+  // Случай, когда нет потомков или один потомок
+  if ((*current)->right == nullptr || (*current)->left == nullptr) {
     par = (*current)->parent;
 
     if ((*current)->left != nullptr) p = (*current)->left;
     else if ((*current)->right != nullptr) p = (*current)->right;
+    else p = nullptr;
 
-    if (par->left == *current) {
-      delete par->left;
+    if (p != nullptr) p->parent = par;
+    if (*current == par->left) {
+      delete *current;
       par->left = p;
-      p->parent = par;
-    } else if (par->right == *current) {
-      delete par->right;
+    } else if (*current == par->right) {
+      delete *current;
       par->right = p;
-      p->parent = par;
     }
   }
 
   // Случай, когда два потомка
   else if ((*current)->left != nullptr && (*current)->right != nullptr) {
     p = get_successor(*current);
-    par = (*current)->parent;
-    Node* tmp = *current;
 
-    if (p != (*current)->right) {
-      p->parent->left = p->right;
-      if (p->right != nullptr) p->right->parent = p->parent;
-    }
+    if (p != (*current)->right) p->parent->left = p->right;
+    else (*current)->right = p->right;
 
-    *current = p;
-    p->parent = par;
-    p->left = tmp->left;
-    if (tmp->left != nullptr) tmp->left->parent = p;
-    if (p != tmp->right) p->right = tmp->right;
-    if (tmp->right != nullptr && p != tmp->right) tmp->right->parent = p;
-    delete tmp;
+    if (p->right != nullptr) p->right->parent = p->parent;
+    (*current)->key = p->key;
+    (*current)->data = p->data;
+    delete p;
   }
 }
 

@@ -106,6 +106,26 @@ void BinaryTree<Key, Data>::remove(Key key) {
   }
 }
 
+template<typename Key, typename Data>
+void BinaryTree<Key, Data>::replace(Key key, Data data) {
+  if (root == nullptr) throw std::logic_error("Root is NULL");
+
+  Node** current = &root;
+
+  while ((*current)->key != key) {
+    if ((*current)->key > key) {
+      current = &((*current)->left);
+      if (*current == nullptr) throw std::out_of_range("Key does not exist");
+    }
+    else if ((*current)->key < key) {
+      current = &((*current)->right);
+      if (*current == nullptr) throw std::out_of_range("Key does not exist");
+    }
+  }
+
+  (*current)->data = data;
+}
+
 template <typename Key, typename Data>
 Data BinaryTree<Key, Data>::get_root() const {
   if (root == nullptr) throw std::logic_error("Root is NULL");

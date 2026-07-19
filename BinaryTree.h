@@ -29,7 +29,7 @@ public:
   // Модификации
   void insert(Key key, Data data);
   void remove(Key key);
-  // void replace(Key key, Data data);
+  void replace(Key key, Data data);
 
   // Геттеры
   Data get_root() const;

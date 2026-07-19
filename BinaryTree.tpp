@@ -1,5 +1,4 @@
 #pragma once
-
 #include <stdexcept>
 
 template<typename Key, typename Data>
@@ -63,22 +62,6 @@ void BinaryTree<Key, Data>::insert(Key key, Data data) {
   current->parent = par;
 }
 
-/*
- * Алгоритм:
- * 1. Найти реально удаляемый элемент y
- * 2. Найти поддерево удаляемого элемента - р
- *    Родительский узел для узла у - par
- * 3. Переопределить родительский узел
- * 4. Проверить случай, что у - это корень дерева
- * 5. Переопределить дочерний узел для узла par
- * 6. Скопировать необходимые данные
- *
- * Случаи:
- * 1. У узла нет потомков
- * 2. У узла один потомок
- * 3. У узла два потомка
- * 4. Узел является корнем дерева
- */
 template<typename Key, typename Data>
 void BinaryTree<Key, Data>::remove(Key key) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
@@ -98,7 +81,7 @@ void BinaryTree<Key, Data>::remove(Key key) {
     }
   }
 
-  // Случай, когда нет потомков или один потомок
+  // Случай, когда нет потомком или один потомок
   if ((*current)->right == nullptr || (*current)->left == nullptr) {
     par = (*current)->parent;
 
@@ -131,13 +114,13 @@ void BinaryTree<Key, Data>::remove(Key key) {
 }
 
 template <typename Key, typename Data>
-Data &BinaryTree<Key, Data>::get_root() const {
+Data BinaryTree<Key, Data>::get_root() const {
   if (root == nullptr) throw std::logic_error("Root is NULL");
   return root->data;
 }
 
 template <typename Key, typename Data>
-Data &BinaryTree<Key, Data>::get(Key key) const {
+Data BinaryTree<Key, Data>::get(Key key) const {
   if (root == nullptr) throw std::logic_error("Root is NULL");
   if (root->key == key) return get_root();
 
@@ -156,7 +139,7 @@ Data &BinaryTree<Key, Data>::get(Key key) const {
 }
 
 template<typename Key, typename Data>
-Data & BinaryTree<Key, Data>::min() const {
+Data BinaryTree<Key, Data>::min() const {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
   Node *current = root;
@@ -165,7 +148,7 @@ Data & BinaryTree<Key, Data>::min() const {
 }
 
 template<typename Key, typename Data>
-Data & BinaryTree<Key, Data>::max() const {
+Data BinaryTree<Key, Data>::max() const {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
   Node *current = root;
@@ -174,7 +157,7 @@ Data & BinaryTree<Key, Data>::max() const {
 }
 
 template<typename Key, typename Data>
-Data & BinaryTree<Key, Data>::get_data_parent(Key key) {
+Data BinaryTree<Key, Data>::get_data_parent(Key key) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
   Node *current = root;

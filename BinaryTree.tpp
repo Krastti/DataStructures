@@ -5,7 +5,6 @@ template<typename Key, typename Data>
 typename BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::get_successor(Node *node) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
   if (node == nullptr) throw std::logic_error("Node is NULL");
-  if (node->data == max()) return node;
 
   Node *ptr = nullptr;
   if (node->right) {
@@ -18,14 +17,6 @@ typename BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::get_successor(Node
     node = ptr;
     ptr = node->parent;
   }
-  return ptr;
-}
-
-template<typename Key, typename Data>
-typename BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::get_predecessor(Node *node) {
-
-  Node *ptr = nullptr;
-
   return ptr;
 }
 
@@ -87,10 +78,12 @@ void BinaryTree<Key, Data>::remove(Key key) {
 
     if ((*current)->left != nullptr) p = (*current)->left;
     else if ((*current)->right != nullptr) p = (*current)->right;
-    else p = nullptr;
 
     if (p != nullptr) p->parent = par;
-    if (*current == par->left) {
+    if (par == nullptr) {
+      delete *current;
+      root = p;
+    } else if (*current == par->left) {
       delete *current;
       par->left = p;
     } else if (*current == par->right) {

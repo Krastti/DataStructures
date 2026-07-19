@@ -98,8 +98,10 @@ void BinaryTree<Key, Data>::remove(Key key) {
     }
   }
 
+  // Случай, когда нет потомков
   if ((*current)->left == nullptr && (*current)->right == nullptr) {
     par = (*current)->parent;
+
     if (par->left == *current) {
       delete par->left;
       par->left = nullptr;
@@ -110,10 +112,11 @@ void BinaryTree<Key, Data>::remove(Key key) {
     }
   }
 
+  // Случай, когда один потомок
   else if ((*current)->right == nullptr || (*current)->left == nullptr) {
     par = (*current)->parent;
 
-    if ((*current)-> left != nullptr) p = (*current)->left;
+    if ((*current)->left != nullptr) p = (*current)->left;
     else if ((*current)->right != nullptr) p = (*current)->right;
 
     if (par->left == *current) {
@@ -127,15 +130,24 @@ void BinaryTree<Key, Data>::remove(Key key) {
     }
   }
 
+  // Случай, когда два потомка
   else if ((*current)->left != nullptr && (*current)->right != nullptr) {
     p = get_successor(*current);
     par = (*current)->parent;
+    Node* tmp = *current;
 
-    if (p == (*current)->right) {
-      *current = p;
-      p->parent = par;
+    if (p != (*current)->right) {
+      p->parent->left = p->right;
+      if (p->right != nullptr) p->right->parent = p->parent;
     }
 
+    *current = p;
+    p->parent = par;
+    p->left = tmp->left;
+    if (tmp->left != nullptr) tmp->left->parent = p;
+    if (p != tmp->right) p->right = tmp->right;
+    if (tmp->right != nullptr && p != tmp->right) tmp->right->parent = p;
+    delete tmp;
   }
 }
 

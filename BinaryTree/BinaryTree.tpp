@@ -169,5 +169,22 @@ Data BinaryTree<Key, Data>::max() const {
   return current->data;
 }
 
+template<typename Key, typename Data>
+void BinaryTree<Key, Data>::print() const {
+  Node* current = root;
+  auto stack = new Stack<Node*>;
+
+  while (current != nullptr or !stack->empty()) {
+    while (current != nullptr) {
+      stack->push(current);
+      current = current->left;
+    }
+    current = stack->top();
+    stack->pop();
+    std::cout << current->key << ' ';
+    current = current->right;
+  }
+}
+
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::~BinaryTree() = default;

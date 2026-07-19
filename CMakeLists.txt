@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(DataStructures
         main.cpp
-        BinaryTree.h
+        BinaryTree/BinaryTree.h
 )
 
 add_library(Stack INTERFACE

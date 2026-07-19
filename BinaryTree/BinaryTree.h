@@ -1,6 +1,8 @@
 #ifndef DATASTRUCTURES_BST_H
 #define DATASTRUCTURES_BST_H
 
+#include "../Stack/stack.h"
+
 template<typename Key, typename Data>
 class BinaryTree {
 private:
@@ -37,6 +39,8 @@ public:
 
   Data min() const;
   Data max() const;
+
+  void print() const;
 
   ~BinaryTree();
 };

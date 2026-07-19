@@ -7,3 +7,12 @@ add_executable(DataStructures
         main.cpp
         BinaryTree.h
 )
+
+add_library(Stack INTERFACE
+        Stack/stack.h
+        Stack/stack.tpp
+)
+
+target_link_libraries(DataStructures
+        Stack
+)

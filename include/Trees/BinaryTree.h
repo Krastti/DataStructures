@@ -5,7 +5,7 @@
 
 template<typename Key, typename Data>
 class BinaryTree {
-private:
+protected:
   struct Node {
     Key key;
     Data data;
@@ -19,6 +19,7 @@ private:
     }
   };
 
+private:
   Node *root;
   
   Node* get_successor(Node* node);

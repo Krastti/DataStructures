@@ -2,7 +2,7 @@
 #include <stdexcept>
 
 template<typename Key, typename Data>
-typename BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::get_successor(Node *node) {
+BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::get_successor(Node *node) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
   if (node == nullptr) throw std::logic_error("Node is NULL");
 

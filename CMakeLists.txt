@@ -5,12 +5,13 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(DataStructures
         main.cpp
-        BinaryTree/BinaryTree.h
+        include/Trees/BinaryTree.h
+        include/Trees/RBTree.h
 )
 
 add_library(Stack INTERFACE
-        Stack/stack.h
-        Stack/stack.tpp
+        include/Stack/stack.h
+        include/Stack/stack.tpp
 )
 
 target_link_libraries(DataStructures

@@ -33,10 +33,10 @@ add_library(Stack INTERFACE
 )
 
 add_library(SmartPointer INTERFACE
-        include/SmartPointer/UniquePtr.h
-        include/SmartPointer/UniquePtr.tpp
-        include/SmartPointer/SharedPtr.h
-        include/SmartPointer/SharedPtr.tpp
+        include/SmartPointers/UniquePtr.h
+        include/SmartPointers/UniquePtr.tpp
+        include/SmartPointers/SharedPtr.h
+        include/SmartPointers/SharedPtr.tpp
 )
 
 target_link_libraries(DataStructures

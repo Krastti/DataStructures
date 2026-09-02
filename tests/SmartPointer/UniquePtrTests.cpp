@@ -1,10 +1,10 @@
 // ReSharper disable CppDFAUnusedValue
+#include "../../include/SmartPointers/UniquePtr.h"
 #include <gtest/gtest.h>
-#include "../../include/SmartPointer/UniquePtr.h"
 
+#include <cstdlib>
 #include <iostream>
 #include <utility>
-#include <cstdlib>
 
 struct TrackedObject {
   inline static int liveCount = 0;

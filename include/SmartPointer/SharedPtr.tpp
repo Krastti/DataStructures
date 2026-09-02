@@ -69,6 +69,27 @@ SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr &&other) noexcept {
 }
 
 template <typename T>
+T* SharedPtr<T>::get() const {
+  return ptr;
+}
+template <typename T>
+T& SharedPtr<T>::operator*() const {
+  return *ptr;
+}
+template <typename T>
+T* SharedPtr<T>::operator->() const {
+  return ptr;
+}
+
+template <typename T>
+int SharedPtr<T>::use_count() const {
+  if (refCount == nullptr) {
+    return 0;
+  }
+  return *refCount;
+}
+
+template <typename T>
 SharedPtr<T>::~SharedPtr() {
   if (refCount != nullptr) {
     (*refCount)--;

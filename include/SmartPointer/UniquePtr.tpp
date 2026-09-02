@@ -1,9 +1,6 @@
 #pragma once
 
 template <typename T>
-UniquePtr<T>::UniquePtr() : ptr(nullptr) { }
-
-template <typename T>
 UniquePtr<T>::UniquePtr(T *ptr) : ptr(ptr) { }
 
 template <typename T>

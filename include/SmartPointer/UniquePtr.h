@@ -7,7 +7,6 @@ private:
   T* ptr;
 
 public:
-  UniquePtr();
   explicit UniquePtr(T* ptr = nullptr);
 
   UniquePtr(const UniquePtr&) = delete;

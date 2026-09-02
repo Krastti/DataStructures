@@ -19,6 +19,11 @@ public:
   SharedPtr& operator=(const SharedPtr &other);
   SharedPtr& operator=(SharedPtr &&other) noexcept;
 
+  T* get() const;
+  T& operator*() const;
+  T* operator->() const;
+  [[nodiscard]] int use_count() const;
+
   ~SharedPtr();
 };
 

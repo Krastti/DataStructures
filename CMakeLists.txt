@@ -49,8 +49,8 @@ target_link_libraries(DataStructures
 enable_testing()
 
 add_executable(UnitTests
-        tests/SmartPointer/SharedPtrTests.cpp
-        tests/SmartPointer/UniquePtrTests.cpp
+        tests/SmartPointers/SharedPtrTests.cpp
+        tests/SmartPointers/UniquePtrTests.cpp
 )
 
 target_link_libraries(UnitTests PRIVATE

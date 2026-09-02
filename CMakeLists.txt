@@ -14,6 +14,14 @@ add_library(Stack INTERFACE
         include/Stack/stack.tpp
 )
 
+add_library(SmartPointer INTERFACE
+        include/SmartPointer/UniquePtr.h
+        include/SmartPointer/UniquePtr.tpp
+        include/SmartPointer/SharedPtr.h
+        include/SmartPointer/SharedPtr.tpp
+)
+
 target_link_libraries(DataStructures
         Stack
 )
+

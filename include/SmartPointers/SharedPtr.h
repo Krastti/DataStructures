@@ -20,9 +20,14 @@ public:
   SharedPtr& operator=(SharedPtr &&other) noexcept;
 
   T* get() const;
+
   T& operator*() const;
+
   T* operator->() const;
+
   [[nodiscard]] int use_count() const;
+
+  void reset(T* newPtr = nullptr);
 
   ~SharedPtr();
 };

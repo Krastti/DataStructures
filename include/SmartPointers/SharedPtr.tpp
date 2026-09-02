@@ -90,6 +90,36 @@ int SharedPtr<T>::use_count() const {
 }
 
 template <typename T>
+void SharedPtr<T>::reset(T *newPtr) {
+  if (ptr == newPtr && refCount != nullptr) {
+    (*refCount)--;
+    if (*refCount == 0) {
+      delete refCount;
+      delete ptr;
+    }
+    ptr = nullptr;
+    refCount = nullptr;
+    return;
+  }
+
+  if (refCount != nullptr) {
+    (*refCount)--;
+    if (*refCount == 0) {
+      delete refCount;
+      delete ptr;
+    }
+    refCount = nullptr;
+    ptr = nullptr;
+  }
+
+  ptr = newPtr;
+
+  if (newPtr != nullptr) {
+    refCount = new size_t(1);
+  }
+}
+
+template <typename T>
 SharedPtr<T>::~SharedPtr() {
   if (refCount != nullptr) {
     (*refCount)--;

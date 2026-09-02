@@ -37,7 +37,6 @@ T* UniquePtr<T>::release() noexcept {
   T* temp = ptr;
   ptr = nullptr;
   return temp;
-
 }
 
 template <typename T>
@@ -45,7 +44,6 @@ void UniquePtr<T>::reset(T* newPtr) {
   if (this->ptr != newPtr) {
     delete this->ptr;
   }
-
   this->ptr = newPtr;
 }
 

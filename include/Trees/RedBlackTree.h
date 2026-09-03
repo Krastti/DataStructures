@@ -13,21 +13,26 @@ private:
 
         Color color;
         RBNode(const Key &key, const Data &data, const Color &color) : Node(key, data), color(color) {}
+
+        ~RBNode() override = default;
     };
 
     using Node = RBNode;
 
-    Node* root;
-
 protected:
-    Node* left();
-    Node* right() const;
-    Node* parent() const;
+    Node* getLeft() const;
+    Node* getRight() const;
+    Node* getParent() const;
+    Node* getRoot() const;
+
+    void leftRotate(Node* node);
+    void rightRotate(Node* node);
+
+    void fixInsert(Node* current);
 
 public:
-    RedBlackTree();
-
-    ~RedBlackTree();
+    void insert(Key key, Data data) override;
+    void remove(Key key) override;
 };
 
 #include "RedBlackTree.tpp"

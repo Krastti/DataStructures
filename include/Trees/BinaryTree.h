@@ -18,20 +18,23 @@ protected:
       this->right = right;
       this->parent = parent;
     }
+
+    virtual ~Node() = default;
   };
 
+  Node* root;
+
 private:
-  Node *root;
-  
-  Node* get_successor(Node* node);
+
+  Node* getSuccessor(Node* node);
   //  Node* get_predecessor(Node* node);
 
 public:
   BinaryTree();
   explicit BinaryTree(Key key, Data data);
 
-  void insert(Key key, Data data);
-  void remove(Key key);
+  virtual void insert(Key key, Data data);
+  virtual void remove(Key key);
   void replace(Key key, Data data);
 
   Data get_root() const;

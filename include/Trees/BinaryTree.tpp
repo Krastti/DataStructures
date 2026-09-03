@@ -184,7 +184,27 @@ void BinaryTree<Key, Data>::print() const {
     std::cout << current->key << ' ';
     current = current->right;
   }
+  delete stack;
 }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::~BinaryTree() = default;
+BinaryTree<Key, Data>::~BinaryTree() {
+  if (root == nullptr) return;
+
+  auto stack = new Stack<Node*>;
+  stack->push(root);
+
+  while (!stack->empty()) {
+    Node *current = stack->top();
+    stack->pop();
+
+    if (current->left != nullptr) {
+      stack->push(current->left);
+    } else if (current->right != nullptr) {
+      stack->push(current->right);
+    }
+
+    delete current;
+  }
+  delete stack;
+}

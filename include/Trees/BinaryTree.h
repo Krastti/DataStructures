@@ -2,6 +2,7 @@
 #define DATASTRUCTURES_BST_H
 
 #include "../Stack/stack.h"
+#include <iostream>
 
 template<typename Key, typename Data>
 class BinaryTree {

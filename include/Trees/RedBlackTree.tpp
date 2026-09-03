@@ -146,3 +146,33 @@ void RedBlackTree<Key, Data>::insert(Key key, Data data) {
 
   fixInsert(newNode);
 }
+
+template <typename Key, typename Data>
+bool RedBlackTree<Key, Data>::isRed(Key key) const {
+  if (int colorNode = getColor(key);
+      colorNode ==  static_cast<int>(Color::RED)) return true;
+  else return false;
+}
+
+template <typename Key, typename Data>
+bool RedBlackTree<Key, Data>::isBlack(Key key) const {
+  if (int colorNode = getColor(key);
+      colorNode == static_cast<int>(Color::BLACK)) return true;
+  else return false;
+}
+
+template <typename Key, typename Data>
+int RedBlackTree<Key, Data>::getColor(Key key) const {
+  if (this->root == nullptr) throw std::logic_error("Root is NULL");
+
+  Node* current = this->root;
+
+  while (current != nullptr && current->key != key) {
+    if (current->key > key) current = current->left;
+    else current = current->right;
+  }
+
+  if (current == nullptr) throw std::out_of_range("Key does not exist");
+
+  return static_cast<int>(static_cast<RBNode*>(current)->color);
+}

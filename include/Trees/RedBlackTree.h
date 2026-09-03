@@ -32,6 +32,10 @@ private:
 public:
     void insert(Key key, Data data) override;
     // void remove(Key key) override;
+
+    bool isRed(Key key) const;
+    bool isBlack(Key key) const;
+    int getColor(Key key) const;
 };
 
 #include "RedBlackTree.tpp"

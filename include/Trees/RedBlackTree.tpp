@@ -1,26 +1,28 @@
+// ReSharper disable CppDFAUnreachableFunctionCall
 #pragma once
 
 template <typename Key, typename Data>
-RedBlackTree<Key, Data>::Node* RedBlackTree<Key, Data>::getLeft() const {
-  return static_cast<RBNode*>(this->left);
+RedBlackTree<Key, Data>::RBNode* RedBlackTree<Key, Data>::getLeft(Node* node) {
+  return static_cast<RBNode*>(node->left);
 }
 
 template <typename Key, typename Data>
-RedBlackTree<Key, Data>::Node* RedBlackTree<Key, Data>::getRight() const {
-  return static_cast<RBNode*>(this->right);
+RedBlackTree<Key, Data>::RBNode* RedBlackTree<Key, Data>::getRight(Node* node) {
+  return static_cast<RBNode*>(node->right);
 }
 
 template <typename Key, typename Data>
-RedBlackTree<Key, Data>::Node* RedBlackTree<Key, Data>::getParent() const {
-  return static_cast<RBNode*>(this->parent);
+RedBlackTree<Key, Data>::RBNode* RedBlackTree<Key, Data>::getParent(Node* node) {
+  return static_cast<RBNode*>(node->parent);
 }
+
 template <typename Key, typename Data>
-RedBlackTree<Key, Data>::Node* RedBlackTree<Key, Data>::getRoot() const {
+RedBlackTree<Key, Data>::RBNode* RedBlackTree<Key, Data>::getRoot() const {
   return static_cast<RBNode*>(this->root);
 }
 
 template <typename Key, typename Data>
-void RedBlackTree<Key, Data>::leftRotate(Node *node) {
+void RedBlackTree<Key, Data>::leftRotate(RBNode *node) {
   if (node->right == nullptr) return;
 
   Node* parent = node->parent;
@@ -44,7 +46,7 @@ void RedBlackTree<Key, Data>::leftRotate(Node *node) {
 }
 
 template <typename Key, typename Data>
-void RedBlackTree<Key, Data>::rightRotate(Node *node) {
+void RedBlackTree<Key, Data>::rightRotate(RBNode *node) {
   if (node->left == nullptr) return;
 
   Node* parent = node->parent;
@@ -68,30 +70,54 @@ void RedBlackTree<Key, Data>::rightRotate(Node *node) {
 }
 
 template <typename Key, typename Data>
-void RedBlackTree<Key, Data>::fixInsert(Node *current) {
-  Node* parent = current->parent;
+void RedBlackTree<Key, Data>::fixInsert(RBNode *current) {
+  RBNode* parent = getParent(current);
 
-  if (parent->color == Color::BLACK) return;
+  while (parent != nullptr && parent->color == Color::RED) {
+    RBNode* grandParent = getParent(parent);
 
-  while (current->parent->color == Color::RED) {
-    Node* grandParent = parent->parent;
-    Node* uncle;
+    if (parent == getLeft(grandParent)) {
+      RBNode* uncle = getRight(grandParent);
 
-    if (parent == grandParent->left) {
-      uncle = grandParent->right;
+      if (uncle != nullptr && uncle->color == Color::RED) {
+        parent->color = Color::BLACK;
+        uncle->color = Color::BLACK;
+        grandParent->color = Color::RED;
+        current = grandParent;
+      } else {
+        if (current == getRight(parent)) {
+          current = parent;
+          leftRotate(current);
+          parent = getParent(current);
+        }
+        parent->color = Color::BLACK;
+        grandParent->color = Color::RED;
+        rightRotate(grandParent);
+      }
     } else {
-      uncle = grandParent->left;
+      RBNode* uncle = getLeft(grandParent);
+
+      if (uncle != nullptr && uncle->color == Color::RED) {
+        parent->color = Color::BLACK;
+        uncle->color = Color::BLACK;
+        grandParent->color = Color::RED;
+        current = grandParent;
+      } else {
+        if (current == getLeft(parent)) {
+          current = parent;
+          rightRotate(current);
+          parent = getParent(current);
+        }
+        parent->color = Color::BLACK;
+        grandParent->color = Color::RED;
+        leftRotate(grandParent);
+      }
     }
 
-    if (uncle->color == Color::RED && uncle != nullptr) {
-      parent->color = Color::BLACK;
-      uncle->color = Color::BLACK;
-      grandParent->color = Color::RED;
-      current = grandParent;
-    }
-
-    if (uncle->color == Color::BLACK) {}
+    parent = getParent(current);
   }
+
+  getRoot()->color = Color::BLACK;
 }
 
 template <typename Key, typename Data>
@@ -109,12 +135,14 @@ void RedBlackTree<Key, Data>::insert(Key key, Data data) {
 
     if (current->key > key) current = current->left;
     else if (current->key < key) current = current->right;
+    else return;
   }
 
-  current = new RBNode(key, data, Color::RED);
+  auto newNode = new RBNode(key, data, Color::RED);
 
-  if (current->key < parent->key) parent->left = current;
-  else if (current->key > parent->key) parent->right = current;
-  current->parent = parent;
+  if (newNode->key < parent->key) parent->left = newNode;
+  else parent->right = newNode;
+  newNode->parent = parent;
+
+  fixInsert(newNode);
 }
-

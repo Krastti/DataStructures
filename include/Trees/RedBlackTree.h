@@ -9,7 +9,7 @@ private:
     enum class Color { RED, BLACK };
 
     struct RBNode : public BinaryTree<Key, Data>::Node {
-        using Node = BinaryTree<Key, Data>::Node;
+        using Node = typename BinaryTree<Key, Data>::Node;
 
         Color color;
         RBNode(const Key &key, const Data &data, const Color &color) : Node(key, data), color(color) {}
@@ -17,24 +17,26 @@ private:
         ~RBNode() override = default;
     };
 
-    using Node = RBNode;
+    using Node = typename BinaryTree<Key, Data>::Node;
 
-protected:
-    Node* getLeft() const;
-    Node* getRight() const;
-    Node* getParent() const;
-    Node* getRoot() const;
+    static RBNode* getLeft(Node* node);
+    static RBNode* getRight(Node* node);
+    static RBNode* getParent(Node* node);
+    RBNode* getRoot() const;
 
-    void leftRotate(Node* node);
-    void rightRotate(Node* node);
+    void leftRotate(RBNode* node);
+    void rightRotate(RBNode* node);
 
-    void fixInsert(Node* current);
+    void fixInsert(RBNode* current);
 
 public:
     void insert(Key key, Data data) override;
-    void remove(Key key) override;
+    // void remove(Key key) override;
 };
 
 #include "RedBlackTree.tpp"
+
+template <typename Key, typename Data>
+using Map = RedBlackTree<Key, Data>;
 
 #endif //DATASTRUCTURES_RBTREE_H

@@ -19,11 +19,17 @@ add_executable(DataStructures
         main.cpp
 )
 
+add_library(Sequence INTERFACE
+        include/Sequence/Sequence.h
+        include/Sequence/ArraySequence.h
+        include/Sequence/ArraySequence.tpp
+)
+
 add_library(BinaryTree INTERFACE
         include/Trees/BinaryTree.h
         include/Trees/BinaryTree.tpp
-        include/Trees/RBTree.h
-        include/Trees/RBTree.tpp
+        include/Trees/RedBlackTree.h
+        include/Trees/RedBlackTree.tpp
 )
 
 add_library(Stack INTERFACE
@@ -39,6 +45,7 @@ add_library(SmartPointer INTERFACE
 )
 
 target_link_libraries(DataStructures
+        Sequence
         BinaryTree
         Stack
         SmartPointer

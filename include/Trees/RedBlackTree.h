@@ -9,7 +9,7 @@ private:
     enum class Color { RED, BLACK };
 
     struct RBNode : public BinaryTree<Key, Data>::Node {
-        using Node = typename BinaryTree<Key, Data>::Node;
+        using Node = BinaryTree<Key, Data>::Node;
 
         Color color;
         RBNode(const Key &key, const Data &data, const Color &color) : Node(key, data), color(color) {}
@@ -17,7 +17,7 @@ private:
         ~RBNode() override = default;
     };
 
-    using Node = typename BinaryTree<Key, Data>::Node;
+    using Node = BinaryTree<Key, Data>::Node;
 
     static RBNode* getLeft(Node* node);
     static RBNode* getRight(Node* node);

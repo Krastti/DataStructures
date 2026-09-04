@@ -24,8 +24,6 @@ protected:
 
   Node* root;
 
-private:
-
   Node* getSuccessor(Node* node);
   //  Node* get_predecessor(Node* node);
 

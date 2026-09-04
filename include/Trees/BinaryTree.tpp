@@ -60,16 +60,12 @@ void BinaryTree<Key, Data>::remove(Key key) {
   Node* par = nullptr;
   Node* p = nullptr;
 
-  while ((*current)->key != key) {
-    if ((*current)->key > key) {
-      current = &((*current)->left);
-      if (*current == nullptr) throw std::out_of_range("Key does not exist");
-    }
-    else if ((*current)->key < key) {
-      current = &((*current)->right);
-      if (*current == nullptr) throw std::out_of_range("Key does not exist");
-    }
+  while (*current != nullptr && (*current)->key != key) {
+    if ((*current)->key > key) current = &((*current)->left);
+    else if ((*current)->key < key) current = &((*current)->right);
   }
+  if (*current == nullptr) throw std::out_of_range("Key does not exist");
+
 
   // Случай, когда нет потомком или один потомок
   if ((*current)->right == nullptr || (*current)->left == nullptr) {

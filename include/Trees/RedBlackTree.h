@@ -28,10 +28,11 @@ private:
     void rightRotate(RBNode* node);
 
     void fixInsert(RBNode* current);
+    void fixRemove(RBNode *node, RBNode *parent);
 
 public:
     void insert(Key key, Data data) override;
-    // void remove(Key key) override;
+    void remove(Key key) override;
 
     bool isRed(Key key) const;
     bool isBlack(Key key) const;

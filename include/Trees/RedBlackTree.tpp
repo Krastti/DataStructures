@@ -244,7 +244,7 @@ void RedBlackTree<Key, Data>::remove(Key key) {
 
   // Случай, когда два потомка
   if ((*current)->left != nullptr && (*current)->right != nullptr) {
-    Node* successor = getSuccessor(*current);
+    Node* successor = this->getSuccessor(*current);
     Node* parent = successor->parent;
     Node* son = successor->right;
 
@@ -269,7 +269,7 @@ void RedBlackTree<Key, Data>::remove(Key key) {
     Node* son = (deletedNode->left != nullptr) ? deletedNode->left : deletedNode->right;
 
     if (son != nullptr) son->parent = parent;
-    *current = son; // *current — это либо this->root, либо parent->left/right, в зависимости от пути поиска
+    *current = son;
 
     bool wasBlack = (static_cast<RBNode*>(deletedNode)->color == Color::BLACK);
     delete deletedNode;

@@ -44,11 +44,16 @@ add_library(SmartPointer INTERFACE
         include/SmartPointers/SharedPtr.tpp
 )
 
+add_library(Graph INTERFACE
+        include/Graph/Graph.h
+)
+
 target_link_libraries(DataStructures
         Sequence
         BinaryTree
         Stack
         SmartPointer
+        Graph
 )
 
 # Тесты

@@ -204,6 +204,27 @@ void RedBlackTree<Key, Data>::fixRemove(RBNode *node, RBNode *parent) {
 }
 
 template <typename Key, typename Data>
+int RedBlackTree<Key, Data>::getColor(Key key) const {
+  if (this->root == nullptr) throw std::logic_error("Root is NULL");
+
+  Node* current = this->root;
+
+  while (current != nullptr && current->key != key) {
+    if (current->key > key) current = current->left;
+    else current = current->right;
+  }
+
+  if (current == nullptr) throw std::out_of_range("Key does not exist");
+
+  return static_cast<int>(static_cast<RBNode*>(current)->color);
+}
+
+template <typename Key, typename Data>
+RedBlackTree<Key, Data>::RedBlackTree(Key key) {
+  this->root = new RBNode(key, Data(), Color::BLACK);
+}
+
+template <typename Key, typename Data>
 void RedBlackTree<Key, Data>::insert(Key key, Data data) {
   if (this->root == nullptr) {
     this->root = new RBNode(key, data, Color::BLACK);
@@ -290,20 +311,4 @@ bool RedBlackTree<Key, Data>::isBlack(Key key) const {
   if (int colorNode = getColor(key);
       colorNode == static_cast<int>(Color::BLACK)) return true;
   else return false;
-}
-
-template <typename Key, typename Data>
-int RedBlackTree<Key, Data>::getColor(Key key) const {
-  if (this->root == nullptr) throw std::logic_error("Root is NULL");
-
-  Node* current = this->root;
-
-  while (current != nullptr && current->key != key) {
-    if (current->key > key) current = current->left;
-    else current = current->right;
-  }
-
-  if (current == nullptr) throw std::out_of_range("Key does not exist");
-
-  return static_cast<int>(static_cast<RBNode*>(current)->color);
 }

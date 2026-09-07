@@ -30,13 +30,16 @@ private:
     void fixInsert(RBNode* current);
     void fixRemove(RBNode *node, RBNode *parent);
 
+    int getColor(Key key) const;
+
 public:
+    explicit RedBlackTree(Key key);
+
     void insert(Key key, Data data) override;
     void remove(Key key) override;
 
     bool isRed(Key key) const;
     bool isBlack(Key key) const;
-    int getColor(Key key) const;
 };
 
 #include "RedBlackTree.tpp"

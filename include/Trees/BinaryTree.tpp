@@ -1,5 +1,6 @@
 #pragma once
 #include <stdexcept>
+#include <iostream>
 
 template<typename Key, typename Data>
 BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::getSuccessor(Node *node) {
@@ -22,6 +23,11 @@ BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::getSuccessor(Node *node) {
 
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::BinaryTree() : root(nullptr) { }
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>::BinaryTree(Key key) {
+  root = new Node(key, Data());
+}
 
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::BinaryTree(Key key, Data data) {
@@ -146,7 +152,12 @@ Data BinaryTree<Key, Data>::get(Key key) const {
   return current->data;
 }
 
-template<typename Key, typename Data>
+template <typename Key, typename Data>
+Data BinaryTree<Key, Data>::find(Key key) const {
+  return get(key);
+}
+
+template <typename Key, typename Data>
 Data BinaryTree<Key, Data>::min() const {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
@@ -193,11 +204,8 @@ BinaryTree<Key, Data>::~BinaryTree() {
     Node *current = stack->top();
     stack->pop();
 
-    if (current->left != nullptr) {
-      stack->push(current->left);
-    } else if (current->right != nullptr) {
-      stack->push(current->right);
-    }
+    if (current->left != nullptr) stack->push(current->left);
+    if (current->right != nullptr) stack->push(current->right);
 
     delete current;
   }

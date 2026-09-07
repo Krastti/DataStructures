@@ -2,7 +2,6 @@
 #define DATASTRUCTURES_BST_H
 
 #include "../Stack/stack.h"
-#include <iostream>
 
 template<typename Key, typename Data>
 class BinaryTree {
@@ -29,6 +28,7 @@ protected:
 
 public:
   BinaryTree();
+  explicit BinaryTree(Key key);
   explicit BinaryTree(Key key, Data data);
 
   virtual void insert(Key key, Data data);
@@ -37,13 +37,14 @@ public:
 
   Data get_root() const;
   Data get(Key key) const;
+  Data find(Key key) const;
 
   Data min() const;
   Data max() const;
 
   void print() const;
 
-  ~BinaryTree();
+  virtual ~BinaryTree();
 };
 
 #include "BinaryTree.tpp"

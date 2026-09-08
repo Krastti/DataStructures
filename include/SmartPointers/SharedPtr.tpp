@@ -4,7 +4,7 @@ template <typename T>
 SharedPtr<T>::SharedPtr() : ptr(nullptr), refCount(nullptr) {}
 
 template <typename T>
-SharedPtr<T>::SharedPtr(T *ptr) : ptr(ptr), refCount(new size_t(1)) {}
+SharedPtr<T>::SharedPtr(ElementType *ptr) : ptr(ptr), refCount(new size_t(1)) {}
 
 template <typename T>
 SharedPtr<T>::SharedPtr(const SharedPtr &other) : ptr(other.ptr), refCount(other.refCount) {
@@ -32,7 +32,11 @@ SharedPtr<T>& SharedPtr<T>::operator=(const SharedPtr &other) {
     (*refCount)--;
     if (*refCount == 0) {
       delete refCount;
-      delete ptr;
+      if constexpr (std::is_array_v<T>) {
+        delete[] ptr;
+      } else {
+        delete ptr;
+      }
     }
   }
 
@@ -55,7 +59,11 @@ SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr &&other) noexcept {
   if (refCount != nullptr) {
     (*refCount)--;
     if (*refCount == 0) {
-      delete ptr;
+      if constexpr (std::is_array_v<T>) {
+        delete[] ptr;
+      } else {
+        delete ptr;
+      }
       delete refCount;
     }
   }
@@ -69,15 +77,15 @@ SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr &&other) noexcept {
 }
 
 template <typename T>
-T* SharedPtr<T>::get() const {
+SharedPtr<T>::ElementType* SharedPtr<T>::get() const {
   return ptr;
 }
 template <typename T>
-T& SharedPtr<T>::operator*() const {
+SharedPtr<T>::ElementType& SharedPtr<T>::operator*() const {
   return *ptr;
 }
 template <typename T>
-T* SharedPtr<T>::operator->() const {
+SharedPtr<T>::ElementType* SharedPtr<T>::operator->() const {
   return ptr;
 }
 
@@ -90,12 +98,16 @@ int SharedPtr<T>::use_count() const {
 }
 
 template <typename T>
-void SharedPtr<T>::reset(T *newPtr) {
+void SharedPtr<T>::reset(ElementType *newPtr) {
   if (ptr == newPtr && refCount != nullptr) {
     (*refCount)--;
     if (*refCount == 0) {
       delete refCount;
-      delete ptr;
+      if constexpr (std::is_array_v<T>) {
+        delete[] ptr;
+      } else {
+        delete ptr;
+      }
     }
     ptr = nullptr;
     refCount = nullptr;
@@ -106,7 +118,11 @@ void SharedPtr<T>::reset(T *newPtr) {
     (*refCount)--;
     if (*refCount == 0) {
       delete refCount;
-      delete ptr;
+      if constexpr (std::is_array_v<T>) {
+        delete[] ptr;
+      } else {
+        delete ptr;
+      }
     }
     refCount = nullptr;
     ptr = nullptr;
@@ -120,13 +136,46 @@ void SharedPtr<T>::reset(T *newPtr) {
 }
 
 template <typename T>
+bool SharedPtr<T>::operator==(const SharedPtr &other) const noexcept {
+  return ptr == other.ptr;
+}
+
+template <typename T>
+bool SharedPtr<T>::operator!=(const SharedPtr &other) const noexcept {
+  return !(*this == other);
+}
+
+template <typename T>
+bool SharedPtr<T>::operator==(std::nullptr_t) const noexcept {
+  return ptr == nullptr;
+}
+
+template <typename T>
+bool SharedPtr<T>::operator!=(std::nullptr_t) const noexcept {
+  return ptr != nullptr;
+}
+
+template <typename T>
+bool operator==(std::nullptr_t, const SharedPtr<T> &ptr) noexcept {
+  return ptr == nullptr;
+}
+
+template <typename T>
+bool operator!=(std::nullptr_t, const SharedPtr<T> &ptr) noexcept {
+  return ptr != nullptr;
+}
+
+template <typename T>
 SharedPtr<T>::~SharedPtr() {
   if (refCount != nullptr) {
     (*refCount)--;
     if (*refCount == 0) {
-      delete ptr;
+      if constexpr (std::is_array_v<T>) {
+        delete[] ptr;
+      } else {
+        delete ptr;
+      }
       delete refCount;
     }
   }
 }
-

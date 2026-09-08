@@ -1,7 +1,7 @@
 #pragma once
 
 template <typename T>
-UniquePtr<T>::UniquePtr(T *ptr) : ptr(ptr) { }
+UniquePtr<T>::UniquePtr(ElementType *ptr) : ptr(ptr) { }
 
 template <typename T>
 UniquePtr<T>::UniquePtr(UniquePtr &&other) noexcept : ptr(other.ptr) {
@@ -11,7 +11,11 @@ UniquePtr<T>::UniquePtr(UniquePtr &&other) noexcept : ptr(other.ptr) {
 template <typename T>
 UniquePtr<T>& UniquePtr<T>::operator=(UniquePtr<T> &&other) noexcept {
   if (this != &other) {
-    delete ptr;
+    if constexpr (std::is_array_v<T>) {
+      delete[] ptr;
+    } else {
+      delete ptr;
+    }
 
     ptr = other.ptr;
     other.ptr = nullptr;
@@ -20,35 +24,72 @@ UniquePtr<T>& UniquePtr<T>::operator=(UniquePtr<T> &&other) noexcept {
   return *this;
 }
 template <typename T>
-T& UniquePtr<T>::operator*() const noexcept {
+typename UniquePtr<T>::ElementType& UniquePtr<T>::operator*() const noexcept {
   return *ptr;
 }
 
 template <typename T>
-T* UniquePtr<T>::operator->() const noexcept {
+typename UniquePtr<T>::ElementType* UniquePtr<T>::operator->() const noexcept {
   return ptr;
 }
 template <typename T>
-T* UniquePtr<T>::get() const noexcept {
+typename UniquePtr<T>::ElementType* UniquePtr<T>::get() const noexcept {
   return ptr;
 }
 template <typename T>
-T* UniquePtr<T>::release() noexcept {
-  T* temp = ptr;
+typename UniquePtr<T>::ElementType* UniquePtr<T>::release() noexcept {
+  ElementType* temp = ptr;
   ptr = nullptr;
   return temp;
 }
 
 template <typename T>
-void UniquePtr<T>::reset(T* newPtr) {
+void UniquePtr<T>::reset(ElementType* newPtr) {
   if (this->ptr != newPtr) {
-    delete this->ptr;
+    if constexpr (std::is_array_v<T>) {
+      delete[] this->ptr;
+    } else {
+      delete this->ptr;
+    }
   }
   this->ptr = newPtr;
 }
 
 template <typename T>
-UniquePtr<T>::~UniquePtr() {
-  delete ptr;
+bool UniquePtr<T>::operator==(const UniquePtr &other) const noexcept {
+  return ptr == other.ptr;
 }
 
+template <typename T>
+bool UniquePtr<T>::operator!=(const UniquePtr &other) const noexcept {
+  return !(*this == other);
+}
+
+template <typename T>
+bool UniquePtr<T>::operator==(std::nullptr_t) const noexcept {
+  return ptr == nullptr;
+}
+
+template <typename T>
+bool UniquePtr<T>::operator!=(std::nullptr_t) const noexcept {
+  return ptr != nullptr;
+}
+
+template <typename T>
+bool operator==(std::nullptr_t, const UniquePtr<T> &ptr) noexcept {
+  return ptr == nullptr;
+}
+
+template <typename T>
+bool operator!=(std::nullptr_t, const UniquePtr<T> &ptr) noexcept {
+  return ptr != nullptr;
+}
+
+template <typename T>
+UniquePtr<T>::~UniquePtr() {
+  if constexpr (std::is_array_v<T>) {
+    delete[] ptr;
+  } else {
+    delete ptr;
+  }
+}

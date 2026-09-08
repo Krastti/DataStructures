@@ -30,6 +30,8 @@ add_library(BinaryTree INTERFACE
         include/Trees/BinaryTree.tpp
         include/Trees/RedBlackTree.h
         include/Trees/RedBlackTree.tpp
+        include/Trees/Set.h
+        include/Trees/Set.tpp
 )
 
 add_library(Stack INTERFACE
@@ -64,6 +66,7 @@ add_executable(UnitTests
         tests/SmartPointers/SharedPtrTests.cpp
         tests/SmartPointers/UniquePtrTests.cpp
         tests/Trees/RedBlackTree.cpp
+        tests/Timer.h
 )
 
 target_link_libraries(UnitTests PRIVATE

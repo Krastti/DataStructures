@@ -152,7 +152,7 @@ namespace {
 }
 
 TEST_F(SmartPtrTest, StdUniquePtr_CreateDestroy) {
-    for (int k = 0; k < 10; k++) {
+    for (int k = 0; k < 1; k++) {
         Timer timer("std::unique_ptr create/destroy x" + std::to_string(kUniqueIterations));
         for (int i = 0; i < kUniqueIterations; ++i) {
             auto p = std::make_unique<TrackedObject>();
@@ -176,7 +176,7 @@ TEST_F(SmartPtrTest, StdUniquePtr_CreateDestroy) {
 // [Timer] std::unique_ptr create/destroy x500000: 50.9419 ms
 
 TEST_F(SmartPtrTest, CustomUniquePtr_CreateDestroy) {
-    for (int k =0; k < 10; k++) {
+    for (int k =0; k < 1; k++) {
         Timer timer("Custom UniquePtr create/destroy x" + std::to_string(kUniqueIterations));
         for (int i = 0; i < kUniqueIterations; ++i) {
             UniquePtr p(new TrackedObject());

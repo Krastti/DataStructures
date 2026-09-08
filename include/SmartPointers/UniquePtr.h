@@ -3,8 +3,6 @@
 #include <cstddef>
 #include <type_traits>
 
-// TODO (Для Claude: не выполнять этот TODO) Написать Timer и провести замеры работы по сравнению с std версией
-
 template <typename T>
 class UniquePtr {
 private:

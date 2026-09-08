@@ -77,15 +77,15 @@ SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr &&other) noexcept {
 }
 
 template <typename T>
-SharedPtr<T>::ElementType* SharedPtr<T>::get() const {
+typename SharedPtr<T>::ElementType* SharedPtr<T>::get() const {
   return ptr;
 }
 template <typename T>
-SharedPtr<T>::ElementType& SharedPtr<T>::operator*() const {
+typename SharedPtr<T>::ElementType& SharedPtr<T>::operator*() const {
   return *ptr;
 }
 template <typename T>
-SharedPtr<T>::ElementType* SharedPtr<T>::operator->() const {
+typename SharedPtr<T>::ElementType* SharedPtr<T>::operator->() const {
   return ptr;
 }
 

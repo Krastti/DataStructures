@@ -1,9 +1,12 @@
 // ReSharper disable CppDFAUnusedValue
 #include "../../include/SmartPointers/UniquePtr.h"
+#include "../Timer.h"
 #include <gtest/gtest.h>
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
+#include <string>
 #include <utility>
 
 struct TrackedObject {
@@ -85,7 +88,7 @@ TEST_F(SmartPtrTest, UniquePtr_ResetWithNewPointer_ReleasesOldAndTakesNew) {
     UniquePtr ptr(new TrackedObject());
     EXPECT_EQ(TrackedObject::liveCount, 1);
 
-    TrackedObject* secondObj = new TrackedObject();
+    auto secondObj = new TrackedObject();
     ptr.reset(secondObj);
 
     EXPECT_EQ(TrackedObject::liveCount, 1);
@@ -115,6 +118,7 @@ TEST_F(SmartPtrTest, UniquePtr_MoveConstructor_TransfersOwnership) {
 
 TEST_F(SmartPtrTest, UniquePtr_MoveAssignment_ReleasesPreviouslyOwnedResource) {
     UniquePtr ptr1(new TrackedObject());
+    // ReSharper disable once CppEntityAssignedButNoRead
     UniquePtr ptr2(new TrackedObject());
     EXPECT_EQ(TrackedObject::liveCount, 2);
 
@@ -142,3 +146,55 @@ TEST_F(SmartPtrTest, UniquePtr_Destructor_ReleasesObject) {
     }
     EXPECT_EQ(TrackedObject::liveCount, 0);
 }
+
+namespace {
+    constexpr int kUniqueIterations = 500'000;
+}
+
+TEST_F(SmartPtrTest, StdUniquePtr_CreateDestroy) {
+    for (int k = 0; k < 10; k++) {
+        Timer timer("std::unique_ptr create/destroy x" + std::to_string(kUniqueIterations));
+        for (int i = 0; i < kUniqueIterations; ++i) {
+            auto p = std::make_unique<TrackedObject>();
+        }
+        timer.stop();
+    }
+}
+
+// [Timer] std::unique_ptr create/destroy x500000: 48.3059 ms
+// [Timer] std::unique_ptr create/destroy x500000: 50.8849 ms
+// [Timer] std::unique_ptr create/destroy x500000: 46.6353 ms
+// [Timer] std::unique_ptr create/destroy x500000: 53.238 ms
+// [Timer] std::unique_ptr create/destroy x500000: 56.2345 ms
+// [Timer] std::unique_ptr create/destroy x500000: 54.5628 ms
+// [Timer] std::unique_ptr create/destroy x500000: 53.292 ms
+// [Timer] std::unique_ptr create/destroy x500000: 51.7812 ms
+// [Timer] std::unique_ptr create/destroy x500000: 51.8659 ms
+// [Timer] std::unique_ptr create/destroy x500000: 56.8523 ms
+// [Timer] std::unique_ptr create/destroy x500000: 52.4052 ms
+// [Timer] std::unique_ptr create/destroy x500000: 52.1122 ms
+// [Timer] std::unique_ptr create/destroy x500000: 50.9419 ms
+
+TEST_F(SmartPtrTest, CustomUniquePtr_CreateDestroy) {
+    for (int k =0; k < 10; k++) {
+        Timer timer("Custom UniquePtr create/destroy x" + std::to_string(kUniqueIterations));
+        for (int i = 0; i < kUniqueIterations; ++i) {
+            UniquePtr p(new TrackedObject());
+        }
+        timer.stop();
+    }
+}
+
+// [Timer] Custom UniquePtr create/destroy x500000: 33.8248 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 35.0644 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 32.7523 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 34.3824 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 34.7001 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 36.3489 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 37.0113 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 36.1236 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 34.8457 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 35.8224 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 34.8561 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 35.2651 ms
+// [Timer] Custom UniquePtr create/destroy x500000: 35.0988 ms

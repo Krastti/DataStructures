@@ -1,9 +1,13 @@
 #include "../../include/SmartPointers/SharedPtr.h"
+#include "../Timer.h"
 #include <gtest/gtest.h>
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 struct TrackedObject {
     inline static int liveCount = 0;
@@ -139,4 +143,37 @@ TEST_F(SmartPtrTest, SharedPtr_ComplexChain_SingleDeletionAtTheEnd) {
     p4 = SharedPtr<TrackedObject>();
 
     EXPECT_EQ(TrackedObject::liveCount, 0);
+}
+
+namespace {
+    constexpr int kSharedIterations = 100'000;
+    constexpr int kCopiesPerSharedObject = 10;
+}
+
+TEST_F(SmartPtrTest, StdSharedPtr_CreateCopyDestroy) {
+    Timer timer("std::shared_ptr create/copy/destroy x" + std::to_string(kSharedIterations));
+    for (int i = 0; i < kSharedIterations; ++i) {
+        std::shared_ptr<TrackedObject> original(new TrackedObject());
+
+        std::vector<std::shared_ptr<TrackedObject>> copies;
+        copies.reserve(kCopiesPerSharedObject);
+        for (int c = 0; c < kCopiesPerSharedObject; ++c) {
+            copies.push_back(original);
+        }
+    }
+    timer.stop();
+}
+
+TEST_F(SmartPtrTest, CustomSharedPtr_CreateCopyDestroy) {
+    Timer timer("Custom SharedPtr create/copy/destroy x" + std::to_string(kSharedIterations));
+    for (int i = 0; i < kSharedIterations; ++i) {
+        SharedPtr<TrackedObject> original(new TrackedObject());
+
+        std::vector<SharedPtr<TrackedObject>> copies;
+        copies.reserve(kCopiesPerSharedObject);
+        for (int c = 0; c < kCopiesPerSharedObject; ++c) {
+            copies.push_back(original);
+        }
+    }
+    timer.stop();
 }

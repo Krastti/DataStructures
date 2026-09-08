@@ -38,6 +38,9 @@ public:
 };
 
 template <typename T>
+UniquePtr(T*) -> UniquePtr<T>;
+
+template <typename T>
 bool operator==(std::nullptr_t, const UniquePtr<T> &ptr) noexcept;
 
 template <typename T>

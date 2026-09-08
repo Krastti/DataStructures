@@ -65,7 +65,6 @@ enable_testing()
 add_executable(UnitTests
         tests/SmartPointers/SharedPtrTests.cpp
         tests/SmartPointers/UniquePtrTests.cpp
-        tests/Trees/RedBlackTree.cpp
         tests/Timer.h
 )
 

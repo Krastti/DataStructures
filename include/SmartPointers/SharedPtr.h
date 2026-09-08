@@ -42,6 +42,9 @@ public:
 };
 
 template <typename T>
+SharedPtr(T*) -> SharedPtr<T>;
+
+template <typename T>
 bool operator==(std::nullptr_t, const SharedPtr<T> &ptr) noexcept;
 
 template <typename T>

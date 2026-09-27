@@ -1,24 +1,33 @@
 #ifndef DATASTRUCTURES_GRAPH_H
 #define DATASTRUCTURES_GRAPH_H
 
+#include "../Array/Array.h"
 #include "../Trees/RedBlackTree.h"
+#include <cstddef>
 
-template <typename T>
+template<typename First, typename Second>
+struct std_pair {
+  First first;
+  Second second;
+};
+
+template<typename Vertex, typename Weight>
 class Graph {
 private:
-  Map<T, T> nestedTree;
-  Map<T, T> vertexMap;
+  using Edge = std_pair<Vertex, Weight>;
+  Map<Vertex, Array<Edge>> adjacency;
+  void upsertEdge(const Vertex& from, const Vertex& to, const Weight& weight);
+
 public:
-  //
-
-  // 1, [2,3,4] -> (1,2), (1,3), (1,4)
-  // 2, [1,4] -> (1,2), (2,4) -> (2,4)
-  // 3, [1] ->
-  // 4, [1,2]
-
-  Graph() = default;
-
-  ~Graph() = default;
+  void addVertex(const Vertex& vertex);
+  void addEdge(const Vertex& from, const Vertex& to, const Weight& weight);
+  [[nodiscard]] bool containsVertex(const Vertex& vertex) const;
+  [[nodiscard]] const Array<Edge>& neighbors(const Vertex& vertex) const;
+  [[nodiscard]] Array<Vertex> vertices() const;
+  [[nodiscard]] size_t vertexCount() const;
+  [[nodiscard]] size_t edgeCount() const;
 };
+
+#include "Graph.tpp"
 
 #endif // DATASTRUCTURES_GRAPH_H

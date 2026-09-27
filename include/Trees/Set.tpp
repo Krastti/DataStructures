@@ -1,5 +1,6 @@
 #pragma once
 #include <stdexcept>
+#include <utility>
 
 template <typename Key>
 Set<Key>::Set() : root(nullptr) {}
@@ -10,72 +11,63 @@ Set<Key>::Set(Key key) : root(new Node(key)) {}
 template <typename Key>
 void Set<Key>::insert(Key key) {
   if (root == nullptr) {
-    root = new Node(key);
+    root.reset(new Node(std::move(key)));
     return;
   }
 
-  Node* current = root;
+  Node* current = root.get();
   Node* parent = nullptr;
 
   while (current != nullptr) {
     parent = current;
 
-    if (current->key > key) current = current->left;
-    else if (current->key < key) current = current->right;
+    if (current->key > key) current = current->left.get();
+    else if (current->key < key) current = current->right.get();
+    else return;
   }
 
-  current = new Node(key);
+  UniquePtr<Node> inserted(new Node(std::move(key), parent));
 
-  if (current->key < parent->key) parent->left = current;
-  else if (current->key > parent->key) parent->right = current;
-  current->parent = parent;
+  if (inserted->key < parent->key) parent->left = std::move(inserted);
+  else parent->right = std::move(inserted);
 }
 
 template <typename Key>
-void Set<Key>::remove(Key key) {
-  if (root == nullptr) throw std::logic_error("Root is NULL");
-
-  Node** current = &root;
-  Node* parent = nullptr;
-  Node* son = nullptr;
-
-  while (*current != nullptr && (*current)->key != key) {
-    if ((*current)->key > key) current = &((*current)->left);
-    else if ((*current)->key < key) current = &((*current)->right);
+bool Set<Key>::contains(const Key& key) const {
+  Node* current = root.get();
+  while (current != nullptr) {
+    if (current->key == key) return true;
+    current = current->key > key ? current->left.get() : current->right.get();
   }
-  if (*current == nullptr) throw std::out_of_range("Key does not exist");
-  if (*current-> key == key) throw std::out_of_range("Key already exists");
+  return false;
+}
 
-  // Случай, когда нет потомком или один потомок
-  if ((*current)->right == nullptr || (*current)->left == nullptr) {
-    parent = (*current)->parent;
+template <typename Key>
+void Set<Key>::remove(const Key& key) {
+  Node* target = root.get();
+  while (target != nullptr && target->key != key) {
+    target = target->key > key ? target->left.get() : target->right.get();
+  }
+  if (target == nullptr) throw std::out_of_range("Key does not exist");
 
-    if ((*current)->left != nullptr) son = (*current)->left;
-    else if ((*current)->right != nullptr) son = (*current)->right;
-
-    if (son != nullptr) son->parent = parent;
-    if (parent == nullptr) {
-      delete *current;
-      root = son;
-    } else if (*current == parent->left) {
-      delete *current;
-      parent->left = son;
-    } else if (*current == parent->right) {
-      delete *current;
-      parent->right = son;
-    }
+  if (target->left != nullptr && target->right != nullptr) {
+    Node* successor = target->right.get();
+    while (successor->left != nullptr) successor = successor->left.get();
+    target->key = successor->key;
+    target = successor;
   }
 
-  // Случай, когда два потомка
-  else if ((*current)->left != nullptr && (*current)->right != nullptr) {
-    son = getSuccessor(*current);
+  Node* parent = target->parent;
+  UniquePtr<Node> replacement;
+  if (target->left != nullptr) replacement = std::move(target->left);
+  else if (target->right != nullptr) replacement = std::move(target->right);
+  if (replacement != nullptr) replacement->parent = parent;
 
-    if (son != (*current)->right) son->parent->left = son->right;
-    else (*current)->right = son->right;
-
-    if (son->right != nullptr) son->right->parent = son->parent;
-    (*current)->key = son->key;
-    (*current)->data = son->data;
-    delete son;
+  if (parent == nullptr) {
+    root = std::move(replacement);
+  } else if (parent->left.get() == target) {
+    parent->left = std::move(replacement);
+  } else {
+    parent->right = std::move(replacement);
   }
 }

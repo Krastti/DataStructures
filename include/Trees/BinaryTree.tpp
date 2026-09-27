@@ -22,22 +22,39 @@ BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::getSuccessor(Node *node) {
 }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree() : root(nullptr) { }
+BinaryTree<Key, Data>::BinaryTree() : root(nullptr), nodeCount(0) { }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree(Key key) {
+BinaryTree<Key, Data>::BinaryTree(Key key) : root(nullptr), nodeCount(0) {
   root = new Node(key, Data());
+  nodeCount = 1;
 }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree(Key key, Data data) {
+BinaryTree<Key, Data>::BinaryTree(Key key, Data data) : root(nullptr), nodeCount(0) {
   root = new Node(key, data);
+  nodeCount = 1;
+}
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>::BinaryTree(BinaryTree&& other) noexcept
+  : root(std::exchange(other.root, nullptr)), nodeCount(std::exchange(other.nodeCount, 0)) {}
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>& BinaryTree<Key, Data>::operator=(BinaryTree&& other) noexcept {
+  if (this != &other) {
+    clear();
+    root = std::exchange(other.root, nullptr);
+    nodeCount = std::exchange(other.nodeCount, 0);
+  }
+  return *this;
 }
 
 template <typename Key, typename Data>
 void BinaryTree<Key, Data>::insert(Key key, Data data) {
   if (root == nullptr) {
     root = new Node(key, data);
+    nodeCount = 1;
     return;
   }
 
@@ -49,6 +66,7 @@ void BinaryTree<Key, Data>::insert(Key key, Data data) {
 
     if (current->key > key) current = current->left;
     else if (current->key < key) current = current->right;
+    else return;
   }
 
   current = new Node(key, data);
@@ -56,6 +74,7 @@ void BinaryTree<Key, Data>::insert(Key key, Data data) {
   if (current->key < parent->key) parent->left = current;
   else if (current->key > parent->key) parent->right = current;
   current->parent = parent;
+  ++nodeCount;
 }
 
 template<typename Key, typename Data>
@@ -104,6 +123,7 @@ void BinaryTree<Key, Data>::remove(Key key) {
     (*current)->data = son->data;
     delete son;
   }
+  --nodeCount;
 }
 
 template<typename Key, typename Data>
@@ -156,6 +176,101 @@ Data BinaryTree<Key, Data>::find(Key key) const {
   return get(key);
 }
 
+template<typename Key, typename Data>
+Data& BinaryTree<Key, Data>::at(const Key& key) {
+  Node* current = root;
+  while (current != nullptr) {
+    if (current->key == key) return current->data;
+    current = current->key > key ? current->left : current->right;
+  }
+  throw std::out_of_range("Key does not exist");
+}
+
+template<typename Key, typename Data>
+const Data& BinaryTree<Key, Data>::at(const Key& key) const {
+  const Node* current = root;
+  while (current != nullptr) {
+    if (current->key == key) return current->data;
+    current = current->key > key ? current->left : current->right;
+  }
+  throw std::out_of_range("Key does not exist");
+}
+
+template<typename Key, typename Data>
+bool BinaryTree<Key, Data>::containsKey(const Key& key) const {
+  const Node* current = root;
+  while (current != nullptr) {
+    if (current->key == key) return true;
+    current = current->key > key ? current->left : current->right;
+  }
+  return false;
+}
+
+template<typename Key, typename Data>
+size_t BinaryTree<Key, Data>::size() const noexcept { return nodeCount; }
+
+template<typename Key, typename Data>
+Array<std::pair<Key, Data>> BinaryTree<Key, Data>::entries() const {
+  Array<std::pair<Key, Data>> result;
+  Stack<Node*> nodes;
+  Node* current = root;
+
+  while (current != nullptr || !nodes.empty()) {
+    while (current != nullptr) {
+      nodes.push(current);
+      current = current->left;
+    }
+    current = nodes.top();
+    nodes.pop();
+    result.push_back({current->key, current->data});
+    current = current->right;
+  }
+  return result;
+}
+
+template<typename Key, typename Data>
+Array<Key> BinaryTree<Key, Data>::keys() const {
+  Array<Key> result;
+  Stack<Node*> nodes;
+  Node* current = root;
+  while (current != nullptr || !nodes.empty()) {
+    while (current != nullptr) {
+      nodes.push(current);
+      current = current->left;
+    }
+    current = nodes.top();
+    nodes.pop();
+    result.push_back(current->key);
+    current = current->right;
+  }
+  return result;
+}
+
+template<typename Key, typename Data>
+Array<std::pair<Key, Data>> BinaryTree<Key, Data>::range(const Key& first, const Key& last) const {
+  if (first > last) throw std::invalid_argument("The first key must not exceed the last key");
+  Array<std::pair<Key, Data>> result;
+  Stack<Node*> nodes;
+  Node* current = root;
+  while (current != nullptr || !nodes.empty()) {
+    while (current != nullptr) {
+      if (current->key >= first) {
+        nodes.push(current);
+        current = current->left;
+      } else {
+        current = current->right;
+      }
+    }
+    if (nodes.empty()) break;
+    current = nodes.top();
+    nodes.pop();
+    if (current->key > last) break;
+    result.push_back({current->key, current->data});
+    current = current->right;
+  }
+  return result;
+}
+
 template <typename Key, typename Data>
 Data BinaryTree<Key, Data>::min() const {
   if (root == nullptr) throw std::logic_error("Root is NULL");
@@ -193,8 +308,11 @@ void BinaryTree<Key, Data>::print() const {
 }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::~BinaryTree() {
-  if (root == nullptr) return;
+void BinaryTree<Key, Data>::clear() noexcept {
+  if (root == nullptr) {
+    nodeCount = 0;
+    return;
+  }
 
   auto stack = new Stack<Node*>;
   stack->push(root);
@@ -209,4 +327,11 @@ BinaryTree<Key, Data>::~BinaryTree() {
     delete current;
   }
   delete stack;
+  root = nullptr;
+  nodeCount = 0;
+}
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>::~BinaryTree() {
+  clear();
 }

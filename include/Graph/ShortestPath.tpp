@@ -59,8 +59,8 @@ public:
 
 template<typename Weight, typename Vertex>
 struct ShortestStateOrder {
-  bool operator()(const pair<Weight, Vertex>& left,
-                  const pair<Weight, Vertex>& right) const {
+  bool operator()(const Pair<Weight, Vertex>& left,
+                  const Pair<Weight, Vertex>& right) const {
     if (left.first < right.first) return true;
     if (right.first < left.first) return false;
     return left.second < right.second;
@@ -122,7 +122,7 @@ PathResult<Vertex, Weight> dijkstra(const Graph<Vertex, Weight>& graph,
   for (size_t i = 0; i < vertices.size(); ++i) distances.insert(vertices[i], std::nullopt);
   distances.at(source) = Weight{};
 
-  using State = pair<Weight, Vertex>;
+  using State = Pair<Weight, Vertex>;
   ArrayMinHeap<State, ShortestStateOrder<Weight, Vertex>> pending;
   pending.push(State{Weight{}, source});
   while (!pending.empty()) {
@@ -190,9 +190,9 @@ PathResult<Vertex, Weight> bellmanFord(const Graph<Vertex, Weight>& graph,
 }
 
 template<typename Vertex, typename Weight>
-Graph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_t extraEdges,
-                                            Weight minWeight, Weight maxWeight,
-                                            unsigned int seed) {
+UndirectedGraph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_t extraEdges,
+                                                       Weight minWeight, Weight maxWeight,
+                                                       unsigned int seed) {
   if (vertexCount == 0) throw std::invalid_argument("A graph must contain at least one vertex");
   if (vertexCount > 2000) throw std::invalid_argument("The generator is limited to 2000 vertices");
   if (minWeight < Weight{} || maxWeight < minWeight) {
@@ -204,7 +204,7 @@ Graph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_t extraEdg
     throw std::invalid_argument("Too many extra edges for a simple connected graph");
   }
 
-  Graph<Vertex, Weight> graph;
+  UndirectedGraph<Vertex, Weight> graph;
   for (size_t i = 0; i < vertexCount; ++i) graph.addVertex(static_cast<Vertex>(i));
   std::mt19937 random(seed);
   for (size_t i = 1; i < vertexCount; ++i) {
@@ -212,9 +212,47 @@ Graph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_t extraEdg
                   generateWeight(random, minWeight, maxWeight));
   }
 
-  Array<pair<size_t, size_t>> candidates;
+  Array<Pair<size_t, size_t>> candidates;
   for (size_t from = 0; from < vertexCount; ++from) {
     for (size_t to = from + 2; to < vertexCount; ++to) candidates.push_back({from, to});
+  }
+  if (candidates.size() > 1) std::shuffle(&candidates[0], &candidates[0] + candidates.size(), random);
+  for (size_t i = 0; i < extraEdges; ++i) {
+    graph.addEdge(static_cast<Vertex>(candidates[i].first), static_cast<Vertex>(candidates[i].second),
+                  generateWeight(random, minWeight, maxWeight));
+  }
+  return graph;
+}
+
+template<typename Vertex, typename Weight>
+DirectedGraph<Vertex, Weight> generateStronglyConnectedDirectedGraph(
+    size_t vertexCount, size_t extraEdges, Weight minWeight, Weight maxWeight,
+    unsigned int seed) {
+  if (vertexCount == 0) throw std::invalid_argument("A graph must contain at least one vertex");
+  if (vertexCount > 2000) throw std::invalid_argument("The generator is limited to 2000 vertices");
+  if (minWeight < Weight{} || maxWeight < minWeight) {
+    throw std::invalid_argument("Weights must form a non-negative range");
+  }
+  static_assert(std::is_arithmetic_v<Weight>, "The graph generator requires an arithmetic weight type");
+  const size_t cycleEdges = vertexCount == 1 ? 0 : vertexCount;
+  const size_t possibleEdges = vertexCount * (vertexCount - 1);
+  if (extraEdges > possibleEdges - cycleEdges) {
+    throw std::invalid_argument("Too many extra edges for a simple strongly connected graph");
+  }
+
+  DirectedGraph<Vertex, Weight> graph;
+  for (size_t i = 0; i < vertexCount; ++i) graph.addVertex(static_cast<Vertex>(i));
+  std::mt19937 random(seed);
+  for (size_t i = 0; i < cycleEdges; ++i) {
+    graph.addEdge(static_cast<Vertex>(i), static_cast<Vertex>((i + 1) % vertexCount),
+                  generateWeight(random, minWeight, maxWeight));
+  }
+
+  Array<Pair<size_t, size_t>> candidates;
+  for (size_t from = 0; from < vertexCount; ++from) {
+    for (size_t to = 0; to < vertexCount; ++to) {
+      if (from != to && (from + 1) % vertexCount != to) candidates.push_back({from, to});
+    }
   }
   if (candidates.size() > 1) std::shuffle(&candidates[0], &candidates[0] + candidates.size(), random);
   for (size_t i = 0; i < extraEdges; ++i) {

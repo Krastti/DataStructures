@@ -33,7 +33,12 @@ private:
     int getColor(Key key) const;
 
 public:
+    RedBlackTree() = default;
     explicit RedBlackTree(Key key);
+    RedBlackTree(const RedBlackTree&) = delete;
+    RedBlackTree& operator=(const RedBlackTree&) = delete;
+    RedBlackTree(RedBlackTree&& other) noexcept = default;
+    RedBlackTree& operator=(RedBlackTree&& other) noexcept = default;
 
     void insert(Key key, Data data) override;
     void remove(Key key) override;

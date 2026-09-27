@@ -10,13 +10,9 @@ protected:
     Key key;
     UniquePtr<Node> left;
     UniquePtr<Node> right;
-    UniquePtr<Node> parent;
+    Node* parent;
 
-    explicit Node(Key key, Node* left = nullptr, Node* right = nullptr, Node* parent = nullptr) : key(key) {
-      this->left(left);
-      this->right(right);
-      this->parent(parent);
-    }
+    explicit Node(Key key, Node* parent = nullptr) : key(std::move(key)), parent(parent) {}
   };
 
   UniquePtr<Node> root;
@@ -26,7 +22,8 @@ public:
   explicit Set(Key key);
 
   void insert(Key key);
-  void remove(Key key);
+  void remove(const Key& key);
+  [[nodiscard]] bool contains(const Key& key) const;
 
   ~Set() = default;
 };

@@ -222,12 +222,14 @@ int RedBlackTree<Key, Data>::getColor(Key key) const {
 template <typename Key, typename Data>
 RedBlackTree<Key, Data>::RedBlackTree(Key key) {
   this->root = new RBNode(key, Data(), Color::BLACK);
+  this->nodeCount = 1;
 }
 
 template <typename Key, typename Data>
 void RedBlackTree<Key, Data>::insert(Key key, Data data) {
   if (this->root == nullptr) {
     this->root = new RBNode(key, data, Color::BLACK);
+    this->nodeCount = 1;
     return;
   }
 
@@ -248,6 +250,7 @@ void RedBlackTree<Key, Data>::insert(Key key, Data data) {
   else parent->right = newNode;
   newNode->parent = parent;
 
+  ++this->nodeCount;
   fixInsert(newNode);
 }
 
@@ -297,6 +300,7 @@ void RedBlackTree<Key, Data>::remove(Key key) {
 
     if (wasBlack) fixRemove(static_cast<RBNode*>(son), static_cast<RBNode*>(parent));
   }
+  --this->nodeCount;
 }
 
 template <typename Key, typename Data>

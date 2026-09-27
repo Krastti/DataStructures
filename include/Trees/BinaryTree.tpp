@@ -63,8 +63,8 @@ void BinaryTree<Key, Data>::remove(Key key) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
   Node** current = &root;
-  Node* par = nullptr;
-  Node* p = nullptr;
+  Node* parent = nullptr;
+  Node* son = nullptr;
 
   while (*current != nullptr && (*current)->key != key) {
     if ((*current)->key > key) current = &((*current)->left);
@@ -72,38 +72,37 @@ void BinaryTree<Key, Data>::remove(Key key) {
   }
   if (*current == nullptr) throw std::out_of_range("Key does not exist");
 
-
   // Случай, когда нет потомком или один потомок
   if ((*current)->right == nullptr || (*current)->left == nullptr) {
-    par = (*current)->parent;
+    parent = (*current)->parent;
 
-    if ((*current)->left != nullptr) p = (*current)->left;
-    else if ((*current)->right != nullptr) p = (*current)->right;
+    if ((*current)->left != nullptr) son = (*current)->left;
+    else if ((*current)->right != nullptr) son = (*current)->right;
 
-    if (p != nullptr) p->parent = par;
-    if (par == nullptr) {
+    if (son != nullptr) son->parent = parent;
+    if (parent == nullptr) {
       delete *current;
-      root = p;
-    } else if (*current == par->left) {
+      root = son;
+    } else if (*current == parent->left) {
       delete *current;
-      par->left = p;
-    } else if (*current == par->right) {
+      parent->left = son;
+    } else if (*current == parent->right) {
       delete *current;
-      par->right = p;
+      parent->right = son;
     }
   }
 
   // Случай, когда два потомка
   else if ((*current)->left != nullptr && (*current)->right != nullptr) {
-    p = getSuccessor(*current);
+    son = getSuccessor(*current);
 
-    if (p != (*current)->right) p->parent->left = p->right;
-    else (*current)->right = p->right;
+    if (son != (*current)->right) son->parent->left = son->right;
+    else (*current)->right = son->right;
 
-    if (p->right != nullptr) p->right->parent = p->parent;
-    (*current)->key = p->key;
-    (*current)->data = p->data;
-    delete p;
+    if (son->right != nullptr) son->right->parent = son->parent;
+    (*current)->key = son->key;
+    (*current)->data = son->data;
+    delete son;
   }
 }
 

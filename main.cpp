@@ -1,17 +1,16 @@
+#include "include/SmartPointers/UniquePtr.h"
+
 #include <iostream>
-#include "include/Trees/BinaryTree.h"
-#include "include/Stack/stack.h"
 
 int main() {
-    BinaryTree tree(6, 10);
-    tree.insert(3, 6);
-    tree.insert(2, 2);
-    tree.insert(4, 4);
-    tree.insert(8, 8);
-    tree.insert(13, 13);
-    tree.insert(9, 9);
 
-    tree.print();
+  UniquePtr arr(new int[5]());
 
-    return 0;
+  for (int i = 0; i < 5; i++) {
+    arr.get()[i] = i;
+  }
+
+  std::cout << arr.get() << std::endl;
+
+  return 0;
 }

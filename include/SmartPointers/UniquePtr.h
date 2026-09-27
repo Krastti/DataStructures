@@ -3,6 +3,13 @@
 #include <cstddef>
 #include <type_traits>
 
+// TODO Добавить оператор []
+// TODO Решить проблему с наследованием
+
+/*
+ * Если создается умный указатлеь на дочерний объект ... 
+ */
+
 template <typename T>
 class UniquePtr {
 private:

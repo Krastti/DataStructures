@@ -59,8 +59,8 @@ public:
 
 template<typename Weight, typename Vertex>
 struct ShortestStateOrder {
-  bool operator()(const std_pair<Weight, Vertex>& left,
-                  const std_pair<Weight, Vertex>& right) const {
+  bool operator()(const pair<Weight, Vertex>& left,
+                  const pair<Weight, Vertex>& right) const {
     if (left.first < right.first) return true;
     if (right.first < left.first) return false;
     return left.second < right.second;
@@ -122,7 +122,7 @@ PathResult<Vertex, Weight> dijkstra(const Graph<Vertex, Weight>& graph,
   for (size_t i = 0; i < vertices.size(); ++i) distances.insert(vertices[i], std::nullopt);
   distances.at(source) = Weight{};
 
-  using State = std_pair<Weight, Vertex>;
+  using State = pair<Weight, Vertex>;
   ArrayMinHeap<State, ShortestStateOrder<Weight, Vertex>> pending;
   pending.push(State{Weight{}, source});
   while (!pending.empty()) {
@@ -212,7 +212,7 @@ Graph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_t extraEdg
                   generateWeight(random, minWeight, maxWeight));
   }
 
-  Array<std_pair<size_t, size_t>> candidates;
+  Array<pair<size_t, size_t>> candidates;
   for (size_t from = 0; from < vertexCount; ++from) {
     for (size_t to = from + 2; to < vertexCount; ++to) candidates.push_back({from, to});
   }

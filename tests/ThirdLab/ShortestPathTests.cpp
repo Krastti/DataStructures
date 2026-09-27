@@ -7,12 +7,12 @@
 #include <type_traits>
 
 TEST(ShortestPathTests, CustomPairStoresValuesAndSupportsStructuredBindings) {
-  std_pair<std::string, int> pair{"vertex", 7};
-  auto& [vertex, weight] = pair;
+  pair<std::string, int> value{"vertex", 7};
+  auto& [vertex, weight] = value;
   weight = 9;
   EXPECT_EQ(vertex, "vertex");
-  EXPECT_EQ(pair.second, 9);
-  static_assert(std::is_same_v<decltype(Graph<int, int>{}.neighbors(0)[0]), const std_pair<int, int>&>);
+  EXPECT_EQ(value.second, 9);
+  static_assert(std::is_same_v<decltype(Graph<int, int>{}.neighbors(0)[0]), const pair<int, int>&>);
 }
 
 TEST(ShortestPathTests, DijkstraAndBellmanFordReturnSameShortestPath) {

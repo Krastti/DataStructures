@@ -6,7 +6,7 @@
 #include <cstddef>
 
 template<typename First, typename Second>
-struct std_pair {
+struct pair {
   First first;
   Second second;
 };
@@ -14,7 +14,7 @@ struct std_pair {
 template<typename Vertex, typename Weight>
 class Graph {
 private:
-  using Edge = std_pair<Vertex, Weight>;
+  using Edge = pair<Vertex, Weight>;
   Map<Vertex, Array<Edge>> adjacency;
   void upsertEdge(const Vertex& from, const Vertex& to, const Weight& weight);
 

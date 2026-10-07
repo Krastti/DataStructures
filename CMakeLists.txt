@@ -58,6 +58,8 @@ add_library(SmartPointer INTERFACE
 )
 
 add_library(Graph INTERFACE
+        include/Optional/Optional.h
+        include/Optional/Optional.tpp
         include/Graph/Graph.h
         include/Graph/AdjacencyGraph.h
         include/Graph/AdjacencyGraph.tpp

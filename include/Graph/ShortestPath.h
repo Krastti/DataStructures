@@ -2,7 +2,7 @@
 #define DATASTRUCTURES_SHORTEST_PATH_H
 
 #include "AdjacencyGraph.h"
-#include <optional>
+#include "../Optional/Optional.h"
 
 template<typename Vertex, typename Weight>
 struct PathResult {
@@ -12,8 +12,10 @@ struct PathResult {
 };
 
 template<typename Vertex, typename Weight>
-PathResult<Vertex, Weight> dijkstra(const Graph<Vertex, Weight>& graph,
-                                    const Vertex& source, const Vertex& target);
+PathResult<Vertex, Weight> dijkstra(const Graph<Vertex,
+                                    Weight>& graph,
+                                    const Vertex& source,
+                                    const Vertex& target);
 
 template<typename Vertex, typename Weight>
 PathResult<Vertex, Weight> bellmanFord(const Graph<Vertex, Weight>& graph,

@@ -8,6 +8,7 @@ void AdjacencyGraph<Vertex, Weight>::addVertex(const Vertex& vertex) {
 template<typename Vertex, typename Weight>
 bool AdjacencyGraph<Vertex, Weight>::upsertEdge(const Vertex& from, const Vertex& to, const Weight& weight) {
   Array<Edge>& edges = adjacency.at(from);
+
   for (size_t i = 0; i < edges.size(); ++i) {
     Edge& edge = edges[i];
     if (edge.first == to) {

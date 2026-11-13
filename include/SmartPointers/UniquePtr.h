@@ -26,14 +26,14 @@ private:
   void destroy() noexcept;
 
   template<typename U>
-  void resetAs(U* newPtr);
+  void resetAs(U* newPtr) noexcept;
 
 public:
-  explicit UniquePtr(ElementType* ptr = nullptr) noexcept;
+  UniquePtr(std::nullptr_t = nullptr) noexcept;
 
   template<typename U>
   requires std::is_convertible_v<U*, ElementType*> &&
-           (!std::is_array_v<T> || std::is_same_v<U, ElementType>)
+           (!std::is_array_v<T> || std::is_convertible_v<U(*)[], ElementType(*)[]>)
   explicit UniquePtr(U* ptr) noexcept;
 
   UniquePtr(const UniquePtr&) = delete;
@@ -58,13 +58,16 @@ public:
   ElementType& operator[](size_t index) const noexcept requires (std::is_array_v<T>);
 
   ElementType* get() const noexcept;
-  ElementType* release() noexcept;
-  void reset(ElementType* newPtr = nullptr);
+  // The caller must preserve the original deletion type after release().
+  [[nodiscard]] ElementType* release() noexcept;
+  void swap(UniquePtr& other) noexcept;
+  explicit operator bool() const noexcept;
+  void reset(std::nullptr_t = nullptr) noexcept;
 
   template<typename U>
   requires std::is_convertible_v<U*, ElementType*> &&
-           (!std::is_array_v<T> || std::is_same_v<U, ElementType>)
-  void reset(U* newPtr);
+           (!std::is_array_v<T> || std::is_convertible_v<U(*)[], ElementType(*)[]>)
+  void reset(U* newPtr) noexcept;
 
   bool operator==(const UniquePtr &other) const noexcept;
   bool operator!=(const UniquePtr &other) const noexcept;

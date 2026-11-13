@@ -1,40 +1,67 @@
 #ifndef DATASTRUCTURES_SHAREDPTR_H
 #define DATASTRUCTURES_SHAREDPTR_H
 
+#include <atomic>
 #include <cstddef>
 #include <type_traits>
+#include <utility>
 
+// Separate owners can be copied/destroyed concurrently. Mutating the same
+// SharedPtr instance or the managed object still requires synchronization.
 template <typename T>
 class SharedPtr {
 private:
   using ElementType = std::remove_extent_t<T>;
+  using Deleter = void (*)(void*) noexcept;
+
+  struct ControlBlock {
+    std::atomic<std::size_t> refCount{1};
+    void* ownedAddress;
+    Deleter deleter;
+
+    ControlBlock(void* address, Deleter destroy) noexcept
+      : ownedAddress(address), deleter(destroy) {}
+  };
 
   ElementType* ptr;
-  size_t* refCount;
+  ControlBlock* control;
+
+  template<typename U>
+  static void deleteOwned(void* address) noexcept;
+
+  void destroy() noexcept;
 
 public:
-  SharedPtr();
-  explicit SharedPtr(ElementType* ptr);
+  SharedPtr(std::nullptr_t = nullptr) noexcept;
 
-  SharedPtr(const SharedPtr &other);
-  SharedPtr(SharedPtr &&other) noexcept;
+  template<typename U>
+  requires std::is_convertible_v<U*, ElementType*> &&
+           (!std::is_array_v<T> || std::is_convertible_v<U(*)[], ElementType(*)[]>)
+  explicit SharedPtr(U* ptr);
 
-  SharedPtr& operator=(const SharedPtr &other);
-  SharedPtr& operator=(SharedPtr &&other) noexcept;
+  SharedPtr(const SharedPtr& other) noexcept;
+  SharedPtr(SharedPtr&& other) noexcept;
 
-  ElementType* get() const;
+  SharedPtr& operator=(const SharedPtr& other) noexcept;
+  SharedPtr& operator=(SharedPtr&& other) noexcept;
 
-  ElementType& operator*() const;
+  ElementType* get() const noexcept;
+  ElementType& operator*() const noexcept requires (!std::is_array_v<T>);
+  ElementType* operator->() const noexcept requires (!std::is_array_v<T>);
+  ElementType& operator[](std::size_t index) const noexcept requires (std::is_array_v<T>);
 
-  ElementType* operator->() const;
+  [[nodiscard]] std::size_t use_count() const noexcept;
+  explicit operator bool() const noexcept;
+  void swap(SharedPtr& other) noexcept;
+  void reset(std::nullptr_t = nullptr) noexcept;
 
-  [[nodiscard]] int use_count() const;
+  template<typename U>
+  requires std::is_convertible_v<U*, ElementType*> &&
+           (!std::is_array_v<T> || std::is_convertible_v<U(*)[], ElementType(*)[]>)
+  void reset(U* newPtr);
 
-  void reset(ElementType* newPtr = nullptr);
-
-  bool operator==(const SharedPtr &other) const noexcept;
-  bool operator!=(const SharedPtr &other) const noexcept;
-
+  bool operator==(const SharedPtr& other) const noexcept;
+  bool operator!=(const SharedPtr& other) const noexcept;
   bool operator==(std::nullptr_t) const noexcept;
   bool operator!=(std::nullptr_t) const noexcept;
 
@@ -45,10 +72,10 @@ template <typename T>
 SharedPtr(T*) -> SharedPtr<T>;
 
 template <typename T>
-bool operator==(std::nullptr_t, const SharedPtr<T> &ptr) noexcept;
+bool operator==(std::nullptr_t, const SharedPtr<T>& ptr) noexcept;
 
 template <typename T>
-bool operator!=(std::nullptr_t, const SharedPtr<T> &ptr) noexcept;
+bool operator!=(std::nullptr_t, const SharedPtr<T>& ptr) noexcept;
 
 #include "SharedPtr.tpp"
 

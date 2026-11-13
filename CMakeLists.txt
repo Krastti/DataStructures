@@ -83,6 +83,7 @@ enable_testing()
 add_executable(UnitTests
         tests/SmartPointers/SharedPtrTests.cpp
         tests/SmartPointers/UniquePtrTests.cpp
+        tests/SmartPointers/SmartPointerSafetyTests.cpp
         tests/Array/ArrayTests.cpp
         tests/Trees/BinaryTreeTests.cpp
         tests/SecondLab/AlphabeticalIndexTests.cpp
@@ -92,7 +93,10 @@ add_executable(UnitTests
         tests/Timer.h
     )
 
+find_package(Threads REQUIRED)
+
 target_link_libraries(UnitTests PRIVATE
+        Threads::Threads
         SmartPointer
         BinaryTree
         Graph
@@ -103,3 +107,8 @@ target_include_directories(UnitTests PRIVATE include)
 
 include(GoogleTest)
 gtest_discover_tests(UnitTests)
+
+add_executable(SharedPtrAllocationTests tests/SmartPointers/SharedPtrAllocationTests.cpp)
+target_link_libraries(SharedPtrAllocationTests PRIVATE SmartPointer GTest::gtest_main)
+target_include_directories(SharedPtrAllocationTests PRIVATE include)
+gtest_discover_tests(SharedPtrAllocationTests)

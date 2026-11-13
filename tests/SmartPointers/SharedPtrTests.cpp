@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+namespace {
+
 struct TrackedObject {
     inline static int liveCount = 0;
     bool isDestroyed = false;
@@ -27,7 +29,7 @@ struct TrackedObject {
     }
 };
 
-class SmartPtrTest : public ::testing::Test {
+class SharedPtrTest : public ::testing::Test {
 protected:
     void SetUp() override {
         TrackedObject::liveCount = 0;
@@ -38,14 +40,14 @@ protected:
     }
 };
 
-TEST_F(SmartPtrTest, SharedPtr_Creation_RawPointer) {
+TEST_F(SharedPtrTest, SharedPtr_Creation_RawPointer) {
     SharedPtr<TrackedObject> ptr(new TrackedObject());
     EXPECT_EQ(ptr.use_count(), 1);
     EXPECT_NE(ptr.get(), nullptr);
     EXPECT_EQ(TrackedObject::liveCount, 1);
 }
 
-TEST_F(SmartPtrTest, SharedPtr_Copying_IncrementsUseCountAndDelaysDeletion) {
+TEST_F(SharedPtrTest, SharedPtr_Copying_IncrementsUseCountAndDelaysDeletion) {
     SharedPtr ptr1(new TrackedObject());
     {
         SharedPtr ptr2(ptr1);
@@ -57,7 +59,7 @@ TEST_F(SmartPtrTest, SharedPtr_Copying_IncrementsUseCountAndDelaysDeletion) {
     EXPECT_EQ(TrackedObject::liveCount, 1);
 }
 
-TEST_F(SmartPtrTest, SharedPtr_CopyAssignment_ReleasesPreviouslyOwnedResource) {
+TEST_F(SharedPtrTest, SharedPtr_CopyAssignment_ReleasesPreviouslyOwnedResource) {
     SharedPtr ptr1(new TrackedObject());
     SharedPtr ptr2(new TrackedObject());
     EXPECT_EQ(TrackedObject::liveCount, 2);
@@ -69,7 +71,7 @@ TEST_F(SmartPtrTest, SharedPtr_CopyAssignment_ReleasesPreviouslyOwnedResource) {
     EXPECT_EQ(TrackedObject::liveCount, 1);
 }
 
-TEST_F(SmartPtrTest, SharedPtr_SelfCopyAssignment_DoesNotCrashAndKeepsUseCount) {
+TEST_F(SharedPtrTest, SharedPtr_SelfCopyAssignment_DoesNotCrashAndKeepsUseCount) {
     SharedPtr ptr(new TrackedObject());
     ptr = ptr;
 
@@ -77,7 +79,7 @@ TEST_F(SmartPtrTest, SharedPtr_SelfCopyAssignment_DoesNotCrashAndKeepsUseCount) 
     EXPECT_EQ(TrackedObject::liveCount, 1);
 }
 
-TEST_F(SmartPtrTest, SharedPtr_MoveConstructorAndAssignment_DoNotIncreaseUseCount) {
+TEST_F(SharedPtrTest, SharedPtr_MoveConstructorAndAssignment_DoNotIncreaseUseCount) {
     SharedPtr ptr1(new TrackedObject());
     SharedPtr ptr2(std::move(ptr1));
 
@@ -92,14 +94,14 @@ TEST_F(SmartPtrTest, SharedPtr_MoveConstructorAndAssignment_DoNotIncreaseUseCoun
     EXPECT_EQ(TrackedObject::liveCount, 1);
 }
 
-TEST_F(SmartPtrTest, SharedPtr_SelfMoveAssignment_DoesNotCrash) {
+TEST_F(SharedPtrTest, SharedPtr_SelfMoveAssignment_DoesNotCrash) {
     SharedPtr ptr(new TrackedObject());
     ptr = std::move(ptr);
 
     SUCCEED();
 }
 
-TEST_F(SmartPtrTest, SharedPtr_UseCount_ZeroForDefaultConstructedAndMovedFrom) {
+TEST_F(SharedPtrTest, SharedPtr_UseCount_ZeroForDefaultConstructedAndMovedFrom) {
     SharedPtr<TrackedObject> emptyPtr;
     EXPECT_EQ(emptyPtr.use_count(), 0);
 
@@ -115,13 +117,13 @@ void CheckConstSharedPtr(const SharedPtr<TrackedObject>& ptr) {
     EXPECT_EQ(ptr->value, 42);
 }
 
-TEST_F(SmartPtrTest, SharedPtr_ConstReference_DereferencingWorks) {
+TEST_F(SharedPtrTest, SharedPtr_ConstReference_DereferencingWorks) {
     SharedPtr ptr(new TrackedObject());
     ptr->value = 42;
     CheckConstSharedPtr(ptr);
 }
 
-TEST_F(SmartPtrTest, SharedPtr_ComplexChain_SingleDeletionAtTheEnd) {
+TEST_F(SharedPtrTest, SharedPtr_ComplexChain_SingleDeletionAtTheEnd) {
     SharedPtr p1(new TrackedObject());
     EXPECT_EQ(TrackedObject::liveCount, 1);
 
@@ -150,7 +152,7 @@ namespace {
     constexpr int kCopiesPerSharedObject = 10;
 }
 
-TEST_F(SmartPtrTest, StdSharedPtr_CreateCopyDestroy) {
+TEST_F(SharedPtrTest, StdSharedPtr_CreateCopyDestroy) {
     for (int k = 0; k < 15; k++) {
         Timer timer("std::shared_ptr create/copy/destroy x" + std::to_string(kSharedIterations));
         for (int i = 0; i < kSharedIterations; ++i) {
@@ -166,7 +168,7 @@ TEST_F(SmartPtrTest, StdSharedPtr_CreateCopyDestroy) {
     }
 }
 
-TEST_F(SmartPtrTest, CustomSharedPtr_CreateCopyDestroy) {
+TEST_F(SharedPtrTest, CustomSharedPtr_CreateCopyDestroy) {
     for (int k = 0; k < 15; k++) {
         Timer timer("Custom SharedPtr create/copy/destroy x" + std::to_string(kSharedIterations));
         for (int i = 0; i < kSharedIterations; ++i) {
@@ -181,3 +183,5 @@ TEST_F(SmartPtrTest, CustomSharedPtr_CreateCopyDestroy) {
         timer.stop();
     }
 }
+
+} // namespace

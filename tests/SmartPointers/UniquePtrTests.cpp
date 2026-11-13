@@ -9,6 +9,8 @@
 #include <string>
 #include <utility>
 
+namespace {
+
 struct TrackedObject {
   inline static int liveCount = 0;
   bool isDestroyed = false;
@@ -47,7 +49,7 @@ concept SupportsSubscript = requires(const Ptr& pointer) { pointer[0]; };
 static_assert(SupportsSubscript<UniquePtr<TrackedObject[]>>);
 static_assert(!SupportsSubscript<UniquePtr<TrackedObject>>);
 
-class SmartPtrTest : public ::testing::Test {
+class UniquePtrTest : public ::testing::Test {
 protected:
   void SetUp() override {
     TrackedObject::liveCount = 0;
@@ -59,7 +61,7 @@ protected:
   }
 };
 
-TEST_F(SmartPtrTest, UniquePtr_Creation_RawPointerAndDefault) {
+TEST_F(UniquePtrTest, UniquePtr_Creation_RawPointerAndDefault) {
     {
         UniquePtr<TrackedObject> emptyPtr;
         EXPECT_EQ(emptyPtr.get(), nullptr);
@@ -71,14 +73,14 @@ TEST_F(SmartPtrTest, UniquePtr_Creation_RawPointerAndDefault) {
     EXPECT_EQ(TrackedObject::liveCount, 0);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_Dereferencing_OperatorStarAndArrow) {
+TEST_F(UniquePtrTest, UniquePtr_Dereferencing_OperatorStarAndArrow) {
     UniquePtr ptr(new TrackedObject());
     ptr->value = 100;
     EXPECT_EQ((*ptr).value, 100);
     EXPECT_EQ(ptr->value, 100);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_Get_DoesNotTransferOwnership) {
+TEST_F(UniquePtrTest, UniquePtr_Get_DoesNotTransferOwnership) {
   {
     TrackedObject* raw = nullptr;
     UniquePtr ptr(new TrackedObject());
@@ -89,7 +91,7 @@ TEST_F(SmartPtrTest, UniquePtr_Get_DoesNotTransferOwnership) {
     EXPECT_EQ(TrackedObject::liveCount, 0);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_Release_TransfersOwnership) {
+TEST_F(UniquePtrTest, UniquePtr_Release_TransfersOwnership) {
     TrackedObject* raw = nullptr;
     {
         UniquePtr ptr(new TrackedObject());
@@ -104,7 +106,7 @@ TEST_F(SmartPtrTest, UniquePtr_Release_TransfersOwnership) {
     EXPECT_EQ(TrackedObject::liveCount, 0);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_ResetWithNewPointer_ReleasesOldAndTakesNew) {
+TEST_F(UniquePtrTest, UniquePtr_ResetWithNewPointer_ReleasesOldAndTakesNew) {
     UniquePtr ptr(new TrackedObject());
     EXPECT_EQ(TrackedObject::liveCount, 1);
 
@@ -115,7 +117,7 @@ TEST_F(SmartPtrTest, UniquePtr_ResetWithNewPointer_ReleasesOldAndTakesNew) {
     EXPECT_EQ(ptr.get(), secondObj);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_ResetWithoutArgs_ReleasesCurrent) {
+TEST_F(UniquePtrTest, UniquePtr_ResetWithoutArgs_ReleasesCurrent) {
     UniquePtr ptr(new TrackedObject());
     EXPECT_EQ(TrackedObject::liveCount, 1);
 
@@ -125,7 +127,7 @@ TEST_F(SmartPtrTest, UniquePtr_ResetWithoutArgs_ReleasesCurrent) {
     EXPECT_EQ(TrackedObject::liveCount, 0);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_MoveConstructor_TransfersOwnership) {
+TEST_F(UniquePtrTest, UniquePtr_MoveConstructor_TransfersOwnership) {
     UniquePtr ptr1(new TrackedObject());
     TrackedObject* obj = ptr1.get();
 
@@ -136,7 +138,7 @@ TEST_F(SmartPtrTest, UniquePtr_MoveConstructor_TransfersOwnership) {
     EXPECT_EQ(TrackedObject::liveCount, 1);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_MoveAssignment_ReleasesPreviouslyOwnedResource) {
+TEST_F(UniquePtrTest, UniquePtr_MoveAssignment_ReleasesPreviouslyOwnedResource) {
     UniquePtr ptr1(new TrackedObject());
     // ReSharper disable once CppEntityAssignedButNoRead
     UniquePtr ptr2(new TrackedObject());
@@ -148,7 +150,7 @@ TEST_F(SmartPtrTest, UniquePtr_MoveAssignment_ReleasesPreviouslyOwnedResource) {
     EXPECT_EQ(TrackedObject::liveCount, 1);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_SelfMoveAssignment_DoesNotCrashOrPrematurelyDelete) {
+TEST_F(UniquePtrTest, UniquePtr_SelfMoveAssignment_DoesNotCrashOrPrematurelyDelete) {
     UniquePtr ptr(new TrackedObject());
     TrackedObject* obj = ptr.get();
 
@@ -158,7 +160,7 @@ TEST_F(SmartPtrTest, UniquePtr_SelfMoveAssignment_DoesNotCrashOrPrematurelyDelet
     EXPECT_EQ(TrackedObject::liveCount, 1);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_Destructor_ReleasesObject) {
+TEST_F(UniquePtrTest, UniquePtr_Destructor_ReleasesObject) {
     {
         // ReSharper disable once CppDFAMemoryLeak
         UniquePtr ptr(new TrackedObject());
@@ -167,7 +169,7 @@ TEST_F(SmartPtrTest, UniquePtr_Destructor_ReleasesObject) {
     EXPECT_EQ(TrackedObject::liveCount, 0);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_ArraySubscriptAndDeleteArray) {
+TEST_F(UniquePtrTest, UniquePtr_ArraySubscriptAndDeleteArray) {
   {
     UniquePtr<TrackedObject[]> values(new TrackedObject[3]);
     ASSERT_EQ(TrackedObject::liveCount, 3);
@@ -178,7 +180,7 @@ TEST_F(SmartPtrTest, UniquePtr_ArraySubscriptAndDeleteArray) {
   EXPECT_EQ(TrackedObject::liveCount, 0);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_ConvertingMovePreservesDerivedDeletion) {
+TEST_F(UniquePtrTest, UniquePtr_ConvertingMovePreservesDerivedDeletion) {
   NonVirtualBase::destroyedCount = 0;
   DerivedTrackedObject::destroyedCount = 0;
   auto* raw = new DerivedTrackedObject();
@@ -193,7 +195,7 @@ TEST_F(SmartPtrTest, UniquePtr_ConvertingMovePreservesDerivedDeletion) {
   EXPECT_EQ(NonVirtualBase::destroyedCount, 1);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_ConvertingMoveAssignmentReleasesOldAndDerivedObjects) {
+TEST_F(UniquePtrTest, UniquePtr_ConvertingMoveAssignmentReleasesOldAndDerivedObjects) {
   NonVirtualBase::destroyedCount = 0;
   DerivedTrackedObject::destroyedCount = 0;
   {
@@ -208,7 +210,7 @@ TEST_F(SmartPtrTest, UniquePtr_ConvertingMoveAssignmentReleasesOldAndDerivedObje
   EXPECT_EQ(NonVirtualBase::destroyedCount, 2);
 }
 
-TEST_F(SmartPtrTest, UniquePtr_DirectBaseOwnerAndResetRetainDynamicType) {
+TEST_F(UniquePtrTest, UniquePtr_DirectBaseOwnerAndResetRetainDynamicType) {
   NonVirtualBase::destroyedCount = 0;
   DerivedTrackedObject::destroyedCount = 0;
   {
@@ -224,7 +226,7 @@ namespace {
     constexpr int kUniqueIterations = 500'000;
 }
 
-TEST_F(SmartPtrTest, StdUniquePtr_CreateDestroy) {
+TEST_F(UniquePtrTest, StdUniquePtr_CreateDestroy) {
     for (int k = 0; k < 1; k++) {
         Timer timer("std::unique_ptr create/destroy x" + std::to_string(kUniqueIterations));
         for (int i = 0; i < kUniqueIterations; ++i) {
@@ -248,7 +250,7 @@ TEST_F(SmartPtrTest, StdUniquePtr_CreateDestroy) {
 // [Timer] std::unique_ptr create/destroy x500000: 52.1122 ms
 // [Timer] std::unique_ptr create/destroy x500000: 50.9419 ms
 
-TEST_F(SmartPtrTest, CustomUniquePtr_CreateDestroy) {
+TEST_F(UniquePtrTest, CustomUniquePtr_CreateDestroy) {
     for (int k =0; k < 1; k++) {
         Timer timer("Custom UniquePtr create/destroy x" + std::to_string(kUniqueIterations));
         for (int i = 0; i < kUniqueIterations; ++i) {
@@ -271,3 +273,5 @@ TEST_F(SmartPtrTest, CustomUniquePtr_CreateDestroy) {
 // [Timer] Custom UniquePtr create/destroy x500000: 34.8561 ms
 // [Timer] Custom UniquePtr create/destroy x500000: 35.2651 ms
 // [Timer] Custom UniquePtr create/destroy x500000: 35.0988 ms
+
+} // namespace

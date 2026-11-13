@@ -15,30 +15,28 @@ void* UniquePtr<T>::eraseAddress(U* address) noexcept {
 
 template <typename T>
 void UniquePtr<T>::destroy() noexcept {
-  if (ownedAddress != nullptr) deleter(ownedAddress);
+  void* address = std::exchange(ownedAddress, nullptr);
   ptr = nullptr;
-  ownedAddress = nullptr;
+  if (address != nullptr) deleter(address);
 }
 
 template <typename T>
 template <typename U>
-void UniquePtr<T>::resetAs(U* newPtr) {
+void UniquePtr<T>::resetAs(U* newPtr) noexcept {
   ElementType* convertedPtr = newPtr;
   if (ptr == convertedPtr) return;
-  destroy();
-  ptr = convertedPtr;
-  ownedAddress = eraseAddress(newPtr);
-  deleter = &deleteOwned<U>;
+  UniquePtr replacement(newPtr);
+  swap(replacement);
 }
 
 template <typename T>
-UniquePtr<T>::UniquePtr(ElementType* ptr) noexcept
-  : ptr(ptr), ownedAddress(eraseAddress(ptr)), deleter(&deleteOwned<ElementType>) {}
+UniquePtr<T>::UniquePtr(std::nullptr_t) noexcept
+  : ptr(nullptr), ownedAddress(nullptr), deleter(&deleteOwned<ElementType>) {}
 
 template <typename T>
 template <typename U>
 requires std::is_convertible_v<U*, typename UniquePtr<T>::ElementType*> &&
-         (!std::is_array_v<T> || std::is_same_v<U, typename UniquePtr<T>::ElementType>)
+         (!std::is_array_v<T> || std::is_convertible_v<U(*)[], typename UniquePtr<T>::ElementType(*)[]>)
 UniquePtr<T>::UniquePtr(U* ptr) noexcept
   : ptr(ptr), ownedAddress(eraseAddress(ptr)), deleter(&deleteOwned<U>) {}
 
@@ -63,15 +61,8 @@ UniquePtr<T>::UniquePtr(UniquePtr<U>&& other) noexcept
 
 template <typename T>
 UniquePtr<T>& UniquePtr<T>::operator=(UniquePtr&& other) noexcept {
-  if (this != &other) {
-    destroy();
-    ptr = other.ptr;
-    ownedAddress = other.ownedAddress;
-    deleter = other.deleter;
-    other.ptr = nullptr;
-    other.ownedAddress = nullptr;
-    other.deleter = &UniquePtr::template deleteOwned<ElementType>;
-  }
+  UniquePtr replacement(std::move(other));
+  swap(replacement);
   return *this;
 }
 
@@ -80,13 +71,8 @@ template <typename U>
 requires (!std::is_array_v<T> && !std::is_array_v<U> &&
           std::is_convertible_v<std::remove_extent_t<U>*, typename UniquePtr<T>::ElementType*>)
 UniquePtr<T>& UniquePtr<T>::operator=(UniquePtr<U>&& other) noexcept {
-  destroy();
-  ptr = other.ptr;
-  ownedAddress = other.ownedAddress;
-  deleter = other.deleter;
-  other.ptr = nullptr;
-  other.ownedAddress = nullptr;
-  other.deleter = &UniquePtr<U>::template deleteOwned<typename UniquePtr<U>::ElementType>;
+  UniquePtr replacement(std::move(other));
+  swap(replacement);
   return *this;
 }
 template <typename T>
@@ -120,15 +106,28 @@ typename UniquePtr<T>::ElementType* UniquePtr<T>::release() noexcept {
 }
 
 template <typename T>
-void UniquePtr<T>::reset(ElementType* newPtr) {
-  resetAs(newPtr);
+void UniquePtr<T>::swap(UniquePtr& other) noexcept {
+  std::swap(ptr, other.ptr);
+  std::swap(ownedAddress, other.ownedAddress);
+  std::swap(deleter, other.deleter);
+}
+
+template <typename T>
+UniquePtr<T>::operator bool() const noexcept {
+  return ptr != nullptr;
+}
+
+template <typename T>
+void UniquePtr<T>::reset(std::nullptr_t) noexcept {
+  UniquePtr replacement;
+  swap(replacement);
 }
 
 template <typename T>
 template <typename U>
 requires std::is_convertible_v<U*, typename UniquePtr<T>::ElementType*> &&
-         (!std::is_array_v<T> || std::is_same_v<U, typename UniquePtr<T>::ElementType>)
-void UniquePtr<T>::reset(U* newPtr) {
+         (!std::is_array_v<T> || std::is_convertible_v<U(*)[], typename UniquePtr<T>::ElementType(*)[]>)
+void UniquePtr<T>::reset(U* newPtr) noexcept {
   resetAs(newPtr);
 }
 

@@ -3,4 +3,3 @@ cmake-build-debug
 tmp
 .codegraph
 docs/reports
-docs/task

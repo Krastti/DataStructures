@@ -20,7 +20,7 @@ Array<PersonRecord> PersonIndex::findComposite(const std::string& firstName,
                                                const std::string& lastName,
                                                int birthYear) const {
   try {
-    return compositeIndex.get(CompositeKey{firstName, lastName, birthYear});
+    return compositeIndex.at(CompositeKey{firstName, lastName, birthYear});
   } catch (const std::logic_error&) {
     return {};
   }

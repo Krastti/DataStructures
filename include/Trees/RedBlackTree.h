@@ -4,8 +4,9 @@
 #include "BinaryTree.h"
 
 template<typename Key, typename Data>
-class RedBlackTree : public BinaryTree<Key, Data> {
+class RedBlackTree : protected BinaryTree<Key, Data> {
 private:
+    using Base = BinaryTree<Key, Data>;
     enum class Color { RED, BLACK };
 
     struct RBNode : public BinaryTree<Key, Data>::Node {
@@ -33,6 +34,18 @@ private:
     int getColor(Key key) const;
 
 public:
+    using Base::at;
+    using Base::containsKey;
+    using Base::entries;
+    using Base::get_root;
+    using Base::keys;
+    using Base::min;
+    using Base::max;
+    using Base::print;
+    using Base::range;
+    using Base::replace;
+    using Base::size;
+
     RedBlackTree() = default;
     explicit RedBlackTree(Key key);
     RedBlackTree(const RedBlackTree&) = delete;

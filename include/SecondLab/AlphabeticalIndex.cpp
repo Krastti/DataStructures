@@ -84,7 +84,7 @@ Array<size_t> AlphabeticalIndex::findBinary(const std::string& word) const {
 
 Array<size_t> AlphabeticalIndex::findTree(const std::string& word) const {
   try {
-    return pagesByWord->get(word);
+    return pagesByWord->at(word);
   } catch (const std::logic_error&) {
     return {};
   }

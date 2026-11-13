@@ -1,24 +1,15 @@
 #ifndef DATASTRUCTURES_SET_H
 #define DATASTRUCTURES_SET_H
 
-#include "../SmartPointers/UniquePtr.h"
+#include "RedBlackTree.h"
 
 template <typename Key>
 class Set {
-protected:
-  struct Node {
-    Key key;
-    UniquePtr<Node> left;
-    UniquePtr<Node> right;
-    Node* parent;
-
-    explicit Node(Key key, Node* parent = nullptr) : key(std::move(key)), parent(parent) {}
-  };
-
-  UniquePtr<Node> root;
+private:
+  Map<Key, bool> values;
 
 public:
-  Set();
+  Set() = default;
   explicit Set(Key key);
 
   void insert(Key key);

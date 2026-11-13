@@ -27,9 +27,11 @@ protected:
   Node* root;
   size_t nodeCount;
   void clear() noexcept;
+  void transplant(Node* oldNode, Node* newNode) noexcept;
 
   Node* getSuccessor(Node* node);
-  //  Node* get_predecessor(Node* node);
+  Node* findNode(const Key& key);
+  const Node* findNode(const Key& key) const;
 
 public:
   BinaryTree();
@@ -45,8 +47,6 @@ public:
   void replace(Key key, Data data);
 
   Data get_root() const;
-  Data get(Key key) const;
-  Data find(Key key) const;
   Data& at(const Key& key);
   const Data& at(const Key& key) const;
   [[nodiscard]] bool containsKey(const Key& key) const;

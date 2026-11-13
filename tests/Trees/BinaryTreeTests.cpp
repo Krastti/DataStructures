@@ -5,7 +5,15 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <random>
+#include <set>
+#include <type_traits>
 #include <utility>
+
+static_assert(!std::is_convertible_v<RedBlackTree<int, int>*, BinaryTree<int, int>*>);
+static_assert(!std::is_convertible_v<RedBlackTree<int, int>&, BinaryTree<int, int>&>);
+static_assert(!std::is_assignable_v<RedBlackTree<int, int>&, BinaryTree<int, int>&&>);
+static_assert(!std::is_constructible_v<RedBlackTree<int, int>, BinaryTree<int, int>&&>);
 
 TEST(BinaryTreeTests, DuplicateInsertKeepsOneNodeAndOrderedTraversals) {
   BinaryTree<int, std::string> tree;
@@ -71,7 +79,7 @@ TEST(MapTests, MaintainsOrderingAcrossSequentialInsertionsAndDeletions) {
   EXPECT_EQ(map.keys().size(), 0);
 }
 
-TEST(SetTests, OwnsChildrenWithoutOwningParentAndRemovesNodes) {
+TEST(SetTests, IgnoresDuplicatesAndRemovesKeys) {
   Set<int> values;
   for (int key : {4, 2, 6, 1, 3, 5, 7}) values.insert(key);
   values.insert(4);
@@ -85,4 +93,38 @@ TEST(SetTests, OwnsChildrenWithoutOwningParentAndRemovesNodes) {
   values.remove(7);
   values.remove(2);
   EXPECT_FALSE(values.contains(2));
+}
+
+TEST(SetTests, MissingKeysThrowOutOfRangeOnEmptyAndNonemptySet) {
+  Set<int> values;
+  EXPECT_FALSE(values.contains(1));
+  EXPECT_THROW(values.remove(1), std::out_of_range);
+  values.insert(2);
+  EXPECT_THROW(values.remove(1), std::out_of_range);
+  EXPECT_TRUE(values.contains(2));
+  values.remove(2);
+  EXPECT_THROW(values.remove(2), std::out_of_range);
+}
+
+TEST(SetTests, SingleKeyConstructorAndMixedOperationsMatchStdSet) {
+  Set<int> values(10);
+  std::set<int> expected{10};
+  std::mt19937 random(147);
+  for (int step = 0; step < 10000; ++step) {
+    int key = static_cast<int>(random() % 128);
+    if (random() % 2) {
+      values.insert(key);
+      expected.insert(key);
+    } else if (expected.erase(key)) {
+      values.remove(key);
+    } else {
+      EXPECT_THROW(values.remove(key), std::out_of_range);
+    }
+    for (int candidate = 0; candidate < 128; ++candidate) {
+      ASSERT_EQ(values.contains(candidate), expected.contains(candidate));
+    }
+  }
+  for (int key : expected) values.remove(key);
+  EXPECT_FALSE(values.contains(10));
+  EXPECT_THROW(values.remove(10), std::out_of_range);
 }

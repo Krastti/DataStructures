@@ -58,71 +58,53 @@ void BinaryTree<Key, Data>::insert(Key key, Data data) {
     return;
   }
 
-  Node* current = root;
+  Node** slot = &root;
   Node* parent = nullptr;
 
-  while (current != nullptr) {
-    parent = current;
+  while (*slot != nullptr) {
+    parent = *slot;
 
-    if (current->key > key) current = current->left;
-    else if (current->key < key) current = current->right;
+    if (parent->key > key) slot = &parent->left;
+    else if (parent->key < key) slot = &parent->right;
     else return;
   }
 
-  current = new Node(key, data);
-
-  if (current->key < parent->key) parent->left = current;
-  else if (current->key > parent->key) parent->right = current;
-  current->parent = parent;
+  // Завершаем сравнения до выделения памяти, чтобы исключение не привело к утечке.
+  *slot = new Node(key, data, nullptr, nullptr, parent);
   ++nodeCount;
+}
+
+template<typename Key, typename Data>
+void BinaryTree<Key, Data>::transplant(Node* oldNode, Node* newNode) noexcept {
+  if (oldNode->parent == nullptr) root = newNode;
+  else if (oldNode == oldNode->parent->left) oldNode->parent->left = newNode;
+  else oldNode->parent->right = newNode;
+  if (newNode != nullptr) newNode->parent = oldNode->parent;
 }
 
 template<typename Key, typename Data>
 void BinaryTree<Key, Data>::remove(Key key) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
-  Node** current = &root;
-  Node* parent = nullptr;
-  Node* son = nullptr;
-
-  while (*current != nullptr && (*current)->key != key) {
-    if ((*current)->key > key) current = &((*current)->left);
-    else if ((*current)->key < key) current = &((*current)->right);
-  }
-  if (*current == nullptr) throw std::out_of_range("Key does not exist");
-
-  // Случай, когда нет потомком или один потомок
-  if ((*current)->right == nullptr || (*current)->left == nullptr) {
-    parent = (*current)->parent;
-
-    if ((*current)->left != nullptr) son = (*current)->left;
-    else if ((*current)->right != nullptr) son = (*current)->right;
-
-    if (son != nullptr) son->parent = parent;
-    if (parent == nullptr) {
-      delete *current;
-      root = son;
-    } else if (*current == parent->left) {
-      delete *current;
-      parent->left = son;
-    } else if (*current == parent->right) {
-      delete *current;
-      parent->right = son;
+  Node* deletedNode = findNode(key);
+  if (deletedNode == nullptr) throw std::out_of_range("Key does not exist");
+  if (deletedNode->left == nullptr) {
+    transplant(deletedNode, deletedNode->right);
+  } else if (deletedNode->right == nullptr) {
+    transplant(deletedNode, deletedNode->left);
+  } else {
+    // Переставляем сам узел-преемник, поскольку присваивание ключа или значения может бросить исключение.
+    Node* successor = getSuccessor(deletedNode);
+    if (successor != deletedNode->right) {
+      transplant(successor, successor->right);
+      successor->right = deletedNode->right;
+      successor->right->parent = successor;
     }
+    transplant(deletedNode, successor);
+    successor->left = deletedNode->left;
+    successor->left->parent = successor;
   }
-
-  // Случай, когда два потомка
-  else if ((*current)->left != nullptr && (*current)->right != nullptr) {
-    son = getSuccessor(*current);
-
-    if (son != (*current)->right) son->parent->left = son->right;
-    else (*current)->right = son->right;
-
-    if (son->right != nullptr) son->right->parent = son->parent;
-    (*current)->key = son->key;
-    (*current)->data = son->data;
-    delete son;
-  }
+  delete deletedNode;
   --nodeCount;
 }
 
@@ -130,20 +112,9 @@ template<typename Key, typename Data>
 void BinaryTree<Key, Data>::replace(Key key, Data data) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
-  Node** current = &root;
-
-  while ((*current)->key != key) {
-    if ((*current)->key > key) {
-      current = &((*current)->left);
-      if (*current == nullptr) throw std::out_of_range("Key does not exist");
-    }
-    else if ((*current)->key < key) {
-      current = &((*current)->right);
-      if (*current == nullptr) throw std::out_of_range("Key does not exist");
-    }
-  }
-
-  (*current)->data = data;
+  Node* node = findNode(key);
+  if (node == nullptr) throw std::out_of_range("Key does not exist");
+  node->data = data;
 }
 
 template <typename Key, typename Data>
@@ -152,58 +123,38 @@ Data BinaryTree<Key, Data>::get_root() const {
   return root->data;
 }
 
-template <typename Key, typename Data>
-Data BinaryTree<Key, Data>::get(Key key) const {
-  if (root == nullptr) throw std::logic_error("Root is NULL");
-  if (root->key == key) return get_root();
-
-  Node *current = root;
-  while (current->key != key) {
-    if (current->key > key) {
-      current = current->left;
-      if (current == nullptr) throw std::out_of_range("Key does not exist");
-    }
-    else if (current->key < key) {
-      current = current->right;
-      if (current == nullptr) throw std::out_of_range("Key does not exist");
-    }
+template<typename Key, typename Data>
+const typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::findNode(const Key& key) const {
+  const Node* current = root;
+  while (current != nullptr) {
+    if (current->key == key) return current;
+    current = current->key > key ? current->left : current->right;
   }
-  return current->data;
+  return nullptr;
 }
 
-template <typename Key, typename Data>
-Data BinaryTree<Key, Data>::find(Key key) const {
-  return get(key);
+template<typename Key, typename Data>
+typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::findNode(const Key& key) {
+  return const_cast<Node*>(std::as_const(*this).findNode(key));
 }
 
 template<typename Key, typename Data>
 Data& BinaryTree<Key, Data>::at(const Key& key) {
-  Node* current = root;
-  while (current != nullptr) {
-    if (current->key == key) return current->data;
-    current = current->key > key ? current->left : current->right;
-  }
-  throw std::out_of_range("Key does not exist");
+  Node* node = findNode(key);
+  if (node == nullptr) throw std::out_of_range("Key does not exist");
+  return node->data;
 }
 
 template<typename Key, typename Data>
 const Data& BinaryTree<Key, Data>::at(const Key& key) const {
-  const Node* current = root;
-  while (current != nullptr) {
-    if (current->key == key) return current->data;
-    current = current->key > key ? current->left : current->right;
-  }
-  throw std::out_of_range("Key does not exist");
+  const Node* node = findNode(key);
+  if (node == nullptr) throw std::out_of_range("Key does not exist");
+  return node->data;
 }
 
 template<typename Key, typename Data>
 bool BinaryTree<Key, Data>::containsKey(const Key& key) const {
-  const Node* current = root;
-  while (current != nullptr) {
-    if (current->key == key) return true;
-    current = current->key > key ? current->left : current->right;
-  }
-  return false;
+  return findNode(key) != nullptr;
 }
 
 template<typename Key, typename Data>
@@ -318,7 +269,7 @@ void BinaryTree<Key, Data>::clear() noexcept {
   stack->push(root);
 
   while (!stack->empty()) {
-    Node *current = stack->top();
+    Node* current = stack->top();
     stack->pop();
 
     if (current->left != nullptr) stack->push(current->left);

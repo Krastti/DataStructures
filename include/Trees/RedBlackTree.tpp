@@ -128,7 +128,7 @@ void RedBlackTree<Key, Data>::fixRemove(RBNode *node, RBNode *parent) {
     if (node == parent->left) {
       RBNode* sibling = getRight(parent);
 
-      // Случай 1: брат красный
+      // Случай 1: брат красный.
       if (sibling->color == Color::RED) {
         sibling->color = Color::BLACK;
         parent->color = Color::RED;
@@ -142,19 +142,19 @@ void RedBlackTree<Key, Data>::fixRemove(RBNode *node, RBNode *parent) {
       bool rightBlack = (sibRight == nullptr || sibRight->color == Color::BLACK);
 
       if (leftBlack && rightBlack) {
-        // Случай 2: у брата оба ребёнка чёрные
+        // Случай 2: у брата оба ребёнка чёрные.
         sibling->color = Color::RED;
         node = parent;
         parent = getParent(node);
       } else {
         if (rightBlack) {
-          // Случай 3: ближний (левый) ребёнок брата красный
+          // Случай 3: ближний (левый) ребёнок брата красный.
           if (sibLeft != nullptr) sibLeft->color = Color::BLACK;
           sibling->color = Color::RED;
           rightRotate(sibling);
           sibling = getRight(parent);
         }
-        // Случай 4: дальний (правый) ребёнок брата красный
+        // Случай 4: дальний (правый) ребёнок брата красный.
         sibling->color = parent->color;
         parent->color = Color::BLACK;
         RBNode* sr = getRight(sibling);
@@ -207,16 +207,10 @@ template <typename Key, typename Data>
 int RedBlackTree<Key, Data>::getColor(Key key) const {
   if (this->root == nullptr) throw std::logic_error("Root is NULL");
 
-  Node* current = this->root;
-
-  while (current != nullptr && current->key != key) {
-    if (current->key > key) current = current->left;
-    else current = current->right;
-  }
-
+  const Node* current = this->findNode(key);
   if (current == nullptr) throw std::out_of_range("Key does not exist");
 
-  return static_cast<int>(static_cast<RBNode*>(current)->color);
+  return static_cast<int>(static_cast<const RBNode*>(current)->color);
 }
 
 template <typename Key, typename Data>
@@ -233,21 +227,20 @@ void RedBlackTree<Key, Data>::insert(Key key, Data data) {
     return;
   }
 
-  Node* current = this->root;
+  Node** slot = &this->root;
   Node* parent = nullptr;
 
-  while (current != nullptr) {
-    parent = current;
+  while (*slot != nullptr) {
+    parent = *slot;
 
-    if (current->key > key) current = current->left;
-    else if (current->key < key) current = current->right;
+    if (parent->key > key) slot = &parent->left;
+    else if (parent->key < key) slot = &parent->right;
     else return;
   }
 
   auto newNode = new RBNode(key, data, Color::RED);
 
-  if (newNode->key < parent->key) parent->left = newNode;
-  else parent->right = newNode;
+  *slot = newNode;
   newNode->parent = parent;
 
   ++this->nodeCount;
@@ -258,49 +251,40 @@ template <typename Key, typename Data>
 void RedBlackTree<Key, Data>::remove(Key key) {
   if (this->root == nullptr) throw std::logic_error("Root is NULL");
 
-  Node** current = &(this->root);
+  auto deletedNode = static_cast<RBNode*>(this->findNode(key));
+  if (deletedNode == nullptr) throw std::out_of_range("Key does not exist");
+  bool wasBlack = deletedNode->color == Color::BLACK;
+  Node* son = nullptr;
+  Node* parent = deletedNode->parent;
 
-  while (*current != nullptr && (*current)->key != key) {
-    if ((*current)->key > key) current = &((*current)->left);
-    else if ((*current)->key < key) current = &((*current)->right);
-  }
-  if (*current == nullptr) throw std::out_of_range("Key does not exist");
-
-  // Случай, когда два потомка
-  if ((*current)->left != nullptr && (*current)->right != nullptr) {
-    Node* successor = this->getSuccessor(*current);
-    Node* parent = successor->parent;
-    Node* son = successor->right;
-
-    if (successor != (*current)->right) parent->left = son;
-    else (*current)->right = son;
-
+  if (deletedNode->left == nullptr) {
+    son = deletedNode->right;
+    this->transplant(deletedNode, son);
+  } else if (deletedNode->right == nullptr) {
+    son = deletedNode->left;
+    this->transplant(deletedNode, son);
+  } else {
+    auto successor = static_cast<RBNode*>(this->getSuccessor(deletedNode));
+    wasBlack = successor->color == Color::BLACK;
+    son = successor->right;
+    if (successor == deletedNode->right) {
+      parent = successor;
+    } else {
+      parent = successor->parent;
+      this->transplant(successor, son);
+      successor->right = deletedNode->right;
+      successor->right->parent = successor;
+    }
+    // Переставляем узел без присваивания ключа и значения, чтобы исключение не повредило дерево.
+    this->transplant(deletedNode, successor);
+    successor->left = deletedNode->left;
+    successor->left->parent = successor;
+    successor->color = deletedNode->color;
     if (son != nullptr) son->parent = parent;
-
-    (*current)->key = successor->key;
-    (*current)->data = successor->data;
-
-    bool wasBlack = (static_cast<RBNode*>(successor)->color == Color::BLACK);
-    delete successor;
-
-    if (wasBlack) fixRemove(static_cast<RBNode*>(son), static_cast<RBNode*>(parent));
   }
-
-  // Случай, когда нет потомков или один потомок
-  else {
-    Node* deletedNode = *current;
-    Node* parent = deletedNode->parent;
-    Node* son = (deletedNode->left != nullptr) ? deletedNode->left : deletedNode->right;
-
-    if (son != nullptr) son->parent = parent;
-    *current = son;
-
-    bool wasBlack = (static_cast<RBNode*>(deletedNode)->color == Color::BLACK);
-    delete deletedNode;
-
-    if (wasBlack) fixRemove(static_cast<RBNode*>(son), static_cast<RBNode*>(parent));
-  }
+  delete deletedNode;
   --this->nodeCount;
+  if (wasBlack) fixRemove(static_cast<RBNode*>(son), static_cast<RBNode*>(parent));
 }
 
 template <typename Key, typename Data>

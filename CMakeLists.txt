@@ -108,6 +108,11 @@ target_include_directories(UnitTests PRIVATE include)
 include(GoogleTest)
 gtest_discover_tests(UnitTests)
 
+add_executable(TreeSafetyTests tests/Trees/TreeSafetyTests.cpp)
+target_link_libraries(TreeSafetyTests PRIVATE BinaryTree GTest::gtest_main)
+target_include_directories(TreeSafetyTests PRIVATE include)
+gtest_discover_tests(TreeSafetyTests)
+
 add_executable(SharedPtrAllocationTests tests/SmartPointers/SharedPtrAllocationTests.cpp)
 target_link_libraries(SharedPtrAllocationTests PRIVATE SmartPointer GTest::gtest_main)
 target_include_directories(SharedPtrAllocationTests PRIVATE include)

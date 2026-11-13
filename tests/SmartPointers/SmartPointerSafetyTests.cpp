@@ -15,7 +15,7 @@ namespace {
 struct Base {
   int value = 42;
   inline static int destroyed = 0;
-  ~Base() { ++destroyed; }
+  virtual ~Base() { ++destroyed; }
 };
 
 struct FirstBase {
@@ -36,23 +36,38 @@ concept CanSubscript = requires(const Ptr& pointer) { pointer[0]; };
 template<typename Ptr>
 concept CanDereference = requires(const Ptr& pointer) { *pointer; pointer.operator->(); };
 
-// Check both construction and reset: neither may fall back to a Base* overload.
-static_assert(!std::is_constructible_v<UniquePtr<Base[]>, Derived*>);
-static_assert(!std::is_constructible_v<SharedPtr<Base[]>, Derived*>);
-static_assert(!CanReset<UniquePtr<Base[]>, Derived*>);
-static_assert(!CanReset<SharedPtr<Base[]>, Derived*>);
+// Проверяем конструктор и reset: оба должны исключать обход ограничения через перегрузку для Base*.
 static_assert(std::is_constructible_v<UniquePtr<const int[]>, int*>);
 static_assert(std::is_constructible_v<SharedPtr<const int[]>, int*>);
 static_assert(CanReset<UniquePtr<const int[]>, int*>);
 static_assert(CanReset<SharedPtr<const int[]>, int*>);
-static_assert(!std::is_constructible_v<UniquePtr<int[]>, const int*>);
-static_assert(!std::is_constructible_v<SharedPtr<int[]>, const int*>);
 static_assert(CanSubscript<SharedPtr<int[]>>);
 static_assert(!CanSubscript<SharedPtr<int>>);
 static_assert(!CanDereference<SharedPtr<int[]>>);
 static_assert(CanDereference<SharedPtr<int>>);
 static_assert(!std::is_copy_constructible_v<UniquePtr<int>>);
 static_assert(!std::is_copy_assignable_v<UniquePtr<int>>);
+
+struct NonVirtualBase {};
+struct NonVirtualDerived : NonVirtualBase {};
+
+// Ни одна перегрузка для сырого указателя не должна обходить требование виртуального деструктора.
+static_assert(std::is_constructible_v<UniquePtr<NonVirtualBase>, NonVirtualBase*>);
+static_assert(std::is_constructible_v<SharedPtr<NonVirtualBase>, NonVirtualBase*>);
+static_assert(std::is_constructible_v<UniquePtr<Base>, Derived*>);
+static_assert(std::is_constructible_v<SharedPtr<Base>, Derived*>);
+static_assert(CanReset<UniquePtr<Base>, Derived*>);
+static_assert(CanReset<SharedPtr<Base>, Derived*>);
+static_assert(std::is_constructible_v<UniquePtr<Base>, UniquePtr<Derived>&&>);
+static_assert(std::is_assignable_v<UniquePtr<Base>&, UniquePtr<Derived>&&>);
+static_assert(!CanDereference<UniquePtr<int[]>>);
+static_assert(CanDereference<UniquePtr<int>>);
+static_assert(std::is_constructible_v<UniquePtr<const int>, int*>);
+static_assert(std::is_constructible_v<SharedPtr<const int>, int*>);
+static_assert(sizeof(UniquePtr<int>) == sizeof(int*));
+static_assert(sizeof(UniquePtr<int[]>) == sizeof(int*));
+static_assert(sizeof(SharedPtr<int>) == sizeof(void*));
+static_assert(sizeof(SharedPtr<int[]>) == sizeof(void*));
 
 struct UniqueNode {
   inline static int live = 0;
@@ -75,7 +90,7 @@ struct ConvertingBase {
   inline static int live = 0;
   UniquePtr<ConvertingDerived> child;
   ConvertingBase() { ++live; }
-  ~ConvertingBase();
+  virtual ~ConvertingBase();
 };
 struct ConvertingDerived : ConvertingBase {
   inline static int destroyed = 0;
@@ -96,7 +111,7 @@ TEST(SmartPointerSafetyTests, UniqueMoveFromOwnedChildKeepsChildAlive) {
   EXPECT_EQ(UniqueNode::live, 0);
 }
 
-TEST(SmartPointerSafetyTests, UniqueConvertingMoveFromOwnedChildPreservesDeleter) {
+TEST(SmartPointerSafetyTests, UniqueConvertingMoveFromOwnedChildUsesVirtualDestructor) {
   ConvertingDerived::destroyed = 0;
   {
     UniquePtr<ConvertingBase> root(new ConvertingBase);
@@ -139,7 +154,7 @@ TEST(SmartPointerSafetyTests, SharedMoveFromOwnedChildKeepsChildAlive) {
   EXPECT_EQ(SharedNode::live, 0);
 }
 
-TEST(SmartPointerSafetyTests, SharedDeletesDerivedThroughNonVirtualAdjustedBase) {
+TEST(SmartPointerSafetyTests, SharedDeletesDerivedThroughVirtualAdjustedBase) {
   Base::destroyed = Derived::destroyed = 0;
   {
     auto* raw = new Derived;
@@ -293,4 +308,84 @@ TEST(SmartPointerSafetyTests, SeparateSharedOwnersCanCopyAndDestroyConcurrently)
   EXPECT_EQ(destroyed.load(), 1);
 }
 
-} // namespace
+TEST(SmartPointerSafetyTests, ReleasedPolymorphicObjectCanBeDeletedThroughBase) {
+  Base::destroyed = Derived::destroyed = 0;
+  UniquePtr<Base> owner(new Derived);
+  Base* raw = owner.release();
+  EXPECT_FALSE(owner);
+  EXPECT_EQ(Derived::destroyed, 0);
+  delete raw;
+  EXPECT_EQ(Derived::destroyed, 1);
+  EXPECT_EQ(Base::destroyed, 1);
+}
+
+TEST(SmartPointerSafetyTests, UniqueArraysMoveSwapAndResetWithoutDoubleDeletion) {
+  Base::destroyed = 0;
+  {
+    UniquePtr<Base[]> first(new Base[2]);
+    first[1].value = 7;
+    auto* original = first.get();
+    UniquePtr<Base[]> second(std::move(first));
+    EXPECT_FALSE(first);
+    EXPECT_EQ(second.get(), original);
+    second.reset(second.get());
+    second = std::move(second);
+    EXPECT_EQ(second[1].value, 7);
+    UniquePtr<Base[]> third(new Base[3]);
+    third = std::move(second);
+    EXPECT_FALSE(second);
+    EXPECT_EQ(Base::destroyed, 3);
+    first.swap(third);
+    EXPECT_FALSE(third);
+    first.reset(nullptr);
+    EXPECT_FALSE(first);
+    EXPECT_EQ(Base::destroyed, 5);
+  }
+  EXPECT_EQ(Base::destroyed, 5);
+}
+
+TEST(SmartPointerSafetyTests, SharedArraysMoveSwapAndResetPreserveSharedOwnership) {
+  Base::destroyed = 0;
+  {
+    SharedPtr<Base[]> first(new Base[2]);
+    first[1].value = 7;
+    auto copy = first;
+    auto* original = first.get();
+    SharedPtr<Base[]> second(std::move(first));
+    EXPECT_FALSE(first);
+    EXPECT_EQ(second.get(), original);
+    second.reset(second.get());
+    second = std::move(second);
+    EXPECT_EQ(second.use_count(), 2);
+    SharedPtr<Base[]> third(new Base[3]);
+    third = std::move(second);
+    EXPECT_FALSE(second);
+    EXPECT_EQ(Base::destroyed, 3);
+    first.swap(third);
+    EXPECT_FALSE(third);
+    first.reset();
+    EXPECT_EQ(copy.use_count(), 1);
+    EXPECT_EQ(copy[1].value, 7);
+    EXPECT_EQ(Base::destroyed, 3);
+    copy.reset(nullptr);
+    EXPECT_EQ(Base::destroyed, 5);
+  }
+  EXPECT_EQ(Base::destroyed, 5);
+}
+
+TEST(SmartPointerSafetyTests, ScalarConstOwnersAndReversedComparisonsWork) {
+  UniquePtr<const int> unique(new int(1));
+  SharedPtr<const int> shared(new int(2));
+  EXPECT_EQ(*unique, 1);
+  EXPECT_EQ(*shared, 2);
+  EXPECT_TRUE(nullptr != unique);
+  EXPECT_TRUE(nullptr != shared);
+  unique.reset();
+  shared.reset();
+  EXPECT_TRUE(nullptr == unique);
+  EXPECT_TRUE(nullptr == shared);
+  EXPECT_FALSE(unique != nullptr);
+  EXPECT_FALSE(shared != nullptr);
+}
+
+} // Безымянное пространство имён.

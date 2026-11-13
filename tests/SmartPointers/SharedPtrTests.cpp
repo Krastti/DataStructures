@@ -184,4 +184,4 @@ TEST_F(SharedPtrTest, CustomSharedPtr_CreateCopyDestroy) {
     }
 }
 
-} // namespace
+} // Безымянное пространство имён.

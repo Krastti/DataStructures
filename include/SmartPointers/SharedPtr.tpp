@@ -1,151 +1,222 @@
 #pragma once
 
-template <typename T>
-template <typename U>
-void SharedPtr<T>::deleteOwned(void* address) noexcept {
-  if constexpr (std::is_array_v<T>) delete[] static_cast<U*>(address);
-  else delete static_cast<U*>(address);
-}
+template<typename T>
+template<typename U>
 
-template <typename T>
-SharedPtr<T>::SharedPtr(std::nullptr_t) noexcept : ptr(nullptr), control(nullptr) {}
-
-template <typename T>
-template <typename U>
-requires std::is_convertible_v<U*, typename SharedPtr<T>::ElementType*> &&
-         (!std::is_array_v<T> || std::is_convertible_v<U(*)[], typename SharedPtr<T>::ElementType(*)[]>)
-SharedPtr<T>::SharedPtr(U* pointer) : ptr(pointer), control(nullptr) {
+SharedPtr<T>::SharedPtr(U* pointer) {
+  static_assert(!std::is_array_v<U>, "Нельзя передать массив владельцу одиночного объекта");
+  static_assert(std::is_convertible_v<U*, T*>, "Несовместимые типы указателей");
+  if constexpr (!std::is_same_v<std::remove_cv_t<U>, std::remove_cv_t<T>>) {
+    static_assert(std::has_virtual_destructor_v<T>, "Базовый тип должен иметь виртуальный деструктор");
+  }
   if (pointer == nullptr) return;
-  void* address = const_cast<void*>(static_cast<const volatile void*>(pointer));
   try {
-    control = new ControlBlock(address, &deleteOwned<U>);
+    control = new ControlBlock(pointer);
   } catch (...) {
-    deleteOwned<U>(address);
+    delete pointer;
     throw;
   }
 }
 
-template <typename T>
-SharedPtr<T>::SharedPtr(const SharedPtr& other) noexcept
-  : ptr(other.ptr), control(other.control) {
-  if (control != nullptr) control->refCount.fetch_add(1, std::memory_order_relaxed);
+template<typename T>
+SharedPtr<T>::SharedPtr(const SharedPtr& other) noexcept {
+  control = other.control;
+  if (control != nullptr) ++control->owners;
 }
 
-template <typename T>
-SharedPtr<T>::SharedPtr(SharedPtr&& other) noexcept
-  : ptr(std::exchange(other.ptr, nullptr)), control(std::exchange(other.control, nullptr)) {}
-
-template <typename T>
+template<typename T>
 SharedPtr<T>& SharedPtr<T>::operator=(const SharedPtr& other) noexcept {
   SharedPtr replacement(other);
   swap(replacement);
   return *this;
 }
 
-template <typename T>
+template<typename T>
+SharedPtr<T>::SharedPtr(SharedPtr&& other) noexcept {
+  control = std::exchange(other.control, nullptr);
+}
+
+template<typename T>
 SharedPtr<T>& SharedPtr<T>::operator=(SharedPtr&& other) noexcept {
   SharedPtr replacement(std::move(other));
   swap(replacement);
   return *this;
 }
 
-template <typename T>
-void SharedPtr<T>::destroy() noexcept {
-  ControlBlock* oldControl = std::exchange(control, nullptr);
-  ptr = nullptr;
-  if (oldControl != nullptr &&
-      oldControl->refCount.fetch_sub(1, std::memory_order_acq_rel) == 1) {
-    oldControl->deleter(oldControl->ownedAddress);
-    delete oldControl;
+template<typename T>
+void SharedPtr<T>::releaseOwnership() noexcept {
+  ControlBlock* old = std::exchange(control, nullptr);
+  if (old != nullptr && --old->owners == 0) {
+    delete old->ptr;
+    delete old;
   }
 }
 
-template <typename T>
-typename SharedPtr<T>::ElementType* SharedPtr<T>::get() const noexcept {
-  return ptr;
+template<typename T>
+T* SharedPtr<T>::get() const noexcept {
+  return control == nullptr ? nullptr : control->ptr;
 }
 
-template <typename T>
-typename SharedPtr<T>::ElementType& SharedPtr<T>::operator*() const noexcept
-  requires (!std::is_array_v<T>) {
-  return *ptr;
+template<typename T>
+T& SharedPtr<T>::operator*() const noexcept {
+  return *get();
 }
 
-template <typename T>
-typename SharedPtr<T>::ElementType* SharedPtr<T>::operator->() const noexcept
-  requires (!std::is_array_v<T>) {
-  return ptr;
+template<typename T>
+T* SharedPtr<T>::operator->() const noexcept {
+  return get();
 }
 
-template <typename T>
-typename SharedPtr<T>::ElementType& SharedPtr<T>::operator[](std::size_t index) const noexcept
-  requires (std::is_array_v<T>) {
-  return ptr[index];
-}
-
-template <typename T>
+template<typename T>
 std::size_t SharedPtr<T>::use_count() const noexcept {
-  return control == nullptr ? 0 : control->refCount.load(std::memory_order_relaxed);
+  return control == nullptr ? 0 : control->owners.load();
 }
 
-template <typename T>
+template<typename T>
 SharedPtr<T>::operator bool() const noexcept {
-  return ptr != nullptr;
+  return get() != nullptr;
 }
 
-template <typename T>
+template<typename T>
 void SharedPtr<T>::swap(SharedPtr& other) noexcept {
-  std::swap(ptr, other.ptr);
   std::swap(control, other.control);
 }
 
-template <typename T>
+template<typename T>
 void SharedPtr<T>::reset(std::nullptr_t) noexcept {
   SharedPtr replacement;
   swap(replacement);
 }
 
-template <typename T>
-template <typename U>
-requires std::is_convertible_v<U*, typename SharedPtr<T>::ElementType*> &&
-         (!std::is_array_v<T> || std::is_convertible_v<U(*)[], typename SharedPtr<T>::ElementType(*)[]>)
+template<typename T>
+template<typename U>
+
 void SharedPtr<T>::reset(U* newPtr) {
-  if (ptr == newPtr) return;
+  static_assert(!std::is_array_v<U>, "Нельзя передать массив владельцу одиночного объекта");
+  static_assert(std::is_convertible_v<U*, T*>, "Несовместимые типы указателей");
+  if constexpr (!std::is_same_v<std::remove_cv_t<U>, std::remove_cv_t<T>>) {
+    static_assert(std::has_virtual_destructor_v<T>, "Базовый тип должен иметь виртуальный деструктор");
+  }
+  if (get() == newPtr) return;
   SharedPtr replacement(newPtr);
   swap(replacement);
 }
 
-template <typename T>
+template<typename T>
 bool SharedPtr<T>::operator==(const SharedPtr& other) const noexcept {
-  return ptr == other.ptr;
+  return get() == other.get();
 }
 
-template <typename T>
-bool SharedPtr<T>::operator!=(const SharedPtr& other) const noexcept {
-  return !(*this == other);
-}
-
-template <typename T>
+template<typename T>
 bool SharedPtr<T>::operator==(std::nullptr_t) const noexcept {
-  return ptr == nullptr;
+  return get() == nullptr;
 }
 
-template <typename T>
-bool SharedPtr<T>::operator!=(std::nullptr_t) const noexcept {
-  return ptr != nullptr;
-}
-
-template <typename T>
-bool operator==(std::nullptr_t, const SharedPtr<T>& ptr) noexcept {
-  return ptr == nullptr;
-}
-
-template <typename T>
-bool operator!=(std::nullptr_t, const SharedPtr<T>& ptr) noexcept {
-  return ptr != nullptr;
-}
-
-template <typename T>
+template<typename T>
 SharedPtr<T>::~SharedPtr() {
-  destroy();
+  releaseOwnership();
+}
+
+template<typename T>
+template<typename U>
+
+SharedPtr<T[]>::SharedPtr(U* pointer) {
+  static_assert(std::is_convertible_v<U(*)[], T(*)[]>, "Несовместимые типы массивов");
+  if (pointer == nullptr) return;
+  try {
+    control = new ControlBlock(pointer);
+  } catch (...) {
+    delete[] pointer;
+    throw;
+  }
+}
+
+template<typename T>
+SharedPtr<T[]>::SharedPtr(const SharedPtr& other) noexcept {
+  control = other.control;
+  if (control != nullptr) ++control->owners;
+}
+
+template<typename T>
+SharedPtr<T[]>& SharedPtr<T[]>::operator=(const SharedPtr& other) noexcept {
+  SharedPtr replacement(other);
+  swap(replacement);
+  return *this;
+}
+
+template<typename T>
+SharedPtr<T[]>::SharedPtr(SharedPtr&& other) noexcept {
+  control = std::exchange(other.control, nullptr);
+}
+
+template<typename T>
+SharedPtr<T[]>& SharedPtr<T[]>::operator=(SharedPtr&& other) noexcept {
+  SharedPtr replacement(std::move(other));
+  swap(replacement);
+  return *this;
+}
+
+template<typename T>
+void SharedPtr<T[]>::releaseOwnership() noexcept {
+  ControlBlock* old = std::exchange(control, nullptr);
+  if (old != nullptr && --old->owners == 0) {
+    delete[] old->ptr;
+    delete old;
+  }
+}
+
+template<typename T>
+T* SharedPtr<T[]>::get() const noexcept {
+  return control == nullptr ? nullptr : control->ptr;
+}
+
+template<typename T>
+T& SharedPtr<T[]>::operator[](std::size_t index) const noexcept {
+  return get()[index];
+}
+
+template<typename T>
+std::size_t SharedPtr<T[]>::use_count() const noexcept {
+  return control == nullptr ? 0 : control->owners.load();
+}
+
+template<typename T>
+SharedPtr<T[]>::operator bool() const noexcept {
+  return get() != nullptr;
+}
+
+template<typename T>
+void SharedPtr<T[]>::swap(SharedPtr& other) noexcept {
+  std::swap(control, other.control);
+}
+
+template<typename T>
+void SharedPtr<T[]>::reset(std::nullptr_t) noexcept {
+  SharedPtr replacement;
+  swap(replacement);
+}
+
+template<typename T>
+template<typename U>
+
+void SharedPtr<T[]>::reset(U* newPtr) {
+  static_assert(std::is_convertible_v<U(*)[], T(*)[]>, "Несовместимые типы массивов");
+  if (get() == newPtr) return;
+  SharedPtr replacement(newPtr);
+  swap(replacement);
+}
+
+template<typename T>
+bool SharedPtr<T[]>::operator==(const SharedPtr& other) const noexcept {
+  return get() == other.get();
+}
+
+template<typename T>
+bool SharedPtr<T[]>::operator==(std::nullptr_t) const noexcept {
+  return get() == nullptr;
+}
+
+template<typename T>
+SharedPtr<T[]>::~SharedPtr() {
+  releaseOwnership();
 }

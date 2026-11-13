@@ -10,7 +10,7 @@ namespace {
 thread_local bool failNextAllocation = false;
 }
 
-// This executable isolates allocation failure injection from all other tests.
+// Отдельный исполняемый файл изолирует отказ выделения памяти от остальных тестов.
 void* operator new(std::size_t size) {
   if (std::exchange(failNextAllocation, false)) throw std::bad_alloc();
   if (void* address = std::malloc(size == 0 ? 1 : size)) return address;
@@ -112,4 +112,30 @@ TEST(SharedPtrAllocationTests, FailedArrayResetPreservesOldArray) {
   EXPECT_EQ(Tracked::live, 0);
 }
 
-} // namespace
+struct VirtualBase {
+  inline static int destroyed = 0;
+  virtual ~VirtualBase() { ++destroyed; }
+};
+
+struct Derived : VirtualBase {
+  inline static int destroyed = 0;
+  ~Derived() override { ++destroyed; }
+};
+
+TEST(SharedPtrAllocationTests, FailedPolymorphicConstructorDeletesDerived) {
+  VirtualBase::destroyed = Derived::destroyed = 0;
+  auto* raw = new Derived;
+  bool threw = false;
+  try {
+    failNextAllocation = true;
+    SharedPtr<VirtualBase> owner(raw);
+  } catch (const std::bad_alloc&) {
+    threw = true;
+  }
+  failNextAllocation = false;
+  EXPECT_TRUE(threw);
+  EXPECT_EQ(Derived::destroyed, 1);
+  EXPECT_EQ(VirtualBase::destroyed, 1);
+}
+
+} // Безымянное пространство имён.

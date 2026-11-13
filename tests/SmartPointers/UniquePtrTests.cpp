@@ -29,16 +29,16 @@ struct TrackedObject {
   }
 };
 
-struct NonVirtualBase {
+struct VirtualBase {
   inline static int destroyedCount = 0;
-  ~NonVirtualBase() { ++destroyedCount; }
+  virtual ~VirtualBase() { ++destroyedCount; }
 };
 
 struct FirstPolymorphicBase {
   virtual ~FirstPolymorphicBase() = default;
 };
 
-struct DerivedTrackedObject : FirstPolymorphicBase, NonVirtualBase {
+struct DerivedTrackedObject : FirstPolymorphicBase, VirtualBase {
   inline static int destroyedCount = 0;
   ~DerivedTrackedObject() { ++destroyedCount; }
 };
@@ -181,45 +181,45 @@ TEST_F(UniquePtrTest, UniquePtr_ArraySubscriptAndDeleteArray) {
 }
 
 TEST_F(UniquePtrTest, UniquePtr_ConvertingMovePreservesDerivedDeletion) {
-  NonVirtualBase::destroyedCount = 0;
+  VirtualBase::destroyedCount = 0;
   DerivedTrackedObject::destroyedCount = 0;
   auto* raw = new DerivedTrackedObject();
   {
     UniquePtr<DerivedTrackedObject> derived(raw);
-    UniquePtr<NonVirtualBase> base(std::move(derived));
+    UniquePtr<VirtualBase> base(std::move(derived));
     EXPECT_EQ(derived, nullptr);
-    EXPECT_EQ(base.get(), static_cast<NonVirtualBase*>(raw));
+    EXPECT_EQ(base.get(), static_cast<VirtualBase*>(raw));
     EXPECT_EQ(DerivedTrackedObject::destroyedCount, 0);
   }
   EXPECT_EQ(DerivedTrackedObject::destroyedCount, 1);
-  EXPECT_EQ(NonVirtualBase::destroyedCount, 1);
+  EXPECT_EQ(VirtualBase::destroyedCount, 1);
 }
 
 TEST_F(UniquePtrTest, UniquePtr_ConvertingMoveAssignmentReleasesOldAndDerivedObjects) {
-  NonVirtualBase::destroyedCount = 0;
+  VirtualBase::destroyedCount = 0;
   DerivedTrackedObject::destroyedCount = 0;
   {
-    UniquePtr<NonVirtualBase> destination(new NonVirtualBase());
+    UniquePtr<VirtualBase> destination(new VirtualBase());
     UniquePtr<DerivedTrackedObject> source(new DerivedTrackedObject());
     destination = std::move(source);
     EXPECT_EQ(source, nullptr);
     EXPECT_EQ(DerivedTrackedObject::destroyedCount, 0);
-    EXPECT_EQ(NonVirtualBase::destroyedCount, 1);
+    EXPECT_EQ(VirtualBase::destroyedCount, 1);
   }
   EXPECT_EQ(DerivedTrackedObject::destroyedCount, 1);
-  EXPECT_EQ(NonVirtualBase::destroyedCount, 2);
+  EXPECT_EQ(VirtualBase::destroyedCount, 2);
 }
 
-TEST_F(UniquePtrTest, UniquePtr_DirectBaseOwnerAndResetRetainDynamicType) {
-  NonVirtualBase::destroyedCount = 0;
+TEST_F(UniquePtrTest, UniquePtr_DirectBaseOwnerAndResetUseVirtualDestructor) {
+  VirtualBase::destroyedCount = 0;
   DerivedTrackedObject::destroyedCount = 0;
   {
-    UniquePtr<NonVirtualBase> owner(new DerivedTrackedObject());
+    UniquePtr<VirtualBase> owner(new DerivedTrackedObject());
     owner.reset(new DerivedTrackedObject());
     EXPECT_EQ(DerivedTrackedObject::destroyedCount, 1);
   }
   EXPECT_EQ(DerivedTrackedObject::destroyedCount, 2);
-  EXPECT_EQ(NonVirtualBase::destroyedCount, 2);
+  EXPECT_EQ(VirtualBase::destroyedCount, 2);
 }
 
 namespace {
@@ -236,19 +236,19 @@ TEST_F(UniquePtrTest, StdUniquePtr_CreateDestroy) {
     }
 }
 
-// [Timer] std::unique_ptr create/destroy x500000: 48.3059 ms
-// [Timer] std::unique_ptr create/destroy x500000: 50.8849 ms
-// [Timer] std::unique_ptr create/destroy x500000: 46.6353 ms
-// [Timer] std::unique_ptr create/destroy x500000: 53.238 ms
-// [Timer] std::unique_ptr create/destroy x500000: 56.2345 ms
-// [Timer] std::unique_ptr create/destroy x500000: 54.5628 ms
-// [Timer] std::unique_ptr create/destroy x500000: 53.292 ms
-// [Timer] std::unique_ptr create/destroy x500000: 51.7812 ms
-// [Timer] std::unique_ptr create/destroy x500000: 51.8659 ms
-// [Timer] std::unique_ptr create/destroy x500000: 56.8523 ms
-// [Timer] std::unique_ptr create/destroy x500000: 52.4052 ms
-// [Timer] std::unique_ptr create/destroy x500000: 52.1122 ms
-// [Timer] std::unique_ptr create/destroy x500000: 50.9419 ms
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 48.3059 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 50.8849 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 46.6353 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 53.238 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 56.2345 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 54.5628 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 53.292 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 51.7812 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 51.8659 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 56.8523 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 52.4052 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 52.1122 мс.
+// [Замер] Создание и уничтожение std::unique_ptr 500000 раз: 50.9419 мс.
 
 TEST_F(UniquePtrTest, CustomUniquePtr_CreateDestroy) {
     for (int k =0; k < 1; k++) {
@@ -260,18 +260,18 @@ TEST_F(UniquePtrTest, CustomUniquePtr_CreateDestroy) {
     }
 }
 
-// [Timer] Custom UniquePtr create/destroy x500000: 33.8248 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 35.0644 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 32.7523 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 34.3824 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 34.7001 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 36.3489 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 37.0113 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 36.1236 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 34.8457 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 35.8224 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 34.8561 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 35.2651 ms
-// [Timer] Custom UniquePtr create/destroy x500000: 35.0988 ms
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 33.8248 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 35.0644 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 32.7523 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 34.3824 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 34.7001 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 36.3489 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 37.0113 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 36.1236 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 34.8457 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 35.8224 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 34.8561 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 35.2651 мс.
+// [Замер] Создание и уничтожение собственного UniquePtr 500000 раз: 35.0988 мс.
 
-} // namespace
+} // Безымянное пространство имён.

@@ -13,9 +13,9 @@ private:
 
 public:
   Array() noexcept = default;
+
   Array(const Array& other);
   Array(Array&& other) noexcept;
-  ~Array();
 
   Array& operator=(const Array& other);
   Array& operator=(Array&& other) noexcept;
@@ -25,6 +25,8 @@ public:
   const T& operator[](size_t index) const noexcept;
 
   void push_back(T value);
+
+  ~Array();
 };
 
 #include "Array.tpp"

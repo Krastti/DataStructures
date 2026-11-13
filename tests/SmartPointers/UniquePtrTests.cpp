@@ -27,6 +27,26 @@ struct TrackedObject {
   }
 };
 
+struct NonVirtualBase {
+  inline static int destroyedCount = 0;
+  ~NonVirtualBase() { ++destroyedCount; }
+};
+
+struct FirstPolymorphicBase {
+  virtual ~FirstPolymorphicBase() = default;
+};
+
+struct DerivedTrackedObject : FirstPolymorphicBase, NonVirtualBase {
+  inline static int destroyedCount = 0;
+  ~DerivedTrackedObject() { ++destroyedCount; }
+};
+
+template<typename Ptr>
+concept SupportsSubscript = requires(const Ptr& pointer) { pointer[0]; };
+
+static_assert(SupportsSubscript<UniquePtr<TrackedObject[]>>);
+static_assert(!SupportsSubscript<UniquePtr<TrackedObject>>);
+
 class SmartPtrTest : public ::testing::Test {
 protected:
   void SetUp() override {
@@ -145,6 +165,59 @@ TEST_F(SmartPtrTest, UniquePtr_Destructor_ReleasesObject) {
         EXPECT_EQ(TrackedObject::liveCount, 1);
     }
     EXPECT_EQ(TrackedObject::liveCount, 0);
+}
+
+TEST_F(SmartPtrTest, UniquePtr_ArraySubscriptAndDeleteArray) {
+  {
+    UniquePtr<TrackedObject[]> values(new TrackedObject[3]);
+    ASSERT_EQ(TrackedObject::liveCount, 3);
+    values[1].value = 42;
+    EXPECT_EQ(values[1].value, 42);
+    EXPECT_EQ(values.get()[2].value, 67);
+  }
+  EXPECT_EQ(TrackedObject::liveCount, 0);
+}
+
+TEST_F(SmartPtrTest, UniquePtr_ConvertingMovePreservesDerivedDeletion) {
+  NonVirtualBase::destroyedCount = 0;
+  DerivedTrackedObject::destroyedCount = 0;
+  auto* raw = new DerivedTrackedObject();
+  {
+    UniquePtr<DerivedTrackedObject> derived(raw);
+    UniquePtr<NonVirtualBase> base(std::move(derived));
+    EXPECT_EQ(derived, nullptr);
+    EXPECT_EQ(base.get(), static_cast<NonVirtualBase*>(raw));
+    EXPECT_EQ(DerivedTrackedObject::destroyedCount, 0);
+  }
+  EXPECT_EQ(DerivedTrackedObject::destroyedCount, 1);
+  EXPECT_EQ(NonVirtualBase::destroyedCount, 1);
+}
+
+TEST_F(SmartPtrTest, UniquePtr_ConvertingMoveAssignmentReleasesOldAndDerivedObjects) {
+  NonVirtualBase::destroyedCount = 0;
+  DerivedTrackedObject::destroyedCount = 0;
+  {
+    UniquePtr<NonVirtualBase> destination(new NonVirtualBase());
+    UniquePtr<DerivedTrackedObject> source(new DerivedTrackedObject());
+    destination = std::move(source);
+    EXPECT_EQ(source, nullptr);
+    EXPECT_EQ(DerivedTrackedObject::destroyedCount, 0);
+    EXPECT_EQ(NonVirtualBase::destroyedCount, 1);
+  }
+  EXPECT_EQ(DerivedTrackedObject::destroyedCount, 1);
+  EXPECT_EQ(NonVirtualBase::destroyedCount, 2);
+}
+
+TEST_F(SmartPtrTest, UniquePtr_DirectBaseOwnerAndResetRetainDynamicType) {
+  NonVirtualBase::destroyedCount = 0;
+  DerivedTrackedObject::destroyedCount = 0;
+  {
+    UniquePtr<NonVirtualBase> owner(new DerivedTrackedObject());
+    owner.reset(new DerivedTrackedObject());
+    EXPECT_EQ(DerivedTrackedObject::destroyedCount, 1);
+  }
+  EXPECT_EQ(DerivedTrackedObject::destroyedCount, 2);
+  EXPECT_EQ(NonVirtualBase::destroyedCount, 2);
 }
 
 namespace {

@@ -25,11 +25,6 @@ Array<T>::Array(Array&& other) noexcept : storage(other.storage), count(other.co
 }
 
 template<typename T>
-Array<T>::~Array() {
-  delete[] storage;
-}
-
-template<typename T>
 Array<T>& Array<T>::operator=(const Array& other) {
   if (this == &other) return *this;
 
@@ -94,4 +89,9 @@ void Array<T>::push_back(T value) {
   storage = newStorage;
   allocated = newCapacity;
   ++count;
+}
+
+template<typename T>
+Array<T>::~Array() {
+  delete[] storage;
 }

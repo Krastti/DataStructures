@@ -117,3 +117,25 @@ add_executable(SharedPtrAllocationTests tests/SmartPointers/SharedPtrAllocationT
 target_link_libraries(SharedPtrAllocationTests PRIVATE SmartPointer GTest::gtest_main)
 target_include_directories(SharedPtrAllocationTests PRIVATE include)
 gtest_discover_tests(SharedPtrAllocationTests)
+
+# Графический интерфейс собирается отдельно от консольной версии.
+option(BUILD_GUI "Build Qt 6 Widgets application" OFF)
+if(BUILD_GUI)
+  find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets Concurrent)
+  add_library(DataStructuresGuiWidgets STATIC
+      app/gui/AlphabeticalIndexWidget.cpp
+      app/gui/PersonIndexWidget.cpp
+      app/gui/GraphWidget.cpp
+      app/gui/GraphScene.cpp
+      include/SecondLab/AlphabeticalIndex.cpp
+      include/SecondLab/PersonIndex.cpp
+  )
+  target_include_directories(DataStructuresGuiWidgets PUBLIC include app/gui)
+  target_link_libraries(DataStructuresGuiWidgets PUBLIC Qt6::Widgets Qt6::Concurrent)
+  add_executable(DataStructuresGui app/gui/main.cpp)
+  target_link_libraries(DataStructuresGui PRIVATE DataStructuresGuiWidgets)
+  add_executable(GuiTests tests/Gui/GuiTests.cpp)
+  target_link_libraries(GuiTests PRIVATE DataStructuresGuiWidgets GTest::gtest)
+  add_test(NAME GuiTests COMMAND GuiTests)
+  set_tests_properties(GuiTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 60)
+endif()

@@ -1,17 +1,25 @@
 ## Лабораторные работы
 
-Проект содержит консольные реализации заданий ЛР-2 и ЛР-3. Сборка, запуск и тестирование выполняются в Ubuntu-контейнере; локальный C++-компилятор не требуется.
+Проект содержит консольные реализации заданий ЛР-2 и ЛР-3 и графический интерфейс Qt 6.
+Нужны CMake 3.20+, компилятор C++20 и Qt 6 Widgets/Concurrent.
+В Ubuntu зависимости можно установить командой:
 
-```powershell
-docker build -t datastructures-labs:ubuntu24 .
-$project = (Get-Location).Path
-docker run --rm --mount "type=bind,source=$project,target=/workspace,readonly" -w /workspace datastructures-labs:ubuntu24 bash -lc 'cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release && cmake --build /tmp/ds-build --parallel "$(nproc)" && ctest --test-dir /tmp/ds-build --output-on-failure'
+```bash
+sudo apt install build-essential cmake qt6-base-dev libgtest-dev
 ```
 
-Команда собирает исполняемый файл и запускает весь набор тестов внутри контейнера. Чтобы интерактивно собрать и запустить программу, используйте контейнер с записью в рабочую папку для CSV-экспорта:
+Сборка и тестирование из корня проекта:
 
-```powershell
-docker run --rm -it --mount "type=bind,source=$project,target=/workspace" -w /workspace datastructures-labs:ubuntu24 bash -lc 'cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release && cmake --build /tmp/ds-build --parallel "$(nproc)" && /tmp/ds-build/DataStructures'
+```bash
+cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=ON
+cmake --build /tmp/ds-build --parallel 2
+ctest --test-dir /tmp/ds-build --output-on-failure
+```
+
+Консольный запуск:
+
+```bash
+/tmp/ds-build/DataStructures
 ```
 
 В меню выберите ЛР-2 или ЛР-3. Для проверки на произвольных данных доступны ручной и автоматический режимы; результаты замеров можно выгрузить в CSV.
@@ -21,3 +29,42 @@ docker run --rm -it --mount "type=bind,source=$project,target=/workspace" -w /wo
 
 ### Бенчмарк для SharedPtr
 ![SharedPtr benchmark](docs/img/sharedptr_benchmark.png)
+
+## Графический интерфейс Qt 6
+
+Консольная цель `DataStructures` сохранена. Для отдельного приложения
+`DataStructuresGui` включите `-DBUILD_GUI=ON` (по умолчанию выключено).
+После сборки запустите приложение в графической сессии:
+
+```bash
+/tmp/ds-build/DataStructuresGui
+```
+
+CSV сохраняется в выбранный пользователем файл. В CLion задайте
+`-DBUILD_GUI=ON` в параметрах CMake и выберите цель `DataStructuresGui`.
+Для сборки без интерфейса используйте `-DBUILD_GUI=OFF`.
+
+- **Алфавитный указатель:** ввод или загрузка UTF-8 TXT, построение страниц,
+  таблица слов, просмотр страницы, поиск двумя методами, сравнение и CSV.
+  Щелчок по строке указателя открывает первую страницу слова и выделяет его.
+- **Персональный индекс:** редактируемая таблица, генерация по seed,
+  построение индекса, точный и диапазонный поиск, полный просмотр и сравнение.
+  Изменение записей требует повторного построения индекса.
+- **Графы:** ручная таблица рёбер или генерация, оба типа графов,
+  поиск двумя алгоритмами, сравнение расстояний, подсветка пути.
+  Вершины перемещаются мышью, колесо меняет масштаб.
+  При более 200 вершинах или 1000 рёбрах остаётся табличное представление.
+  Для отрицательных весов выбирайте Беллмана — Форда; ошибки алгоритмов
+  (включая отрицательные циклы) показываются отдельным сообщением.
+
+Построение и поиск выполняются в рабочем потоке. Замеры показывают один запуск
+в миллисекундах, включая формирование ответа и без отрисовки; это ознакомительные
+измерения, а не статистический бенчмарк. Для индексов и графов доступны CSV замеров.
+
+Скриншоты: [алфавитный указатель](docs/img/gui-alphabetical.png),
+[персональный индекс](docs/img/gui-people.png), [графы](docs/img/gui-graph.png).
+
+При `BUILD_GUI=ON` CTest дополнительно запускает `GuiTests` через Qt offscreen:
+проверяются поиск, сравнение ответов, сброс устаревших результатов, генерация графа,
+ошибки ввода и рабочего потока, а также экранирование CSV. Подключение к реальному
+дисплею проверяется отдельно при интерактивном запуске.

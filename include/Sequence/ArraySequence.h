@@ -14,9 +14,7 @@ private:
 
 public:
 
-  //
-  // Конструкторы
-  //
+  // Конструкторы.
 
   ArraySequence();
 
@@ -27,9 +25,7 @@ public:
   ArraySequence(ArraySequence &&other) noexcept;
 
 
-  //
-  //  Методы
-  //
+  // Методы.
 
   T& get(size_t index) override;
 
@@ -49,9 +45,7 @@ public:
 
   void removeAt(size_t index) override;
 
-  //
-  // Операторы
-  //
+  // Операторы.
   
   ArraySequence& operator=(const ArraySequence &other);
 

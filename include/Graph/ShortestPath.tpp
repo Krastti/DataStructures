@@ -42,12 +42,12 @@ PathResult<Vertex, Weight> restorePath(
 template<typename Vertex, typename Weight>
 PathResult<Vertex, Weight> dijkstra(const Graph<Vertex, Weight>& graph, const Vertex& source, const Vertex& target) {
 
-  // Если начало или конец в графе отсутсвуют, то выбросить исключение
+  // Если начальной или конечной вершины нет в графе, бросаем исключение.
   if (!graph.containsVertex(source) || !graph.containsVertex(target)) {
     throw std::invalid_argument("Начальная и конечная вершины должны существовать");
   }
 
-  // Проверка, что у каждой вершины, веса у выходящих ребер не отрицательны
+  // Проверяем, что веса всех рёбер неотрицательны.
   const Array<Vertex> vertices = graph.vertices();
   for (size_t i = 0; i < vertices.size(); ++i) {
 
@@ -60,14 +60,14 @@ PathResult<Vertex, Weight> dijkstra(const Graph<Vertex, Weight>& graph, const Ve
     }
   }
 
-  // Начальное растояние равно нулю, а предыдущих - пустая таблица
+  // Начальное расстояние равно нулю, таблица предшественников пока пуста.
   Map<Vertex, Optional<Weight>> distances;
   Map<Vertex, Vertex> previous;
 
   for (size_t i = 0; i < vertices.size(); ++i) distances.insert(vertices[i], Optional<Weight>{});
   distances.at(source) = Weight{};
 
-  // Помечаем все вершины в графе как не посещенные
+  // Помечаем все вершины графа как непосещённые.
   Map<Vertex, bool> visited;
   for (size_t i = 0; i < vertices.size(); ++i) visited.insert(vertices[i], false);
 
@@ -122,9 +122,8 @@ PathResult<Vertex, Weight> bellmanFord(const Graph<Vertex, Weight>& graph, const
   Map<Vertex, Optional<Weight>> distances;
   Map<Vertex, Vertex> previous;
 
-  // Цикл добавляет в distances каждую вершину и не задает ей расстояние
+  // Добавляем вершины в таблицу distances без заданного расстояния.
   for (size_t i = 0; i < vertices.size(); ++i) distances.insert(vertices[i], Optional<Weight>{});
-  //
   distances.at(source) = Weight{};
 
   for (size_t iteration = 1; iteration < vertices.size(); ++iteration) {

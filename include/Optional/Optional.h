@@ -14,7 +14,7 @@ private:
   bool containsValue = false;
 
 public:
-  // Конструкторы
+  // Конструкторы.
   Optional() = default;
   explicit Optional(const T& value);
   explicit Optional(T&& value);
@@ -31,18 +31,15 @@ public:
   void reset() noexcept;
 
   /**
-   * @brief Преобразует хранящееся значение, если оно есть.
-   * @details Если Optional пуст, функция не вызывается и возвращается пустой
-   * Optional. Иначе результат функции сохраняется в новом Optional.
+   * Преобразует хранящееся значение, если оно есть.
+   * Для пустого Optional функция не вызывается, иначе её результат сохраняется в новом Optional.
    */
   template<typename Function>
   auto map(Function function) const;
 
   /**
-   * @brief Продолжает вычисление функцией, которая сама возвращает Optional.
-   * @details Если этот Optional пуст, функция не вызывается и возвращается
-   * пустой результат. Иначе возвращается результат функции напрямую, без
-   * создания Optional внутри Optional.
+   * Продолжает вычисление функцией, которая сама возвращает Optional.
+   * Для пустого Optional функция не вызывается, иначе её результат возвращается напрямую, без вложенного Optional.
    */
   template<typename Function>
   auto andThen(Function function) const;

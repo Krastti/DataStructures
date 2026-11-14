@@ -4,7 +4,7 @@
 #include "Graph.h"
 #include "../Trees/RedBlackTree.h"
 
-// TODO Придумать название получше для AdjacencyGraph
+// Нужно подобрать более точное название для AdjacencyGraph.
 
 template<typename Vertex, typename Weight>
 class AdjacencyGraph : public Graph<Vertex, Weight> {

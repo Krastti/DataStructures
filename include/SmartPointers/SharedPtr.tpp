@@ -6,10 +6,12 @@ template<typename U>
 SharedPtr<T>::SharedPtr(U* pointer) {
   static_assert(!std::is_array_v<U>, "Нельзя передать массив владельцу одиночного объекта");
   static_assert(std::is_convertible_v<U*, T*>, "Несовместимые типы указателей");
+
   if constexpr (!std::is_same_v<std::remove_cv_t<U>, std::remove_cv_t<T>>) {
     static_assert(std::has_virtual_destructor_v<T>, "Базовый тип должен иметь виртуальный деструктор");
   }
   if (pointer == nullptr) return;
+
   try {
     control = new ControlBlock(pointer);
   } catch (...) {
@@ -94,10 +96,12 @@ template<typename U>
 void SharedPtr<T>::reset(U* newPtr) {
   static_assert(!std::is_array_v<U>, "Нельзя передать массив владельцу одиночного объекта");
   static_assert(std::is_convertible_v<U*, T*>, "Несовместимые типы указателей");
+
   if constexpr (!std::is_same_v<std::remove_cv_t<U>, std::remove_cv_t<T>>) {
     static_assert(std::has_virtual_destructor_v<T>, "Базовый тип должен иметь виртуальный деструктор");
   }
   if (get() == newPtr) return;
+
   SharedPtr replacement(newPtr);
   swap(replacement);
 }
@@ -123,6 +127,7 @@ template<typename U>
 SharedPtr<T[]>::SharedPtr(U* pointer) {
   static_assert(std::is_convertible_v<U(*)[], T(*)[]>, "Несовместимые типы массивов");
   if (pointer == nullptr) return;
+
   try {
     control = new ControlBlock(pointer);
   } catch (...) {

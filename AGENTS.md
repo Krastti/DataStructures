@@ -1,33 +1,36 @@
-# Repository Guidelines
+# Правила работы с репозиторием
 
-## Project Structure
+## Структура проекта
 
-This C++20 repository contains data-structure exercises and console demos. `main.cpp` is the CLI entry point. Public headers and template implementations live together under `include/`: core modules are in `Array/`, `Sequence/`, `Trees/`, `Stack/`, `SmartPointers/`, and `Graph/`; Lab 2 indexing code is in `SecondLab/`. Tests are grouped under `tests/`, with graph lab tests in `tests/ThirdLab/`. Assignment PDFs and reports are in `docs/task/` and `docs/reports/`; benchmark images are in `docs/img/`.
+Проект на C++20 содержит реализации структур данных, консольные демонстрации и GUI на Qt 6. Точка входа CLI — `main.cpp`, GUI — `app/gui/main.cpp`. Заголовки и шаблонные реализации находятся в `include/`: основные модули — `Array/`, `Sequence/`, `Trees/`, `Stack/`, `SmartPointers/` и `Graph/`; индексы ЛР-2 — в `SecondLab/`. Интерфейс и сервисы находятся в `app/`. Тесты сгруппированы в `tests/`, тесты графов — в `tests/ThirdLab/`, интерфейса — в `tests/Gui/`. Задания и отчёты находятся в `docs/task/` и `docs/reports/`, изображения — в `docs/img/`.
 
-## Build, Test, and Run
+## Сборка и запуск
 
-Build and run inside the provided Ubuntu 24.04 Docker image; do not execute the Windows-built test binary. From PowerShell at the repository root:
+Нужны компилятор C++20, CMake 3.20 или новее, Qt 6 Widgets и Concurrent. GoogleTest используется из системы или загружается CMake автоматически. Выполняйте команды из корня проекта:
 
-```powershell
-docker build -t datastructures-labs:ubuntu24 .
-$project = (Get-Location).Path
-docker run --rm --mount "type=bind,source=$project,target=/workspace,readonly" -w /workspace datastructures-labs:ubuntu24 bash -lc 'cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release && cmake --build /tmp/ds-build --parallel "$(nproc)" && ctest --test-dir /tmp/ds-build --output-on-failure'
+```bash
+cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=ON
+cmake --build /tmp/ds-build --parallel 2
+ctest --test-dir /tmp/ds-build --output-on-failure
+/tmp/ds-build/DataStructuresGui
 ```
 
-This configures, builds `DataStructures` and `UnitTests`, then runs registered GoogleTest cases. For interactive CSV export, mount the repository writable; use the README command, which builds and launches the app in the same container.
+Для консольной версии запускайте `/tmp/ds-build/DataStructures`. Если GUI не нужен, задайте `-DBUILD_GUI=OFF`. Для интерактивного GUI нужна графическая сессия; тесты интерфейса CTest запускает через Qt offscreen.
 
-## Style and Naming
+## Стиль и именование
 
-Use C++20, two-space indentation, braces on the declaration line, and explicit standard-library includes. Keep template definitions in matching `.tpp` files. Use PascalCase for types, lower camelCase for functions and variables, and descriptive `TEST` names under `tests/<Module>/`. Follow nearby code; no formatter or linter is configured.
+Используйте C++20, отступ в два пробела, открывающую скобку на строке объявления и явные подключения стандартных заголовков. Определения шаблонов храните в соответствующих `.tpp`. Для типов используйте PascalCase, для функций и переменных — lower camelCase. Давайте тестам `TEST` содержательные имена и размещайте их в `tests/<Module>/`. Следуйте соседнему коду; форматтер и линтер не настроены.
 
-## Testing
+Комментарии к коду пишите на русском языке в стиле автора проекта: кратко, прямо и без лишней воды. Один комментарий — 1–2 предложения; объясняйте назначение, причину решения или ограничение, не пересказывая очевидный код. Имена типов, технические идентификаторы и служебные директивы IDE сохраняйте в исходном виде.
 
-Add GoogleTest coverage in the corresponding `tests/` subdirectory and list new test sources in `CMakeLists.txt`. Cover ordinary cases, edge conditions, and invalid inputs. Run the Docker configure/build/CTest command above; report actual results and any skipped checks.
+## Тестирование
 
-## Commits and Pull Requests
+Добавляйте GoogleTest-тесты в соответствующий подкаталог `tests/`, новые исходники перечисляйте в `CMakeLists.txt`. Проверяйте обычные случаи, граничные условия и некорректный ввод. Выполняйте сборку и CTest командами выше; сообщайте фактические результаты и пропущенные проверки. Не запускайте бинарники, собранные для другой операционной системы.
 
-Recent commits use short Russian imperative subjects (for example, `Добавил тесты ...`). Keep subjects concise and action-oriented. A pull request should summarize behavior and affected modules, link related issues when available, and include build/test results. Add screenshots only for user-visible or benchmark changes.
+## Коммиты и pull request
 
-## Generated Files and Configuration
+Пишите короткие русские заголовки коммитов, описывающие действие, например `Добавил тесты ...`. В pull request опишите поведение и затронутые модули, укажите связанные задачи и результаты сборки и тестов. Скриншоты добавляйте для изменений интерфейса или бенчмарков.
 
-Do not commit IDE settings, binaries, CMake caches, or build directories such as `.idea/`, `cmake-build-debug/`, and `.build-*/`. Build in `/tmp/ds-build` inside the container. Do not add credentials or machine-specific configuration to the repository.
+## Создаваемые файлы и конфигурация
+
+Не коммитьте настройки IDE, бинарники, кеши CMake и каталоги сборки: `.idea/`, `cmake-build-debug/`, `.build-*/`. Для проверок собирайте проект в `/tmp/ds-build`. Не добавляйте секреты и конфигурацию конкретного компьютера.

@@ -12,8 +12,8 @@
 // Собирает дерево программы из токенов.
 class Parser {
 public:
-  // В конце массива должен быть один EOF. При ошибке собранные узлы удалятся через UniquePtr.
-  Array<UniquePtr<ast::Statement>> parse(const Array<Token>& tokens);
+  // Собирает инструкции программы по порядку. В конце массива токенов ожидает EOF.
+  static Array<UniquePtr<ast::Statement>> parse(const Array<Token>& tokens);
 
 private:
   // nextPosition — индекс следующего непрочитанного токена.
@@ -22,6 +22,8 @@ private:
     std::size_t nextPosition;
   };
 
+  // Хранит разобранную инструкцию и позицию для продолжения разбора.
+  // nextPosition — индекс первого непрочитанного токена после инструкции.
   struct ParsedStatement {
     UniquePtr<ast::Statement> statement;
     std::size_t nextPosition;
@@ -30,19 +32,35 @@ private:
   // Функция, которая разбирает операнд на следующем уровне приоритета.
   using ExpressionParser = ParsedExpr (*)(const Array<Token>&, std::size_t);
 
+  // Возвращает токен нужного типа или выбрасывает исключение с переданным сообщением.
   static const Token& requireToken(const Array<Token>& tokens, std::size_t position,
                                   TokenType expected, const char* message);
+
+  // Проверяет, что после инструкции идёт перевод строки или EOF.
   static void requireStatementEnd(const Array<Token>& tokens, std::size_t position);
+
+  // Разбирает одну инструкцию remember или print и возвращает позицию после неё.
   static ParsedStatement parseStatement(const Array<Token>& tokens, std::size_t position);
 
+  // Создаёт лист дерева из токена числа, строки или имени переменной.
   static ast::ExpressionTree parseOperand(const Array<Token>& tokens, std::size_t position);
+
+  // Разбирает простой операнд или выражение в скобках.
   static ParsedExpr parsePrimary(const Array<Token>& tokens, std::size_t position);
 
-  // Сначала разбираем операции с более высоким приоритетом.
+  // Разбирает * и /, получая операнды через parsePrimary.
   static ParsedExpr parseMultiplication(const Array<Token>& tokens, std::size_t position);
+
+  // Разбирает + и -, сначала собирая произведения и частные.
   static ParsedExpr parseAddition(const Array<Token>& tokens, std::size_t position);
+
+  // Разбирает <, <=, > и >= после арифметических операций.
   static ParsedExpr parseComparison(const Array<Token>& tokens, std::size_t position);
+
+  // Разбирает == и !=. Разбор выражения начинается здесь, потому что у этих операций самый низкий приоритет.
   static ParsedExpr parseEquality(const Array<Token>& tokens, std::size_t position);
+
+  // Собирает цепочку операций одного уровня слева направо, разбирая операнды на следующем уровне.
   static ParsedExpr parseBinaryChain(const Array<Token>& tokens, std::size_t position,
                                     ExpressionParser parseOperandAtNextLevel,
                                     std::initializer_list<TokenType> operations);

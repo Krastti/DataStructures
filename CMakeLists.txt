@@ -81,6 +81,8 @@ target_link_libraries(DataStructures
 enable_testing()
 
 add_executable(UnitTests
+        interpreter/lexer.cpp
+        tests/Interpreter/LexerTests.cpp
         tests/SmartPointers/SharedPtrTests.cpp
         tests/SmartPointers/UniquePtrTests.cpp
         tests/SmartPointers/SmartPointerSafetyTests.cpp

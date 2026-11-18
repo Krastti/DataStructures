@@ -6,15 +6,15 @@
 
 ## Интерпретатор MiniLang
 
-Учебный интерпретатор на C++20 находится в `interpreter/`: заголовки — в `headers/`, реализации — в `sources/`. Он разрабатывается по образцу Java-проекта MiniLang. Текущее состояние:
+Учебный интерпретатор на C++20 находится в `interpreter/`: заголовки — в `headers/`, реализации — в `sources/`, точка входа CLI — `interpreter/main.cpp`. Он разрабатывается по образцу Java-проекта MiniLang. Текущее состояние:
 
 - В `interpreter/headers/token.h` определены `TokenType` и `Token` с полями `type` и `lexeme`. Координаты `line` и `column` отложены для будущей диагностики.
 - В `interpreter/headers/lexer.h` и `interpreter/sources/lexer.cpp` реализован `Lexer::tokenize`, возвращающий собственный `Array<Token>`. Лексер распознаёт `remember`, `print`, целочисленные литералы, латинские идентификаторы, арифметические операторы и сравнения, скобки, LF/CRLF и EOF.
 - Строковые литералы распознаются как `String`, лексема сохраняет обе кавычки. Пустые строки разрешены; экранирование и многострочные строки не поддерживаются. Для отсутствующего типа двухсимвольного оператора используется собственный `Optional<TokenType>`.
 - В `interpreter/headers/parser.h` и `interpreter/sources/parser.cpp` реализован парсер рекурсивного спуска. Узлы AST объявлены в `headers/expressions.h` и `headers/statements.h`, их конструкторы и `accept` — в `sources/ast.cpp`. Типы AST находятся в пространстве имён `ast`: `NumberLiteral`, `StringLiteral`, `Identifier`, `Binary`, `Remember`, `Print`. Владение узлами — через собственный `UniquePtr`, результат `parse` — `Array<UniquePtr<ast::Statement>>`. Парсер учитывает приоритеты, скобки и левую ассоциативность, проверяет границы инструкций и EOF. Строковые лексемы сохраняют кавычки; вычисления и проверка типов выполняются исполнителем.
 - Узлы AST поддерживают `accept` и интерфейсы `ast::ExprVisitor` и `ast::StatementVisitor` из `headers/visitors.h`. Обработчики принимают константные узлы и возвращают `void`; обход дочерних узлов задаёт посетитель.
-- В `interpreter/headers/interpreter.h` и `interpreter/sources/interpreter.cpp` реализован `Interpreter` через оба посетителя. Он выполняет `remember` и `print`, вычисляет числовые операции и сравнения, сохраняет и выводит строки; переменные хранятся в собственном `Map`, промежуточный результат — в `Optional`. Каждый запуск получает пустую таблицу переменных. Отдельный CLI MiniLang пока не реализован.
-- Тесты лексера, парсера и исполнителя находятся в `tests/Interpreter/` и вместе с `sources/lexer.cpp`, `sources/parser.cpp`, `sources/ast.cpp` и `sources/interpreter.cpp` подключены к цели `UnitTests` в CMake.
+- В `interpreter/headers/interpreter.h` и `interpreter/sources/interpreter.cpp` реализован `Interpreter` через оба посетителя. Он выполняет `remember` и `print`, вычисляет числовые операции и сравнения, сохраняет и выводит строки; переменные хранятся в собственном `Map`, промежуточный результат — в `Optional`. Каждый запуск получает пустую таблицу переменных. CLI `MiniLangCpp` запускает `.mini`-файлы; пример — `interpreter/examples/main.mini`.
+- Тесты лексера, парсера и исполнителя находятся в `tests/Interpreter/` и подключены к цели `UnitTests` в CMake. Общие исходники `sources/lexer.cpp`, `sources/parser.cpp`, `sources/ast.cpp` и `sources/interpreter.cpp` собираются в `MiniLangCore`, с которой связаны CLI и тесты. `MiniLangCliTests` проверяет запуск бинарника через CMake-сценарий.
 
 Перед продолжением работы изучите документацию:
 
@@ -23,12 +23,13 @@
 - [Описание лексера](docs/interpreter/lexer/README.md) — текущий алгоритм, интерфейс и ограничения, включая строки.
 - [Описание парсера](docs/interpreter/parser/README.md) — теория AST, грамматика, приоритеты, владение узлами и схемы.
 - [Описание исполнителя](docs/interpreter/execution/README.md) — Visitor, значения, переменные, вывод и ошибки выполнения.
+- [CLI MiniLangCpp](docs/interpreter/cli/README.md) — сборка, запуск `.mini`, коды завершения и проверки CLI.
 
 Используйте собственные структуры данных проекта. Для будущего стека вызовов предусмотрен `Stack<CallFrame>`; перед его применением нужны возврат ссылок из `top` и перемещение некопируемых кадров через `push`. `Array::push_back` поддерживает некопируемые элементы с присваиванием перемещением без исключений, включая `UniquePtr`; копируемые элементы сохраняют прежнюю ветку копирования. Подробности этих требований приведены в ТЗ и плане.
 
 ## Сборка и запуск
 
-Нужны компилятор C++20, CMake 3.20 или новее, Qt 6 Widgets и Concurrent. GoogleTest используется из системы или загружается CMake автоматически. Выполняйте команды из корня проекта:
+Нужны компилятор C++20 и CMake 3.20 или новее; для GUI дополнительно нужны Qt 6 Widgets и Concurrent. GoogleTest используется из системы или загружается CMake автоматически. Выполняйте команды из корня проекта:
 
 ```bash
 cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=ON
@@ -38,6 +39,16 @@ ctest --test-dir /tmp/ds-build --output-on-failure
 ```
 
 Для консольной версии запускайте `/tmp/ds-build/DataStructures`. Если GUI не нужен, задайте `-DBUILD_GUI=OFF`. Для интерактивного GUI нужна графическая сессия; тесты интерфейса CTest запускает через Qt offscreen.
+
+Для сборки только MiniLangCpp без Qt и GoogleTest:
+
+```bash
+cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=OFF -DBUILD_TESTING=OFF
+cmake --build /tmp/ds-build --target MiniLangCpp --parallel 2
+/tmp/ds-build/MiniLangCpp interpreter/examples/main.mini
+```
+
+Для запуска CTest включите `-DBUILD_TESTING=ON` (значение по умолчанию), выполните полную сборку и команды CTest выше. При `BUILD_TESTING=OFF` GoogleTest не ищется и не загружается.
 
 ## Стиль и именование
 

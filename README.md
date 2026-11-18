@@ -1,7 +1,7 @@
 ## Лабораторные работы
 
 Проект содержит консольные реализации заданий ЛР-2 и ЛР-3 и графический интерфейс Qt 6.
-Нужны CMake 3.20+, компилятор C++20 и Qt 6 Widgets/Concurrent.
+Нужны CMake 3.20+ и компилятор C++20; для GUI дополнительно нужен Qt 6 Widgets/Concurrent.
 В Ubuntu зависимости можно установить командой:
 
 ```bash
@@ -68,3 +68,23 @@ CSV сохраняется в выбранный пользователем фа
 проверяются поиск, сравнение ответов, сброс устаревших результатов, генерация графа,
 ошибки ввода и рабочего потока, а также экранирование CSV. Подключение к реальному
 дисплею проверяется отдельно при интерактивном запуске.
+
+## Интерпретатор MiniLang
+
+Отдельная цель `MiniLangCpp` выполняет файлы `.mini`. Точка входа — `interpreter/main.cpp`, заголовки и реализации компонентов находятся в `interpreter/headers/` и `interpreter/sources/`.
+
+Сборка только интерпретатора без Qt и GoogleTest:
+
+```bash
+cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=OFF -DBUILD_TESTING=OFF
+cmake --build /tmp/ds-build --target MiniLangCpp --parallel 2
+/tmp/ds-build/MiniLangCpp interpreter/examples/main.mini
+```
+
+Пример выводит `36.0`, `true` и `18.0` на отдельных строках. Для своей программы передайте путь к файлу; пути с пробелами заключайте в кавычки.
+
+Чтобы собрать и запустить тесты без GUI, задайте `-DBUILD_GUI=OFF -DBUILD_TESTING=ON`, выполните полную сборку и `ctest --test-dir /tmp/ds-build --output-on-failure`. GoogleTest используется из системы или загружается CMake автоматически.
+
+Результат программы выводится в `stdout`, ошибки — в `stderr`. Код завершения: `0` при успехе, `1` при ошибке обработки, `2` при неверном числе аргументов.
+
+Подробнее: [сборка и запуск CLI](docs/interpreter/cli/README.md), [ТЗ](docs/interpreter/specification.md), [устройство исполнителя](docs/interpreter/execution/README.md).

@@ -1,0 +1,6 @@
+remember x = 10
+remember y = (x + 2) * 3
+print y
+print y >= 30
+remember x = y / 2
+print x

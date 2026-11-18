@@ -1,7 +1,7 @@
 #ifndef DATASTRUCTURES_AST_STATEMENTS_H
 #define DATASTRUCTURES_AST_STATEMENTS_H
 
-#include "expressions.h"
+#include "expressionTree.h"
 
 #include <string>
 
@@ -16,16 +16,16 @@ struct Statement {
 
 struct Remember : Statement {
   std::string variable;
-  UniquePtr<Expr> right;
+  ExpressionTree right;
 
-  Remember(std::string variable, UniquePtr<Expr> right);
+  Remember(std::string variable, ExpressionTree right);
   void accept(StatementVisitor& visitor) const override;
 };
 
 struct Print : Statement {
-  UniquePtr<Expr> forOutput;
+  ExpressionTree forOutput;
 
-  explicit Print(UniquePtr<Expr> forOutput);
+  explicit Print(ExpressionTree forOutput);
   void accept(StatementVisitor& visitor) const override;
 };
 

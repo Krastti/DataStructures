@@ -100,12 +100,9 @@ void Interpreter::visit(const ast::StringLiteral& node) {
 }
 
 void Interpreter::visit(const ast::Binary& node) {
-  if (!node.left || !node.right) {
-    throw std::invalid_argument("Ошибка выполнения: отсутствует операнд");
-  }
   // Сохраняем левое значение до обхода правого: тот тоже использует lastValue.
-  const Value leftValue = evaluate(*node.left);
-  const Value rightValue = evaluate(*node.right);
+  const Value leftValue = evaluate(*node.leftOperand());
+  const Value rightValue = evaluate(*node.rightOperand());
   const auto* left = std::get_if<double>(&leftValue);
   const auto* right = std::get_if<double>(&rightValue);
   if (!left || !right) {
@@ -115,17 +112,19 @@ void Interpreter::visit(const ast::Binary& node) {
 }
 
 void Interpreter::visit(const ast::Remember& node) {
-  if (!node.right) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение remember");
+  const auto* expression = node.right.getRoot();
+  if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение remember");
   // Сначала вычисляем правую часть, чтобы при ошибке сохранить старое значение переменной.
-  Value value = evaluate(*node.right);
+  Value value = evaluate(*expression);
   if (variables.containsKey(node.variable)) variables.replace(node.variable, std::move(value));
   else variables.insert(node.variable, std::move(value));
 }
 
 void Interpreter::visit(const ast::Print& node) {
   if (!output) throw std::logic_error("Print можно выполнять только во время execute");
-  if (!node.forOutput) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение print");
-  const std::string text = formatValue(evaluate(*node.forOutput));
+  const auto* expression = node.forOutput.getRoot();
+  if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение print");
+  const std::string text = formatValue(evaluate(*expression));
   output->write(text.data(), static_cast<std::streamsize>(text.size()));
   output->put('\n');
   if (!*output) throw std::runtime_error("Ошибка выполнения: не удалось записать результат");

@@ -9,6 +9,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace {
 auto parseProgram(const std::string& source) {
@@ -151,7 +152,7 @@ TEST(InterpreterTests, DetectsOutputFailureAndReleasesOutputReference) {
   broken.setstate(std::ios::badbit);
   const auto program = parseProgram("print 1");
   EXPECT_THROW(interpreter.execute(program, broken), std::runtime_error);
-  const ast::Print print(UniquePtr<ast::Expr>(new ast::NumberLiteral("2")));
+  const ast::Print print(ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("2"))));
   EXPECT_THROW(print.accept(interpreter), std::logic_error);
   std::ostringstream working;
   interpreter.execute(program, working);
@@ -165,9 +166,10 @@ TEST(InterpreterTests, RejectsInvalidManuallyBuiltAst) {
   missing.push_back(UniquePtr<ast::Statement>{});
   EXPECT_THROW(interpreter.execute(missing, output), std::invalid_argument);
   Array<UniquePtr<ast::Statement>> unsupported;
-  unsupported.push_back(UniquePtr<ast::Statement>(new ast::Print(UniquePtr<ast::Expr>(
-      new ast::Binary(TokenType::Equals, UniquePtr<ast::Expr>(new ast::NumberLiteral("1")),
-                      UniquePtr<ast::Expr>(new ast::NumberLiteral("2")))))));
+  auto unsupportedTree = ast::ExpressionTree::makeBinary(TokenType::Equals,
+      ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("1"))),
+      ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("2"))));
+  unsupported.push_back(UniquePtr<ast::Statement>(new ast::Print(std::move(unsupportedTree))));
   EXPECT_THROW(interpreter.execute(unsupported, output), std::invalid_argument);
   const ast::NumberLiteral invalidNumber("12bad");
   EXPECT_THROW(invalidNumber.accept(interpreter), std::invalid_argument);
@@ -180,10 +182,10 @@ TEST(InterpreterTests, DoesNotReusePreviousValueWhenExpressionProducesNoResult) 
     void accept(ast::ExprVisitor&) const override {}
   };
   Array<UniquePtr<ast::Statement>> program;
-  program.push_back(UniquePtr<ast::Statement>(new ast::Print(
-      UniquePtr<ast::Expr>(new ast::NumberLiteral("1")))));
-  program.push_back(UniquePtr<ast::Statement>(new ast::Print(
-      UniquePtr<ast::Expr>(new EmptyExpression))));
+  auto first = ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("1")));
+  auto second = ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new EmptyExpression));
+  program.push_back(UniquePtr<ast::Statement>(new ast::Print(std::move(first))));
+  program.push_back(UniquePtr<ast::Statement>(new ast::Print(std::move(second))));
   Interpreter interpreter;
   std::ostringstream output;
   EXPECT_THROW(interpreter.execute(program, output), std::logic_error);

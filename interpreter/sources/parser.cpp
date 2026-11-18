@@ -68,15 +68,15 @@ const Token& Parser::requireToken(const Array<Token>& tokens, std::size_t positi
   return tokens[position];
 }
 
-UniquePtr<ast::Expr> Parser::parseOperand(const Array<Token>& tokens, std::size_t position) {
+ast::ExpressionTree Parser::parseOperand(const Array<Token>& tokens, std::size_t position) {
   if (position >= tokens.size()) {
     throw std::invalid_argument("Ожидалось число, строка или имя, получен конец ввода");
   }
   const Token& token = tokens[position];
   switch (token.type) {
-    case TokenType::Number: return UniquePtr<ast::Expr>(new ast::NumberLiteral(token.lexeme));
-    case TokenType::String: return UniquePtr<ast::Expr>(new ast::StringLiteral(token.lexeme));
-    case TokenType::Identifier: return UniquePtr<ast::Expr>(new ast::Identifier(token.lexeme));
+    case TokenType::Number: return ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral(token.lexeme)));
+    case TokenType::String: return ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::StringLiteral(token.lexeme)));
+    case TokenType::Identifier: return ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::Identifier(token.lexeme)));
     default: throw std::invalid_argument("Ожидалось число, строка или имя");
   }
 }
@@ -121,8 +121,8 @@ Parser::ParsedExpr Parser::parseBinaryChain(const Array<Token>& tokens, std::siz
 
     auto right = parseOperandAtNextLevel(tokens, left.nextPosition + 1);
     // Собираем слева направо: a - b - c превращается в (a - b) - c.
-    left.expression = UniquePtr<ast::Expr>(new ast::Binary(operation, std::move(left.expression),
-                                               std::move(right.expression)));
+    left.expression = ast::ExpressionTree::makeBinary(
+        operation, std::move(left.expression), std::move(right.expression));
     left.nextPosition = right.nextPosition;
   }
   return left;

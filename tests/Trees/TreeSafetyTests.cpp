@@ -1,9 +1,12 @@
 #include "Trees/BinaryTree.h"
 #include "Trees/RedBlackTree.h"
 #include "Trees/Set.h"
+#include "../../interpreter/headers/lexer.h"
+#include "../../interpreter/headers/parser.h"
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include <limits>
 #include <map>
@@ -15,18 +18,25 @@
 
 namespace {
 thread_local bool rejectAllocations = false;
+thread_local std::ptrdiff_t* allocationBalance = nullptr;
 }
 
 // Отдельный исполняемый файл изолирует отказ выделения памяти от остальных тестов.
 // Включаем отказ только на время проверяемой операции.
 void* operator new(std::size_t size) {
   if (rejectAllocations) throw std::bad_alloc();
-  if (void* memory = std::malloc(size == 0 ? 1 : size)) return memory;
+  if (void* memory = std::malloc(size == 0 ? 1 : size)) {
+    if (allocationBalance) ++*allocationBalance;
+    return memory;
+  }
   throw std::bad_alloc();
 }
 
-void operator delete(void* memory) noexcept { std::free(memory); }
-void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
+void operator delete(void* memory) noexcept {
+  if (memory && allocationBalance) --*allocationBalance;
+  std::free(memory);
+}
+void operator delete(void* memory, std::size_t) noexcept { ::operator delete(memory); }
 void* operator new[](std::size_t size) { return ::operator new(size); }
 void operator delete[](void* memory) noexcept { ::operator delete(memory); }
 void operator delete[](void* memory, std::size_t) noexcept { ::operator delete(memory); }
@@ -48,6 +58,11 @@ namespace {
 struct RejectAllocations {
   RejectAllocations() { rejectAllocations = true; }
   ~RejectAllocations() { rejectAllocations = false; }
+};
+
+struct TrackAllocations {
+  explicit TrackAllocations(std::ptrdiff_t& balance) { allocationBalance = &balance; }
+  ~TrackAllocations() { allocationBalance = nullptr; }
 };
 
 struct Faulty {
@@ -355,4 +370,61 @@ TYPED_TEST(TreeSafetyTests, MixedOperationsMatchStdMapAndPreserveInvariants) {
     tree.verify(expected);
   }
 }
+
+TYPED_TEST(TreeSafetyTests, DestructionAndMoveAssignmentDoNotAllocate) {
+  using Tree = typename TypeParam::template Tree<int, Faulty>;
+  auto* target = new Tree;
+  Tree source;
+  for (int key : {4, 2, 6, 1, 3, 5, 7}) target->insert(key, Faulty(key));
+  source.insert(10, Faulty(100));
+
+  {
+    RejectAllocations guard;
+    *target = std::move(source);
+  }
+  EXPECT_EQ(Faulty::alive, 1);
+  EXPECT_EQ(target->size(), 1u);
+  EXPECT_EQ(source.size(), 0u);
+  {
+    RejectAllocations guard;
+    delete target;
+  }
+  EXPECT_EQ(Faulty::alive, 0);
+}
+
+
+TEST(ExpressionTreeAllocationTests, AllocationFailureKeepsOperandTrees) {
+  auto left = ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("1")));
+  auto right = ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("2")));
+  const auto* leftRoot = left.getRoot();
+  const auto* rightRoot = right.getRoot();
+  bool failed = false;
+
+  {
+    RejectAllocations guard;
+    try { ast::ExpressionTree::makeBinary(TokenType::Plus, std::move(left), std::move(right)); }
+    catch (const std::bad_alloc&) { failed = true; }
+  }
+
+  EXPECT_TRUE(failed);
+  EXPECT_EQ(left.getRoot(), leftRoot);
+  EXPECT_EQ(right.getRoot(), rightRoot);
+  EXPECT_EQ(left.size(), 1u);
+  EXPECT_EQ(right.size(), 1u);
+}
+
+TEST(ExpressionTreeAllocationTests, ParseErrorReleasesPartialProgram) {
+  const auto tokens = Lexer::tokenize("remember longIdentifier = 1 + 2\nprint (3 * 4 + 5");
+  std::ptrdiff_t balance = 0;
+  bool failed = false;
+  {
+    // Токены созданы заранее. Считаем только ресурсы, выделенные и освобождённые при разборе.
+    TrackAllocations guard(balance);
+    try { Parser{}.parse(tokens); }
+    catch (const std::invalid_argument&) { failed = true; }
+  }
+  EXPECT_TRUE(failed);
+  EXPECT_EQ(balance, 0);
+}
+
 }

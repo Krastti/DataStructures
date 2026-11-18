@@ -1,32 +1,40 @@
 #ifndef DATASTRUCTURES_BST_H
 #define DATASTRUCTURES_BST_H
 
+#include "BinaryTreeBase.h"
 #include "../Stack/stack.h"
 #include "../Array/Array.h"
 #include <cstddef>
 #include <utility>
 
+namespace tree_detail {
+
 template<typename Key, typename Data>
-class BinaryTree {
+struct SearchNode {
+  Key key;
+  Data data;
+  SearchNode* left;
+  SearchNode* right;
+  SearchNode* parent;
+
+  explicit SearchNode(Key key, Data data, SearchNode* left = nullptr,
+                      SearchNode* right = nullptr, SearchNode* parent = nullptr)
+      : key(key), data(data), left(left), right(right), parent(parent) {}
+
+  virtual ~SearchNode() = default;
+};
+
+}
+
+template<typename Key, typename Data>
+class BinaryTree : protected BinaryTreeBase<tree_detail::SearchNode<Key, Data>> {
 protected:
-  struct Node {
-    Key key;
-    Data data;
-    Node *left, *right;
-    Node *parent;
+  using Node = tree_detail::SearchNode<Key, Data>;
+  using Base = BinaryTreeBase<Node>;
+  using Base::root;
+  using Base::nodeCount;
+  using Base::clear;
 
-    explicit Node(Key key, Data data, Node* left=nullptr, Node* right=nullptr, Node* parent=nullptr) : key(key), data(data) {
-      this->left = left;
-      this->right = right;
-      this->parent = parent;
-    }
-
-    virtual ~Node() = default;
-  };
-
-  Node* root;
-  size_t nodeCount;
-  void clear() noexcept;
   void transplant(Node* oldNode, Node* newNode) noexcept;
 
   Node* getSuccessor(Node* node);

@@ -12,13 +12,12 @@ StringLiteral::StringLiteral(std::string lexeme) : lexeme(std::move(lexeme)) {}
 
 Identifier::Identifier(std::string name) : name(std::move(name)) {}
 
-Binary::Binary(TokenType operation, UniquePtr<Expr> left, UniquePtr<Expr> right)
-    : operation(operation), left(std::move(left)), right(std::move(right)) {}
+Binary::Binary(TokenType operation) : operation(operation) {}
 
-Remember::Remember(std::string variable, UniquePtr<Expr> right)
+Remember::Remember(std::string variable, ExpressionTree right)
     : variable(std::move(variable)), right(std::move(right)) {}
 
-Print::Print(UniquePtr<Expr> forOutput) : forOutput(std::move(forOutput)) {}
+Print::Print(ExpressionTree forOutput) : forOutput(std::move(forOutput)) {}
 
 void NumberLiteral::accept(ExprVisitor& visitor) const {
   visitor.visit(*this);

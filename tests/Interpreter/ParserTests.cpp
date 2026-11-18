@@ -23,42 +23,42 @@ TEST(ParserTests, ParsesEmptyProgramAndBlankLines) {
 TEST(ParserTests, ParsesRememberAndPrintInOrder) {
   const auto program = parse("remember x = 42\r\n\nprint x");
   ASSERT_EQ(program.size(), 2u);
-  const auto* remember = dynamic_cast<ast::Remember*>(program[0].get());
+  const auto* remember = dynamic_cast<const ast::Remember*>(program[0].get());
   ASSERT_NE(remember, nullptr);
   EXPECT_EQ(remember->variable, "x");
-  const auto* number = dynamic_cast<ast::NumberLiteral*>(remember->right.get());
+  const auto* number = dynamic_cast<const ast::NumberLiteral*>(remember->right.getRoot());
   ASSERT_NE(number, nullptr);
   EXPECT_EQ(number->lexeme, "42");
-  const auto* print = dynamic_cast<ast::Print*>(program[1].get());
+  const auto* print = dynamic_cast<const ast::Print*>(program[1].get());
   ASSERT_NE(print, nullptr);
-  const auto* name = dynamic_cast<ast::Identifier*>(print->forOutput.get());
+  const auto* name = dynamic_cast<const ast::Identifier*>(print->forOutput.getRoot());
   ASSERT_NE(name, nullptr);
   EXPECT_EQ(name->name, "x");
 }
 
 TEST(ParserTests, MultiplicationBindsMoreTightlyThanAddition) {
   const auto program = parse("print 2 + 3 * 4");
-  const auto* print = dynamic_cast<ast::Print*>(program[0].get());
+  const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
   ASSERT_NE(print, nullptr);
-  const auto* sum = dynamic_cast<ast::Binary*>(print->forOutput.get());
+  const auto* sum = dynamic_cast<const ast::Binary*>(print->forOutput.getRoot());
   ASSERT_NE(sum, nullptr);
   EXPECT_EQ(sum->operation, TokenType::Plus);
-  const auto* left = dynamic_cast<ast::NumberLiteral*>(sum->left.get());
+  const auto* left = dynamic_cast<const ast::NumberLiteral*>(sum->leftOperand());
   ASSERT_NE(left, nullptr);
   EXPECT_EQ(left->lexeme, "2");
-  const auto* product = dynamic_cast<ast::Binary*>(sum->right.get());
+  const auto* product = dynamic_cast<const ast::Binary*>(sum->rightOperand());
   ASSERT_NE(product, nullptr);
   EXPECT_EQ(product->operation, TokenType::Star);
 }
 
 TEST(ParserTests, ParenthesesOverridePrecedence) {
   const auto program = parse("print (2 + 3) * 4\n");
-  const auto* print = dynamic_cast<ast::Print*>(program[0].get());
+  const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
   ASSERT_NE(print, nullptr);
-  const auto* product = dynamic_cast<ast::Binary*>(print->forOutput.get());
+  const auto* product = dynamic_cast<const ast::Binary*>(print->forOutput.getRoot());
   ASSERT_NE(product, nullptr);
   EXPECT_EQ(product->operation, TokenType::Star);
-  const auto* sum = dynamic_cast<ast::Binary*>(product->left.get());
+  const auto* sum = dynamic_cast<const ast::Binary*>(product->leftOperand());
   ASSERT_NE(sum, nullptr);
   EXPECT_EQ(sum->operation, TokenType::Plus);
 }
@@ -67,29 +67,29 @@ TEST(ParserTests, OperatorsAtEachLevelAssociateToTheLeft) {
   for (const auto* source : {"print 10 - 3 - 2", "print 20 / 5 / 2",
                               "print 1 < 2 < 3", "print 1 == 2 != 3"}) {
     const auto program = parse(source);
-    const auto* print = dynamic_cast<ast::Print*>(program[0].get());
+    const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
     ASSERT_NE(print, nullptr);
-    const auto* binary = dynamic_cast<ast::Binary*>(print->forOutput.get());
+    const auto* binary = dynamic_cast<const ast::Binary*>(print->forOutput.getRoot());
     ASSERT_NE(binary, nullptr);
-    EXPECT_NE(dynamic_cast<ast::Binary*>(binary->left.get()), nullptr);
-    EXPECT_NE(dynamic_cast<ast::NumberLiteral*>(binary->right.get()), nullptr);
+    EXPECT_NE(dynamic_cast<const ast::Binary*>(binary->leftOperand()), nullptr);
+    EXPECT_NE(dynamic_cast<const ast::NumberLiteral*>(binary->rightOperand()), nullptr);
   }
 }
 
 TEST(ParserTests, EqualityBindsLessTightlyThanComparisonAndArithmetic) {
   const auto program = parse("print 1 + 2 < 4 == 5 >= 6");
-  const auto* print = dynamic_cast<ast::Print*>(program[0].get());
+  const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
   ASSERT_NE(print, nullptr);
-  const auto* equality = dynamic_cast<ast::Binary*>(print->forOutput.get());
+  const auto* equality = dynamic_cast<const ast::Binary*>(print->forOutput.getRoot());
   ASSERT_NE(equality, nullptr);
   EXPECT_EQ(equality->operation, TokenType::EqualEqual);
-  const auto* less = dynamic_cast<ast::Binary*>(equality->left.get());
-  const auto* greater = dynamic_cast<ast::Binary*>(equality->right.get());
+  const auto* less = dynamic_cast<const ast::Binary*>(equality->leftOperand());
+  const auto* greater = dynamic_cast<const ast::Binary*>(equality->rightOperand());
   ASSERT_NE(less, nullptr);
   ASSERT_NE(greater, nullptr);
   EXPECT_EQ(less->operation, TokenType::Less);
   EXPECT_EQ(greater->operation, TokenType::GreaterEqual);
-  const auto* sum = dynamic_cast<ast::Binary*>(less->left.get());
+  const auto* sum = dynamic_cast<const ast::Binary*>(less->leftOperand());
   ASSERT_NE(sum, nullptr);
   EXPECT_EQ(sum->operation, TokenType::Plus);
 }
@@ -97,14 +97,14 @@ TEST(ParserTests, EqualityBindsLessTightlyThanComparisonAndArithmetic) {
 TEST(ParserTests, PreservesQuotedStringLexemes) {
   const auto program = parse("remember text = \"hello world\"\nprint (\"\")");
   ASSERT_EQ(program.size(), 2u);
-  const auto* remember = dynamic_cast<ast::Remember*>(program[0].get());
+  const auto* remember = dynamic_cast<const ast::Remember*>(program[0].get());
   ASSERT_NE(remember, nullptr);
-  const auto* text = dynamic_cast<ast::StringLiteral*>(remember->right.get());
+  const auto* text = dynamic_cast<const ast::StringLiteral*>(remember->right.getRoot());
   ASSERT_NE(text, nullptr);
   EXPECT_EQ(text->lexeme, "\"hello world\"");
-  const auto* print = dynamic_cast<ast::Print*>(program[1].get());
+  const auto* print = dynamic_cast<const ast::Print*>(program[1].get());
   ASSERT_NE(print, nullptr);
-  const auto* empty = dynamic_cast<ast::StringLiteral*>(print->forOutput.get());
+  const auto* empty = dynamic_cast<const ast::StringLiteral*>(print->forOutput.getRoot());
   ASSERT_NE(empty, nullptr);
   EXPECT_EQ(empty->lexeme, "\"\"");
 }
@@ -117,9 +117,9 @@ TEST(ParserTests, GrowsAndMovesProgramWithoutLosingStatements) {
   EXPECT_EQ(program.size(), 0u);
   ASSERT_EQ(moved.size(), 100u);
   for (std::size_t i = 0; i < moved.size(); ++i) {
-    const auto* print = dynamic_cast<ast::Print*>(moved[i].get());
+    const auto* print = dynamic_cast<const ast::Print*>(moved[i].get());
     ASSERT_NE(print, nullptr);
-    const auto* number = dynamic_cast<ast::NumberLiteral*>(print->forOutput.get());
+    const auto* number = dynamic_cast<const ast::NumberLiteral*>(print->forOutput.getRoot());
     ASSERT_NE(number, nullptr);
     EXPECT_EQ(number->lexeme, std::to_string(i));
   }
@@ -179,21 +179,21 @@ public:
     lastExpression = &node;
     events.push_back("binary");
     if (visitChildren) {
-      node.left->accept(*this);
-      node.right->accept(*this);
+      node.leftOperand()->accept(*this);
+      node.rightOperand()->accept(*this);
     }
   }
 
   void visit(const ast::Remember& node) override {
     lastStatement = &node;
     events.push_back("remember:" + node.variable);
-    if (visitChildren) node.right->accept(*this);
+    if (visitChildren) node.right.getRoot()->accept(*this);
   }
 
   void visit(const ast::Print& node) override {
     lastStatement = &node;
     events.push_back("print");
-    if (visitChildren) node.forOutput->accept(*this);
+    if (visitChildren) node.forOutput.getRoot()->accept(*this);
   }
 };
 }
@@ -202,10 +202,10 @@ TEST(ParserTests, AcceptDispatchesEachExpressionThroughConstBaseReference) {
   const ast::NumberLiteral number("12");
   const ast::Identifier identifier("x");
   const ast::StringLiteral string("\"hello\"");
-  const ast::Binary binary(TokenType::Plus,
-                              UniquePtr<ast::Expr>(new ast::NumberLiteral("1")),
-                              UniquePtr<ast::Expr>(new ast::NumberLiteral("2")));
-  const ast::Expr* nodes[] = {&number, &identifier, &string, &binary};
+  const auto binary = ast::ExpressionTree::makeBinary(TokenType::Plus,
+      ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("1"))),
+      ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("2"))));
+  const ast::Expr* nodes[] = {&number, &identifier, &string, binary.getRoot()};
   const std::string expected[] = {"number:12", "identifier:x", "string:\"hello\"", "binary"};
   RecordingVisitor visitor;
   ast::ExprVisitor& expressionVisitor = visitor;

@@ -22,31 +22,27 @@ BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::getSuccessor(Node *node) {
 }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree() : root(nullptr), nodeCount(0) { }
+BinaryTree<Key, Data>::BinaryTree() { }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree(Key key) : root(nullptr), nodeCount(0) {
+BinaryTree<Key, Data>::BinaryTree(Key key) {
   root = new Node(key, Data());
   nodeCount = 1;
 }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree(Key key, Data data) : root(nullptr), nodeCount(0) {
+BinaryTree<Key, Data>::BinaryTree(Key key, Data data) {
   root = new Node(key, data);
   nodeCount = 1;
 }
 
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::BinaryTree(BinaryTree&& other) noexcept
-  : root(std::exchange(other.root, nullptr)), nodeCount(std::exchange(other.nodeCount, 0)) {}
+  : Base(std::move(other)) {}
 
 template <typename Key, typename Data>
 BinaryTree<Key, Data>& BinaryTree<Key, Data>::operator=(BinaryTree&& other) noexcept {
-  if (this != &other) {
-    clear();
-    root = std::exchange(other.root, nullptr);
-    nodeCount = std::exchange(other.nodeCount, 0);
-  }
+  Base::operator=(std::move(other));
   return *this;
 }
 
@@ -259,30 +255,4 @@ void BinaryTree<Key, Data>::print() const {
 }
 
 template <typename Key, typename Data>
-void BinaryTree<Key, Data>::clear() noexcept {
-  if (root == nullptr) {
-    nodeCount = 0;
-    return;
-  }
-
-  auto stack = new Stack<Node*>;
-  stack->push(root);
-
-  while (!stack->empty()) {
-    Node* current = stack->top();
-    stack->pop();
-
-    if (current->left != nullptr) stack->push(current->left);
-    if (current->right != nullptr) stack->push(current->right);
-
-    delete current;
-  }
-  delete stack;
-  root = nullptr;
-  nodeCount = 0;
-}
-
-template <typename Key, typename Data>
-BinaryTree<Key, Data>::~BinaryTree() {
-  clear();
-}
+BinaryTree<Key, Data>::~BinaryTree() = default;

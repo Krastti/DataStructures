@@ -40,6 +40,8 @@ add_library(Sequence INTERFACE
 )
 
 add_library(BinaryTree INTERFACE
+        include/Trees/BinaryTreeBase.h
+        include/Trees/BinaryTreeBase.tpp
         include/Trees/BinaryTree.h
         include/Trees/BinaryTree.tpp
         include/Trees/RedBlackTree.h
@@ -88,6 +90,8 @@ target_link_libraries(DataStructures
 add_library(MiniLangCore STATIC
         interpreter/sources/lexer.cpp
         interpreter/sources/parser.cpp
+        interpreter/headers/expressionTree.h
+        interpreter/sources/expressionTree.cpp
         interpreter/sources/ast.cpp
         interpreter/sources/interpreter.cpp
 )
@@ -102,6 +106,7 @@ target_link_libraries(MiniLangCpp PRIVATE MiniLangCore)
 if(BUILD_TESTING)
   add_executable(UnitTests
           tests/Interpreter/LexerTests.cpp
+          tests/Interpreter/ExpressionTreeTests.cpp
           tests/Interpreter/ParserTests.cpp
           tests/Interpreter/InterpreterTests.cpp
           tests/SmartPointers/SharedPtrTests.cpp
@@ -133,7 +138,7 @@ if(BUILD_TESTING)
   gtest_discover_tests(UnitTests)
 
   add_executable(TreeSafetyTests tests/Trees/TreeSafetyTests.cpp)
-  target_link_libraries(TreeSafetyTests PRIVATE BinaryTree GTest::gtest_main)
+  target_link_libraries(TreeSafetyTests PRIVATE BinaryTree MiniLangCore GTest::gtest_main)
   target_include_directories(TreeSafetyTests PRIVATE include)
   gtest_discover_tests(TreeSafetyTests)
 

@@ -18,7 +18,7 @@ public:
 private:
   // nextPosition — индекс следующего непрочитанного токена.
   struct ParsedExpr {
-    UniquePtr<ast::Expr> expression;
+    ast::ExpressionTree expression;
     std::size_t nextPosition;
   };
 
@@ -35,7 +35,7 @@ private:
   static void requireStatementEnd(const Array<Token>& tokens, std::size_t position);
   static ParsedStatement parseStatement(const Array<Token>& tokens, std::size_t position);
 
-  static UniquePtr<ast::Expr> parseOperand(const Array<Token>& tokens, std::size_t position);
+  static ast::ExpressionTree parseOperand(const Array<Token>& tokens, std::size_t position);
   static ParsedExpr parsePrimary(const Array<Token>& tokens, std::size_t position);
 
   // Сначала разбираем операции с более высоким приоритетом.

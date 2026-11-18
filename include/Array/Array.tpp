@@ -65,7 +65,8 @@ const T& Array<T>::operator[](size_t index) const noexcept {
 template<typename T>
 void Array<T>::push_back(T value) {
   if (allocated != 0 && count < allocated - allocated / 4) {
-    storage[count] = value;
+    if constexpr (std::is_copy_assignable_v<T>) storage[count] = value;
+    else storage[count] = std::move(value);
     ++count;
     return;
   }
@@ -78,8 +79,15 @@ void Array<T>::push_back(T value) {
 
   T* newStorage = new T[newCapacity];
   try {
-    for (size_t i = 0; i < count; ++i) newStorage[i] = storage[i];
-    newStorage[count] = value;
+    if constexpr (std::is_copy_assignable_v<T>) {
+      for (size_t i = 0; i < count; ++i) newStorage[i] = storage[i];
+      newStorage[count] = value;
+    } else {
+      // Безопасное перемещение сохраняет владельцев при расширении массива.
+      static_assert(std::is_nothrow_move_assignable_v<T>);
+      for (size_t i = 0; i < count; ++i) newStorage[i] = std::move(storage[i]);
+      newStorage[count] = std::move(value);
+    }
   } catch (...) {
     delete[] newStorage;
     throw;

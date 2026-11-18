@@ -1,6 +1,6 @@
-#include "lexer.h"
+#include "../headers/lexer.h"
 
-#include "../include/Optional/Optional.h"
+#include "../../include/Optional/Optional.h"
 #include <stdexcept>
 
 namespace {

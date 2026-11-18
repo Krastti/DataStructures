@@ -131,3 +131,41 @@ TEST(ArrayTests, AlignsOverAlignedElements) {
   EXPECT_EQ(reinterpret_cast<std::uintptr_t>(&values[0]) % alignof(AlignedValue), 0u);
   for (size_t i = 0; i < values.size(); ++i) EXPECT_EQ(values[i].value, static_cast<int>(i));
 }
+
+namespace {
+struct MoveOnlyValue {
+  static inline int resources = 0;
+  int* value = nullptr;
+  MoveOnlyValue() = default;
+  explicit MoveOnlyValue(int number) : value(new int(number)) { ++resources; }
+  MoveOnlyValue(const MoveOnlyValue&) = delete;
+  MoveOnlyValue& operator=(const MoveOnlyValue&) = delete;
+  MoveOnlyValue(MoveOnlyValue&& other) noexcept : value(std::exchange(other.value, nullptr)) {}
+  MoveOnlyValue& operator=(MoveOnlyValue&& other) noexcept {
+    if (this != &other) {
+      if (value) { delete value; --resources; }
+      value = std::exchange(other.value, nullptr);
+    }
+    return *this;
+  }
+  ~MoveOnlyValue() { if (value) { delete value; --resources; } }
+};
+}
+
+TEST(ArrayTests, GrowsWithMoveOnlyOwnersAndReleasesResourcesOnce) {
+  ASSERT_EQ(MoveOnlyValue::resources, 0);
+  {
+    Array<MoveOnlyValue> values;
+    for (int i = 0; i < 100; ++i) values.push_back(MoveOnlyValue(i));
+    ASSERT_EQ(values.size(), 100u);
+    EXPECT_EQ(MoveOnlyValue::resources, 100);
+    for (std::size_t i = 0; i < values.size(); ++i) {
+      ASSERT_NE(values[i].value, nullptr);
+      EXPECT_EQ(*values[i].value, static_cast<int>(i));
+    }
+    Array<MoveOnlyValue> moved(std::move(values));
+    EXPECT_EQ(values.size(), 0u);
+    EXPECT_EQ(moved.size(), 100u);
+  }
+  EXPECT_EQ(MoveOnlyValue::resources, 0);
+}

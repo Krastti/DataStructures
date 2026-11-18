@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../../interpreter/lexer.h"
+#include "../../interpreter/headers/lexer.h"
 
 #include <stdexcept>
 #include <string>

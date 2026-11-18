@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
 
 template<typename T>
 class Array {

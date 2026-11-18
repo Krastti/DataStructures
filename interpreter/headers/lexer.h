@@ -1,7 +1,7 @@
 #ifndef DATASTRUCTURES_LEXER_H
 #define DATASTRUCTURES_LEXER_H
 
-#include "../include/Array/Array.h"
+#include "../../include/Array/Array.h"
 #include "token.h"
 
 #include <cstddef>

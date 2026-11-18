@@ -84,8 +84,10 @@ add_executable(UnitTests
         interpreter/sources/lexer.cpp
         interpreter/sources/parser.cpp
         interpreter/sources/ast.cpp
+        interpreter/sources/interpreter.cpp
         tests/Interpreter/LexerTests.cpp
         tests/Interpreter/ParserTests.cpp
+        tests/Interpreter/InterpreterTests.cpp
         tests/SmartPointers/SharedPtrTests.cpp
         tests/SmartPointers/UniquePtrTests.cpp
         tests/SmartPointers/SmartPointerSafetyTests.cpp

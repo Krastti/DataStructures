@@ -10,7 +10,7 @@ namespace ast {
 
 struct ExprVisitor;
 
-// accept выбирает visit по типу узла. Обход дочерних узлов задаёт сам посетитель.
+// Accept выбирает visit по типу узла. Обход дочерних узлов задаёт сам посетитель.
 struct Expr {
   virtual ~Expr() = default;
   virtual void accept(ExprVisitor& visitor) const = 0;

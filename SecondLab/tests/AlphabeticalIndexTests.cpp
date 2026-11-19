@@ -3,6 +3,7 @@
 #include "../../DataStructures/tests/Array/ArrayTestHelpers.h"
 #include <gtest/gtest.h>
 
+#include <initializer_list>
 #include <stdexcept>
 
 TEST(AlphabeticalIndexTests, CountsUtf8CharactersAndKeepsLineBreaks) {
@@ -29,6 +30,20 @@ TEST(AlphabeticalIndexTests, FirstAndTenthPagesRespectReducedCapacity) {
   EXPECT_LE(index.pages()[9].size(), 3);
 }
 
+TEST(AlphabeticalIndexTests, SkipsReducedPagesWhenWholeWordDoesNotFit) {
+  Array<std::string> lines;
+  lines.push_back("abcd abcd abcd abcd abcd abcd abcd abcd abcd");
+  const auto index = AlphabeticalIndex::build(lines, 4);
+
+  ASSERT_EQ(index.pages().size(), 11);
+  for (size_t page = 0; page < index.pages().size(); ++page) {
+    EXPECT_EQ(index.pages()[page], (page == 0 || page == 9 ? "" : "abcd")) << page + 1;
+  }
+  const std::vector<size_t> expected{2, 3, 4, 5, 6, 7, 8, 9, 11};
+  EXPECT_EQ(toVector(index.findBinary("abcd")), expected);
+  EXPECT_EQ(toVector(index.findTree("abcd")), expected);
+}
+
 TEST(AlphabeticalIndexTests, RejectsInvalidPageSizesAndOverlongWords) {
   Array<std::string> lines;
   lines.push_back("word");
@@ -49,4 +64,23 @@ TEST(PersonIndexTests, FindsCompositeKeysAndInclusiveYearRanges) {
   ASSERT_EQ(people.size(), 1);
   EXPECT_EQ(people[0].id, 2);
   EXPECT_THROW((void)index.findBirthYearRange(1910, 1900), std::invalid_argument);
+}
+
+TEST(PersonIndexTests, ComparesAllFieldsAndDuplicateCountsRegardlessOfOrder) {
+  const PersonRecord ada{1, "Ada", "Lovelace", 1815};
+  const PersonRecord alan{1, "Alan", "Turing", 1912};
+  auto records = [](std::initializer_list<PersonRecord> values) {
+    Array<PersonRecord> result;
+    for (const auto& person : values) result.push_back(person);
+    return result;
+  };
+  const auto expected = records({ada, alan, ada});
+
+  EXPECT_TRUE(samePersonRecords(expected, records({alan, ada, ada})));
+  EXPECT_FALSE(samePersonRecords(expected, records({alan, alan, ada})));
+  EXPECT_FALSE(samePersonRecords(expected, records({alan, ada})));
+  EXPECT_FALSE(samePersonRecords(expected, records({alan, ada, {2, "Ada", "Lovelace", 1815}})));
+  EXPECT_FALSE(samePersonRecords(expected, records({alan, ada, {1, "Grace", "Lovelace", 1815}})));
+  EXPECT_FALSE(samePersonRecords(expected, records({alan, ada, {1, "Ada", "Hopper", 1815}})));
+  EXPECT_FALSE(samePersonRecords(expected, records({alan, ada, {1, "Ada", "Lovelace", 1816}})));
 }

@@ -1,6 +1,9 @@
 #include "../include/PersonIndex.h"
 
+#include <algorithm>
 #include <stdexcept>
+#include <string_view>
+#include <vector>
 
 namespace {
 template<typename Key>
@@ -9,6 +12,23 @@ void addToBucket(Map<Key, Array<PersonRecord>>& tree, const Key& key,
   if (!tree.containsKey(key)) tree.insert(key, Array<PersonRecord>{});
   tree.at(key).push_back(person);
 }
+}
+
+bool samePersonRecords(const Array<PersonRecord>& left, const Array<PersonRecord>& right) {
+  if (left.size() != right.size()) return false;
+
+  using RecordKey = std::tuple<int, std::string_view, std::string_view, int>;
+  auto sortedKeys = [](const Array<PersonRecord>& records) {
+    std::vector<RecordKey> keys;
+    keys.reserve(records.size());
+    for (size_t i = 0; i < records.size(); ++i) {
+      const auto& person = records[i];
+      keys.emplace_back(person.id, person.firstName, person.lastName, person.birthYear);
+    }
+    std::sort(keys.begin(), keys.end());
+    return keys;
+  };
+  return sortedKeys(left) == sortedKeys(right);
 }
 
 void PersonIndex::add(const PersonRecord& person) {

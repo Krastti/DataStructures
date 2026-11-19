@@ -34,19 +34,24 @@ AlphabeticalIndex AlphabeticalIndex::build(const Array<std::string>& lines, size
 
   size_t page = 1;
   size_t used = 0;
+  const size_t threeQuarters = pageSize / 4 * 3 + (pageSize % 4 * 3) / 4;
+  auto pageLimit = [&] {
+    if (page == 1) return pageSize / 2;
+    return page % 10 == 0 ? threeQuarters : pageSize;
+  };
   index.pageContents.push_back(std::string{});
   for (size_t i = 0; i < words.size(); ++i) {
     const std::string& word = words[i];
     const size_t wordCharacters = characterCount(word);
     if (wordCharacters > pageSize) throw std::invalid_argument("A word is longer than the page size");
 
-    const size_t threeQuarters = pageSize / 4 * 3 + (pageSize % 4 * 3) / 4;
-    const size_t pageLimit = page == 1 ? pageSize / 2 : (page % 10 == 0 ? threeQuarters : pageSize);
-    const size_t separator = used == 0 ? 0 : 1;
-    if (used + separator + wordCharacters > pageLimit) {
+    // На следующей странице лимит может быть меньше длины слова.
+    size_t remaining = pageLimit() - used;
+    while (wordCharacters > remaining || (used > 0 && wordCharacters == remaining)) {
       ++page;
       used = 0;
-      while (index.pageContents.size() < page) index.pageContents.push_back(std::string{});
+      index.pageContents.push_back(std::string{});
+      remaining = pageLimit();
     }
     const char delimiter = beginsLine[i] ? '\n' : ' ';
     if (used > 0) index.pageContents[page - 1].push_back(delimiter);

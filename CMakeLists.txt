@@ -160,6 +160,12 @@ if(BUILD_TESTING)
       "-DTEST_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/minilang-cli-tests"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/Interpreter/tests/CliTests.cmake"
   )
+  add_test(NAME SecondLabCliTests
+    COMMAND ${CMAKE_COMMAND}
+      "-DSECOND_LAB_EXECUTABLE=$<TARGET_FILE:DataStructures>"
+      "-DTEST_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/second-lab-cli-tests"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/SecondLab/tests/CliTests.cmake"
+  )
 endif()
 
 # Графический интерфейс собирается отдельно от консольной версии.

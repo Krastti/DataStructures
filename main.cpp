@@ -116,19 +116,30 @@ void runAlphabeticalIndex() {
     std::cout << '\n';
   };
   if (algorithm < 1 || algorithm > 3) throw std::invalid_argument("Неизвестный алгоритм поиска");
+  Array<size_t> binaryPages;
+  Array<size_t> treePages;
   if (algorithm == 1 || algorithm == 3) {
-    printPages("Бинарный поиск", index.findBinary(query));
+    binaryPages = index.findBinary(query);
+    printPages("Бинарный поиск", binaryPages);
     const double binaryTime = averageNanoseconds([&] {
       consumeBenchmarkResult(index.findBinary(query).size());
     });
     std::cout << "Среднее время бинарного поиска, нс: " << binaryTime << '\n';
   }
   if (algorithm == 2 || algorithm == 3) {
-    printPages("Красно-чёрное дерево", index.findTree(query));
+    treePages = index.findTree(query);
+    printPages("Красно-чёрное дерево", treePages);
     const double treeTime = averageNanoseconds([&] {
       consumeBenchmarkResult(index.findTree(query).size());
     });
     std::cout << "Среднее время поиска в дереве, нс: " << treeTime << '\n';
+  }
+  if (algorithm == 3) {
+    bool samePages = binaryPages.size() == treePages.size();
+    for (size_t i = 0; samePages && i < binaryPages.size(); ++i) {
+      samePages = binaryPages[i] == treePages[i];
+    }
+    std::cout << "Результаты совпадают: " << (samePages ? "да" : "нет") << '\n';
   }
   std::ofstream csv("alphabetical_index.csv");
   csv << "word,pages\n";
@@ -235,20 +246,26 @@ void runPersonIndex() {
 
   int firstYear, lastYear;
   std::cout << "Диапазон годов рождения (от до): ";
-  std::cin >> firstYear >> lastYear;
+  if (!(std::cin >> firstYear >> lastYear)) throw std::invalid_argument("Ожидаются два целых года");
   std::cout << "1 — индексированное дерево, 2 — полный просмотр, 3 — сравнить: ";
   int algorithm;
-  std::cin >> algorithm;
-  if (algorithm < 1 || algorithm > 3) throw std::invalid_argument("Неизвестный алгоритм поиска");
+  if (!(std::cin >> algorithm) || algorithm < 1 || algorithm > 3) {
+    throw std::invalid_argument("Неизвестный алгоритм поиска");
+  }
+  if (firstYear > lastYear) throw std::invalid_argument("Начало диапазона больше конца");
+
+  auto scanRange = [&] {
+    Array<PersonRecord> matches;
+    for (size_t i = 0; i < people.size(); ++i) {
+      const PersonRecord& person = people[i];
+      if (person.birthYear >= firstYear && person.birthYear <= lastYear) matches.push_back(person);
+    }
+    return matches;
+  };
   Array<PersonRecord> indexedMatches;
   Array<PersonRecord> linearMatches;
   if (algorithm == 1 || algorithm == 3) indexedMatches = index.findBirthYearRange(firstYear, lastYear);
-  if (algorithm == 2 || algorithm == 3) {
-    for (size_t i = 0; i < people.size(); ++i) {
-      const PersonRecord& person = people[i];
-      if (person.birthYear >= firstYear && person.birthYear <= lastYear) linearMatches.push_back(person);
-    }
-  }
+  if (algorithm == 2 || algorithm == 3) linearMatches = scanRange();
   auto printPeople = [](const Array<PersonRecord>& records) {
     for (size_t i = 0; i < records.size(); ++i) {
       const PersonRecord& person = records[i];
@@ -272,24 +289,13 @@ void runPersonIndex() {
   }
   if (algorithm == 2 || algorithm == 3) {
     const double scanTime = averageNanoseconds([&] {
-      size_t matches = 0;
-      for (size_t i = 0; i < people.size(); ++i) {
-        matches += people[i].birthYear >= firstYear && people[i].birthYear <= lastYear;
-      }
-      consumeBenchmarkResult(matches);
+      consumeBenchmarkResult(scanRange().size());
     });
     std::cout << "Среднее время полного просмотра, нс: " << scanTime << '\n';
   }
   std::cout << "Совпадений: индекс=" << indexedMatches.size() << ", полный просмотр=" << linearMatches.size() << '\n';
   if (algorithm == 3) {
-    Array<int> indexedIds, linearIds;
-    for (size_t i = 0; i < indexedMatches.size(); ++i) indexedIds.push_back(indexedMatches[i].id);
-    for (size_t i = 0; i < linearMatches.size(); ++i) linearIds.push_back(linearMatches[i].id);
-    if (indexedIds.size() > 1) std::sort(&indexedIds[0], &indexedIds[0] + indexedIds.size());
-    if (linearIds.size() > 1) std::sort(&linearIds[0], &linearIds[0] + linearIds.size());
-    bool sameIds = indexedIds.size() == linearIds.size();
-    for (size_t i = 0; sameIds && i < indexedIds.size(); ++i) sameIds = indexedIds[i] == linearIds[i];
-    std::cout << "Результаты совпадают: " << (sameIds ? "да" : "нет") << '\n';
+    std::cout << "Результаты совпадают: " << (samePersonRecords(indexedMatches, linearMatches) ? "да" : "нет") << '\n';
   }
   std::ofstream csv("person_range.csv");
   csv << "id,first_name,last_name,birth_year\n";

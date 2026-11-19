@@ -13,6 +13,9 @@ struct PersonRecord {
   int birthYear;
 };
 
+[[nodiscard]] bool samePersonRecords(const Array<PersonRecord>& left,
+                                     const Array<PersonRecord>& right);
+
 class PersonIndex {
 private:
   using CompositeKey = std::tuple<std::string, std::string, int>;

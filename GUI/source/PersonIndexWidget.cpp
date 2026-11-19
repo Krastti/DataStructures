@@ -1,9 +1,7 @@
 #include "../include/Common.h"
 #include "PersonIndex.h"
-#include <algorithm>
 #include <memory>
 #include <random>
-#include <vector>
 
 namespace {
 struct Result {
@@ -173,17 +171,7 @@ QWidget* personTab() {
       if (algorithm != 1) details << QString("Индекс: %1 мс").arg(indexTime, 0, 'f', 6);
       if (algorithm != 0) details << QString("Просмотр: %1 мс").arg(scanTime, 0, 'f', 6);
       if (algorithm == 2) {
-        using Key = std::tuple<int, std::string, std::string, int>;
-        auto keys = [](const Array<PersonRecord>& records) {
-          std::vector<Key> result;
-          for (size_t i = 0; i < records.size(); ++i) {
-            const auto& p = records[i];
-            result.emplace_back(p.id, p.firstName, p.lastName, p.birthYear);
-          }
-          std::sort(result.begin(), result.end());
-          return result;
-        };
-        details << (keys(indexed) == keys(scanned) ? "Ответы совпадают" : "Ответы различаются");
+        details << (samePersonRecords(indexed, scanned) ? "Ответы совпадают" : "Ответы различаются");
       }
       result.summary = QString("Найдено: %1; ").arg(result.matches.size()) + details.join("; ");
       return result;

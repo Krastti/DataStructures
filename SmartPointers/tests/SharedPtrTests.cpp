@@ -1,0 +1,187 @@
+#include "../include/SharedPtr.h"
+#include "../../DataStructures/tests/Timer.h"
+#include <gtest/gtest.h>
+
+#include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace {
+
+struct TrackedObject {
+    inline static int liveCount = 0;
+    bool isDestroyed = false;
+    int value = 67;
+
+    TrackedObject() { liveCount++; }
+
+    ~TrackedObject() {
+        EXPECT_FALSE(isDestroyed);
+        if (isDestroyed) {
+            std::cerr << "FATAL: double free detected." << std::endl;
+            std::abort();
+        }
+        isDestroyed = true;
+        liveCount--;
+    }
+};
+
+class SharedPtrTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        TrackedObject::liveCount = 0;
+    }
+
+    void TearDown() override {
+        EXPECT_EQ(TrackedObject::liveCount, 0);
+    }
+};
+
+TEST_F(SharedPtrTest, SharedPtr_Creation_RawPointer) {
+    SharedPtr<TrackedObject> ptr(new TrackedObject());
+    EXPECT_EQ(ptr.use_count(), 1);
+    EXPECT_NE(ptr.get(), nullptr);
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+}
+
+TEST_F(SharedPtrTest, SharedPtr_Copying_IncrementsUseCountAndDelaysDeletion) {
+    SharedPtr ptr1(new TrackedObject());
+    {
+        SharedPtr ptr2(ptr1);
+        EXPECT_EQ(ptr1.use_count(), 2);
+        EXPECT_EQ(ptr2.use_count(), 2);
+        EXPECT_EQ(TrackedObject::liveCount, 1);
+    }
+    EXPECT_EQ(ptr1.use_count(), 1);
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+}
+
+TEST_F(SharedPtrTest, SharedPtr_CopyAssignment_ReleasesPreviouslyOwnedResource) {
+    SharedPtr ptr1(new TrackedObject());
+    SharedPtr ptr2(new TrackedObject());
+    EXPECT_EQ(TrackedObject::liveCount, 2);
+
+    ptr2 = ptr1;
+
+    EXPECT_EQ(ptr1.use_count(), 2);
+    EXPECT_EQ(ptr2.use_count(), 2);
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+}
+
+TEST_F(SharedPtrTest, SharedPtr_SelfCopyAssignment_DoesNotCrashAndKeepsUseCount) {
+    SharedPtr ptr(new TrackedObject());
+    ptr = ptr;
+
+    EXPECT_EQ(ptr.use_count(), 1);
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+}
+
+TEST_F(SharedPtrTest, SharedPtr_MoveConstructorAndAssignment_DoNotIncreaseUseCount) {
+    SharedPtr ptr1(new TrackedObject());
+    SharedPtr ptr2(std::move(ptr1));
+
+    EXPECT_EQ(ptr2.use_count(), 1);
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+
+    SharedPtr ptr3(new TrackedObject());
+    EXPECT_EQ(TrackedObject::liveCount, 2);
+
+    ptr3 = std::move(ptr2);
+    EXPECT_EQ(ptr3.use_count(), 1);
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+}
+
+TEST_F(SharedPtrTest, SharedPtr_SelfMoveAssignment_DoesNotCrash) {
+    SharedPtr ptr(new TrackedObject());
+    ptr = std::move(ptr);
+
+    SUCCEED();
+}
+
+TEST_F(SharedPtrTest, SharedPtr_UseCount_ZeroForDefaultConstructedAndMovedFrom) {
+    SharedPtr<TrackedObject> emptyPtr;
+    EXPECT_EQ(emptyPtr.use_count(), 0);
+
+    SharedPtr ptr(new TrackedObject());
+    SharedPtr movedFrom(std::move(ptr));
+
+    EXPECT_EQ(ptr.use_count(), 0);
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+}
+
+void CheckConstSharedPtr(const SharedPtr<TrackedObject>& ptr) {
+    EXPECT_EQ((*ptr).value, 42);
+    EXPECT_EQ(ptr->value, 42);
+}
+
+TEST_F(SharedPtrTest, SharedPtr_ConstReference_DereferencingWorks) {
+    SharedPtr ptr(new TrackedObject());
+    ptr->value = 42;
+    CheckConstSharedPtr(ptr);
+}
+
+TEST_F(SharedPtrTest, SharedPtr_ComplexChain_SingleDeletionAtTheEnd) {
+    SharedPtr p1(new TrackedObject());
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+
+    SharedPtr<TrackedObject> p2 = p1;
+    SharedPtr<TrackedObject> p3 = std::move(p2);
+    SharedPtr p4(p1);
+    p4 = p3;
+
+    EXPECT_EQ(TrackedObject::liveCount, 1);
+
+    {
+        SharedPtr<TrackedObject> p5 = p1;
+        SharedPtr<TrackedObject> p6 = std::move(p5);
+        EXPECT_EQ(TrackedObject::liveCount, 1);
+    }
+
+    p1 = SharedPtr<TrackedObject>();
+    p3 = SharedPtr<TrackedObject>();
+    p4 = SharedPtr<TrackedObject>();
+
+    EXPECT_EQ(TrackedObject::liveCount, 0);
+}
+
+namespace {
+    constexpr int kSharedIterations = 100'000;
+    constexpr int kCopiesPerSharedObject = 10;
+}
+
+TEST_F(SharedPtrTest, StdSharedPtr_CreateCopyDestroy) {
+    for (int k = 0; k < 15; k++) {
+        Timer timer("std::shared_ptr create/copy/destroy x" + std::to_string(kSharedIterations));
+        for (int i = 0; i < kSharedIterations; ++i) {
+            auto original = std::make_shared<TrackedObject>();
+
+            std::vector<std::shared_ptr<TrackedObject>> copies;
+            copies.reserve(kCopiesPerSharedObject);
+            for (int c = 0; c < kCopiesPerSharedObject; ++c) {
+                copies.push_back(original);
+            }
+        }
+        timer.stop();
+    }
+}
+
+TEST_F(SharedPtrTest, CustomSharedPtr_CreateCopyDestroy) {
+    for (int k = 0; k < 15; k++) {
+        Timer timer("Custom SharedPtr create/copy/destroy x" + std::to_string(kSharedIterations));
+        for (int i = 0; i < kSharedIterations; ++i) {
+            SharedPtr original(new TrackedObject());
+
+            std::vector<SharedPtr<TrackedObject>> copies;
+            copies.reserve(kCopiesPerSharedObject);
+            for (int c = 0; c < kCopiesPerSharedObject; ++c) {
+                copies.push_back(original);
+            }
+        }
+        timer.stop();
+    }
+}
+
+} // Безымянное пространство имён.

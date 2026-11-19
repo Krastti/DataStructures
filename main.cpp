@@ -1,7 +1,7 @@
-#include "include/SecondLab/AlphabeticalIndex.h"
-#include "include/SecondLab/PersonIndex.h"
-#include "include/Graph/ShortestPath.h"
-#include "include/Array/Array.h"
+#include "AlphabeticalIndex.h"
+#include "PersonIndex.h"
+#include "ShortestPath.h"
+#include "Array/Array.h"
 
 #include <algorithm>
 #include <chrono>

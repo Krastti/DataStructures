@@ -26,132 +26,139 @@ endif()
 
 # Бинарники
 
-add_executable(DataStructures
-        main.cpp
-        include/SecondLab/AlphabeticalIndex.cpp
-        include/SecondLab/PersonIndex.cpp
-)
-target_include_directories(DataStructures PRIVATE include)
-
 add_library(Sequence INTERFACE
-        include/Sequence/Sequence.h
-        include/Sequence/ArraySequence.h
-        include/Sequence/ArraySequence.tpp
+        DataStructures/Sequence/Sequence.h
+        DataStructures/Sequence/ArraySequence.h
+        DataStructures/Sequence/ArraySequence.tpp
 )
 
 add_library(BinaryTree INTERFACE
-        include/Trees/BinaryTreeBase.h
-        include/Trees/BinaryTreeBase.tpp
-        include/Trees/BinaryTree.h
-        include/Trees/BinaryTree.tpp
-        include/Trees/RedBlackTree.h
-        include/Trees/RedBlackTree.tpp
-        include/Trees/Set.h
-        include/Trees/Set.tpp
+        DataStructures/Trees/BinaryTreeBase.h
+        DataStructures/Trees/BinaryTreeBase.tpp
+        DataStructures/Trees/BinaryTree.h
+        DataStructures/Trees/BinaryTree.tpp
+        DataStructures/Trees/RedBlackTree.h
+        DataStructures/Trees/RedBlackTree.tpp
+        DataStructures/Trees/Set.h
+        DataStructures/Trees/Set.tpp
 )
 
 add_library(Stack INTERFACE
-        include/Stack/stack.h
-        include/Stack/stack.tpp
+        DataStructures/Stack/stack.h
+        DataStructures/Stack/stack.tpp
 )
 
 add_library(Array INTERFACE
-        include/Array/Array.h
-        include/Array/Array.tpp
+        DataStructures/Array/Array.h
+        DataStructures/Array/Array.tpp
 )
 
 add_library(SmartPointer INTERFACE
-        include/SmartPointers/UniquePtr.h
-        include/SmartPointers/UniquePtr.tpp
-        include/SmartPointers/SharedPtr.h
-        include/SmartPointers/SharedPtr.tpp
+        SmartPointers/include/UniquePtr.h
+        SmartPointers/include/UniquePtr.tpp
+        SmartPointers/include/SharedPtr.h
+        SmartPointers/include/SharedPtr.tpp
+)
+
+add_library(Optional INTERFACE
+        DataStructures/Optional/Optional.h
+        DataStructures/Optional/Optional.tpp
 )
 
 add_library(Graph INTERFACE
-        include/Optional/Optional.h
-        include/Optional/Optional.tpp
-        include/Graph/Graph.h
-        include/Graph/AdjacencyGraph.h
-        include/Graph/AdjacencyGraph.tpp
-        include/Graph/ShortestPath.h
-        include/Graph/ShortestPath.tpp
+        DataStructures/Graph/Graph.h
+        DataStructures/Graph/AdjacencyGraph.h
+        DataStructures/Graph/AdjacencyGraph.tpp
 )
 
-target_link_libraries(DataStructures
-        Sequence
-        BinaryTree
-        Stack
-        Array
-        SmartPointer
-        Graph
+add_library(ThirdLabPaths INTERFACE
+        ThirdLab/include/ShortestPath.h
+        ThirdLab/include/ShortestPath.tpp
 )
+
+foreach(module IN ITEMS Array Sequence Stack BinaryTree Optional Graph)
+  target_include_directories(${module} INTERFACE DataStructures)
+endforeach()
+target_include_directories(SmartPointer INTERFACE SmartPointers/include)
+
+target_link_libraries(BinaryTree INTERFACE Array Stack)
+target_link_libraries(Graph INTERFACE Array BinaryTree)
+target_include_directories(ThirdLabPaths INTERFACE ThirdLab/include)
+target_link_libraries(ThirdLabPaths INTERFACE Graph Optional)
+
+add_library(SecondLabIndexes STATIC
+        SecondLab/source/AlphabeticalIndex.cpp
+        SecondLab/source/PersonIndex.cpp
+)
+target_include_directories(SecondLabIndexes PUBLIC SecondLab/include)
+target_link_libraries(SecondLabIndexes PUBLIC Array BinaryTree SmartPointer)
+
+add_executable(DataStructures main.cpp)
+target_link_libraries(DataStructures PRIVATE SecondLabIndexes ThirdLabPaths Array)
 
 # Общая реализация для CLI и тестов интерпретатора.
 add_library(MiniLangCore STATIC
-        interpreter/sources/lexer.cpp
-        interpreter/sources/parser.cpp
-        interpreter/headers/expressionTree.h
-        interpreter/sources/expressionTree.cpp
-        interpreter/sources/ast.cpp
-        interpreter/sources/interpreter.cpp
+        Interpreter/sources/lexer.cpp
+        Interpreter/sources/parser.cpp
+        Interpreter/headers/expressionTree.h
+        Interpreter/sources/expressionTree.cpp
+        Interpreter/sources/ast.cpp
+        Interpreter/sources/interpreter.cpp
 )
-target_include_directories(MiniLangCore PUBLIC interpreter/headers)
-target_link_libraries(MiniLangCore PUBLIC Array BinaryTree SmartPointer)
+target_include_directories(MiniLangCore PUBLIC Interpreter/headers)
+target_link_libraries(MiniLangCore PUBLIC Array BinaryTree Optional SmartPointer)
 
-add_executable(MiniLangCpp interpreter/main.cpp)
+add_executable(MiniLangCpp Interpreter/main.cpp)
 target_link_libraries(MiniLangCpp PRIVATE MiniLangCore)
+install(PROGRAMS "$<TARGET_FILE:MiniLangCpp>" DESTINATION bin RENAME "mini${CMAKE_EXECUTABLE_SUFFIX}")
 
 # Тесты
 
 if(BUILD_TESTING)
   add_executable(UnitTests
-          tests/Interpreter/LexerTests.cpp
-          tests/Interpreter/ExpressionTreeTests.cpp
-          tests/Interpreter/ParserTests.cpp
-          tests/Interpreter/InterpreterTests.cpp
-          tests/SmartPointers/SharedPtrTests.cpp
-          tests/SmartPointers/UniquePtrTests.cpp
-          tests/SmartPointers/SmartPointerSafetyTests.cpp
-          tests/Array/ArrayTests.cpp
-          tests/Trees/BinaryTreeTests.cpp
-          tests/SecondLab/AlphabeticalIndexTests.cpp
-          tests/ThirdLab/ShortestPathTests.cpp
-          include/SecondLab/AlphabeticalIndex.cpp
-          include/SecondLab/PersonIndex.cpp
-          tests/Timer.h
+          Interpreter/tests/LexerTests.cpp
+          Interpreter/tests/ExpressionTreeTests.cpp
+          Interpreter/tests/ParserTests.cpp
+          Interpreter/tests/InterpreterTests.cpp
+          SmartPointers/tests/SharedPtrTests.cpp
+          SmartPointers/tests/UniquePtrTests.cpp
+          SmartPointers/tests/SmartPointerSafetyTests.cpp
+          DataStructures/tests/Array/ArrayTests.cpp
+          DataStructures/tests/Trees/BinaryTreeTests.cpp
+          SecondLab/tests/AlphabeticalIndexTests.cpp
+          ThirdLab/tests/ShortestPathTests.cpp
+          DataStructures/tests/Timer.h
       )
 
   find_package(Threads REQUIRED)
 
   target_link_libraries(UnitTests PRIVATE
           MiniLangCore
+          SecondLabIndexes
           Threads::Threads
           SmartPointer
           BinaryTree
-          Graph
+          ThirdLabPaths
           Array
           GTest::gtest_main
   )
-  target_include_directories(UnitTests PRIVATE include)
 
   include(GoogleTest)
   gtest_discover_tests(UnitTests)
 
-  add_executable(TreeSafetyTests tests/Trees/TreeSafetyTests.cpp)
+  add_executable(TreeSafetyTests DataStructures/tests/Trees/TreeSafetyTests.cpp)
   target_link_libraries(TreeSafetyTests PRIVATE BinaryTree MiniLangCore GTest::gtest_main)
-  target_include_directories(TreeSafetyTests PRIVATE include)
   gtest_discover_tests(TreeSafetyTests)
 
-  add_executable(SharedPtrAllocationTests tests/SmartPointers/SharedPtrAllocationTests.cpp)
+  add_executable(SharedPtrAllocationTests SmartPointers/tests/SharedPtrAllocationTests.cpp)
   target_link_libraries(SharedPtrAllocationTests PRIVATE SmartPointer GTest::gtest_main)
-  target_include_directories(SharedPtrAllocationTests PRIVATE include)
   gtest_discover_tests(SharedPtrAllocationTests)
 
   add_test(NAME MiniLangCliTests
     COMMAND ${CMAKE_COMMAND}
       "-DMINILANG_EXECUTABLE=$<TARGET_FILE:MiniLangCpp>"
       "-DTEST_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/minilang-cli-tests"
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/Interpreter/CliTests.cmake"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/Interpreter/tests/CliTests.cmake"
   )
 endif()
 
@@ -160,19 +167,20 @@ option(BUILD_GUI "Build Qt 6 Widgets application" OFF)
 if(BUILD_GUI)
   find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets Concurrent)
   add_library(DataStructuresGuiWidgets STATIC
-      app/gui/AlphabeticalIndexWidget.cpp
-      app/gui/PersonIndexWidget.cpp
-      app/gui/GraphWidget.cpp
-      app/gui/GraphScene.cpp
-      include/SecondLab/AlphabeticalIndex.cpp
-      include/SecondLab/PersonIndex.cpp
+          GUI/source/AlphabeticalIndexWidget.cpp
+          GUI/source/PersonIndexWidget.cpp
+          GUI/source/GraphWidget.cpp
+          GUI/source/GraphScene.cpp
   )
-  target_include_directories(DataStructuresGuiWidgets PUBLIC include app/gui)
-  target_link_libraries(DataStructuresGuiWidgets PUBLIC Qt6::Widgets Qt6::Concurrent)
-  add_executable(DataStructuresGui app/gui/main.cpp)
+  target_include_directories(DataStructuresGuiWidgets PUBLIC GUI/include)
+  target_link_libraries(DataStructuresGuiWidgets
+      PUBLIC ThirdLabPaths Qt6::Widgets Qt6::Concurrent
+      PRIVATE SecondLabIndexes
+  )
+  add_executable(DataStructuresGui GUI/source/main.cpp)
   target_link_libraries(DataStructuresGui PRIVATE DataStructuresGuiWidgets)
   if(BUILD_TESTING)
-    add_executable(GuiTests tests/Gui/GuiTests.cpp)
+    add_executable(GuiTests GUI/tests/GuiTests.cpp)
     target_link_libraries(GuiTests PRIVATE DataStructuresGuiWidgets GTest::gtest)
     add_test(NAME GuiTests COMMAND GuiTests)
     set_tests_properties(GuiTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 60)

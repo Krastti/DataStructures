@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Build and test
+            build_type: Release
+            cxx_flags: ""
+            linker_flags: ""
+          - name: AddressSanitizer and UndefinedBehaviorSanitizer
+            build_type: Debug
+            cxx_flags: -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all
+            linker_flags: -fsanitize=address,undefined
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install GoogleTest
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtest-dev
+
+      - name: Configure without Qt
+        env:
+          BUILD_TYPE: ${{ matrix.build_type }}
+          CXX_FLAGS: ${{ matrix.cxx_flags }}
+          LINKER_FLAGS: ${{ matrix.linker_flags }}
+        run: |
+          cmake -S . -B build \
+            -DBUILD_GUI=OFF -DBUILD_TESTING=ON \
+            -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+            -DCMAKE_CXX_FLAGS="$CXX_FLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LINKER_FLAGS"
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Run CTest
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build --output-on-failure --no-tests=error

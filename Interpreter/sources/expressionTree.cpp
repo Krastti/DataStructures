@@ -14,7 +14,7 @@ ExpressionTree ExpressionTree::makeLeaf(UniquePtr<Expr> leaf) {
   return tree;
 }
 
-ExpressionTree ExpressionTree::makeBinary(TokenType operation, ExpressionTree&& left, ExpressionTree&& right) {
+ExpressionTree ExpressionTree::makeBinary(const TokenType operation, ExpressionTree&& left, ExpressionTree&& right) {
   if (&left == &right || left.root == nullptr || right.root == nullptr) {
     throw std::invalid_argument("Ожидались два отдельных непустых дерева выражений");
   }

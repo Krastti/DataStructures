@@ -14,6 +14,7 @@
 
 class Interpreter : public ast::ExprVisitor, public ast::StatementVisitor {
 public:
+  // Значение MiniLang при выполнении: число, логическое значение или строка.
   using Value = std::variant<double, bool, std::string>;
 
   // Каждый запуск начинает с пустой таблицы переменных. Поток должен жить до конца вызова.

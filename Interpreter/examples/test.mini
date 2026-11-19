@@ -1,0 +1,5 @@
+remember name = "Ярослав"
+remember age = 18 + 1
+
+print name
+print age

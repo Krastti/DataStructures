@@ -10,13 +10,16 @@ protected:
   std::size_t nodeCount = 0;
 
   BinaryTreeBase() noexcept = default;
-  BinaryTreeBase(const BinaryTreeBase&) = delete;
-  BinaryTreeBase& operator=(const BinaryTreeBase&) = delete;
+
   BinaryTreeBase(BinaryTreeBase&& other) noexcept;
   BinaryTreeBase& operator=(BinaryTreeBase&& other) noexcept;
   ~BinaryTreeBase();
 
   void clear() noexcept;
+
+public:
+  BinaryTreeBase(const BinaryTreeBase&) = delete;
+  BinaryTreeBase& operator=(const BinaryTreeBase&) = delete;
 };
 
 #include "BinaryTreeBase.tpp"

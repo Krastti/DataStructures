@@ -1,3 +1,5 @@
+// ReSharper disable CppTooWideScopeInitStatement
+// ReSharper disable CppUseStructuredBinding
 #include "../headers/interpreter.h"
 
 #include <charconv>
@@ -49,6 +51,7 @@ void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, st
   variables = Map<std::string, Value>{};
   lastValue.reset();
   output = &outputStream;
+
   try {
     for (std::size_t i = 0; i < statements.size(); ++i) {
       if (!statements[i]) throw std::invalid_argument("Ошибка выполнения: пустая инструкция");
@@ -122,8 +125,10 @@ void Interpreter::visit(const ast::Remember& node) {
 
 void Interpreter::visit(const ast::Print& node) {
   if (!output) throw std::logic_error("Print можно выполнять только во время execute");
+
   const auto* expression = node.forOutput.getRoot();
   if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение print");
+
   const std::string text = formatValue(evaluate(*expression));
   output->write(text.data(), static_cast<std::streamsize>(text.size()));
   output->put('\n');

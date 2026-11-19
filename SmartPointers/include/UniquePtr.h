@@ -15,10 +15,10 @@ private:
   T* ptr = nullptr;
 
 public:
-  UniquePtr(std::nullptr_t = nullptr) noexcept {}
+  explicit UniquePtr(std::nullptr_t = nullptr) noexcept {}
 
   template<typename U>
-  explicit UniquePtr(U* ptr) noexcept; // NOLINT(*-inconsistent-declaration-parameter-name)
+  explicit UniquePtr(U* ptr) noexcept;
 
   UniquePtr(const UniquePtr& other) = delete;
   UniquePtr& operator=(const UniquePtr& other) = delete;
@@ -26,7 +26,7 @@ public:
   UniquePtr& operator=(UniquePtr&& other) noexcept;
 
   template<typename U>
-  UniquePtr(UniquePtr<U>&& other) noexcept;
+  explicit UniquePtr(UniquePtr<U>&& other) noexcept;
 
   template<typename U>
   UniquePtr& operator=(UniquePtr<U>&& other) noexcept;
@@ -55,10 +55,10 @@ private:
   T* ptr = nullptr;
 
 public:
-  UniquePtr(std::nullptr_t = nullptr) noexcept {}
+  explicit UniquePtr(std::nullptr_t = nullptr) noexcept {}
 
   template<typename U>
-  explicit UniquePtr(U* ptr) noexcept; // NOLINT(*-inconsistent-declaration-parameter-name)
+  explicit UniquePtr(U* ptr) noexcept;
 
   UniquePtr(const UniquePtr& other) = delete;
   UniquePtr& operator=(const UniquePtr& other) = delete;

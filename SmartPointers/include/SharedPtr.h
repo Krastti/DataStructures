@@ -27,14 +27,14 @@ private:
   void releaseOwnership() noexcept;
 
 public:
-  SharedPtr(std::nullptr_t = nullptr) noexcept {}
+  explicit SharedPtr(std::nullptr_t = nullptr) noexcept {}
 
   template<typename U>
-
   explicit SharedPtr(U* ptr);
 
   SharedPtr(const SharedPtr& other) noexcept;
   SharedPtr& operator=(const SharedPtr& other) noexcept;
+
   SharedPtr(SharedPtr&& other) noexcept;
   SharedPtr& operator=(SharedPtr&& other) noexcept;
 
@@ -47,7 +47,6 @@ public:
   void reset(std::nullptr_t = nullptr) noexcept;
 
   template<typename U>
-
   void reset(U* newPtr);
 
   bool operator==(const SharedPtr& other) const noexcept;
@@ -70,7 +69,7 @@ private:
   void releaseOwnership() noexcept;
 
 public:
-  SharedPtr(std::nullptr_t = nullptr) noexcept {}
+  explicit SharedPtr(std::nullptr_t = nullptr) noexcept {}
 
   template<typename U>
 
@@ -78,6 +77,7 @@ public:
 
   SharedPtr(const SharedPtr& other) noexcept;
   SharedPtr& operator=(const SharedPtr& other) noexcept;
+
   SharedPtr(SharedPtr&& other) noexcept;
   SharedPtr& operator=(SharedPtr&& other) noexcept;
 

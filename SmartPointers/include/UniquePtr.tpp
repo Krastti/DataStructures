@@ -3,13 +3,13 @@
 template<typename T>
 template<typename U>
 
-UniquePtr<T>::UniquePtr(U* pointer) noexcept {
+UniquePtr<T>::UniquePtr(U* ptr) noexcept {
   static_assert(!std::is_array_v<U>, "Нельзя передать массив владельцу одиночного объекта");
   static_assert(std::is_convertible_v<U*, T*>, "Несовместимые типы указателей");
   if constexpr (!std::is_same_v<std::remove_cv_t<U>, std::remove_cv_t<T>>) {
     static_assert(std::has_virtual_destructor_v<T>, "Базовый тип должен иметь виртуальный деструктор");
   }
-  ptr = pointer;
+  this->ptr = ptr;
 }
 
 template<typename T>
@@ -118,9 +118,9 @@ UniquePtr<T>::~UniquePtr() {
 template<typename T>
 template<typename U>
 
-UniquePtr<T[]>::UniquePtr(U* pointer) noexcept {
+UniquePtr<T[]>::UniquePtr(U* ptr) noexcept {
   static_assert(std::is_convertible_v<U(*)[], T(*)[]>, "Несовместимые типы массивов");
-  ptr = pointer;
+  this->ptr = ptr;
 }
 
 template<typename T>

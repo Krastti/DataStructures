@@ -1,5 +1,3 @@
-## Badges
-
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg)
 ![CMake 3.20+](https://img.shields.io/badge/CMake-3.20%2B-064F8C.svg)
 ![Qt 6](https://img.shields.io/badge/Qt-6-41CD52.svg)
@@ -7,7 +5,7 @@
 
 # DataStructures
 
-Учебный проект на C++20 для изучения структур данных, алгоритмов поиска и устройства интерпретатора. В проекте есть собственные контейнеры и умные указатели, консольные лабораторные работы, графический интерфейс на Qt 6 и интерпретатор MiniLang.
+Учебный проект на C++ для изучения структур данных, алгоритмов и устройства интерпретатора. В проекте есть собственные контейнеры, консольные лабораторные работы, графический интерфейс на Qt 6 и интерпретатор MiniLang.
 
 ## Documentation
 
@@ -18,7 +16,6 @@
 | [ЛР‑3. Кратчайшие пути](ThirdLab/docs/design.md) | Поиск кратчайшего пути в графе и сравнение алгоритмов. |
 | [Интерпретатор MiniLang](Interpreter/docs/design.md) | Модель языка, компоненты интерпретатора и требования к выполнению программ. |
 
-- [Задание ЛР‑2](SecondLab/docs/ЛР-2.pdf) и [задание ЛР‑3](ThirdLab/docs/ЛР-3.pdf)
 - [Спецификация алфавитного указателя](DataStructures/docs/specs/alphabetical-index/specification.md) и [спецификация персонального индекса](DataStructures/docs/specs/person-index/specification.md)
 - [Спецификация деревьев](DataStructures/docs/specs/trees/specification.md) и [спецификация умных указателей](DataStructures/docs/specs/pointers/specification.md)
 - [Документация MiniLang](Interpreter/docs/README.md) с описанием языка, CLI и реализации

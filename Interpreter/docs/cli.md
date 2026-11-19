@@ -1,6 +1,6 @@
 # CLI MiniLangCpp
 
-Точка входа находится в `interpreter/main.cpp`, рядом с каталогами `headers/` и `sources/`. CLI читает файл, запускает лексер и парсер, затем передаёт готовое AST исполнителю.
+Точка входа находится в `../main.cpp`, рядом с каталогами `headers/` и `sources/`. CLI читает файл, запускает лексер и парсер, затем передаёт готовое AST исполнителю.
 
 ## Сборка и запуск
 
@@ -9,7 +9,7 @@
 ```bash
 cmake -S . -B /tmp/ds-build -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=OFF -DBUILD_TESTING=OFF
 cmake --build /tmp/ds-build --target MiniLangCpp --parallel 2
-/tmp/ds-build/MiniLangCpp interpreter/examples/main.mini
+/tmp/ds-build/MiniLangCpp Interpreter/examples/main.mini
 ```
 
 Пример выводит:
@@ -20,13 +20,36 @@ true
 18.0
 ```
 
-Для своей программы передайте путь вместо `interpreter/examples/main.mini`. Относительный путь отсчитывается от текущего рабочего каталога; путь с пробелами заключайте в кавычки:
+Для своей программы передайте путь вместо `Interpreter/examples/main.mini`. Относительный путь отсчитывается от текущего рабочего каталога; путь с пробелами заключайте в кавычки:
 
 ```bash
 /tmp/ds-build/MiniLangCpp "my programs/example.mini"
 ```
 
 Программы принято сохранять с расширением `.mini`; CLI не проверяет расширение. В CLion выберите цель `MiniLangCpp` и укажите путь к файлу в аргументах запуска, а корень проекта — рабочим каталогом.
+
+## Установка команды `mini`
+
+После сборки `MiniLangCpp` команда установки поместит интерпретатор в `~/.local/bin/mini`.
+
+```bash
+cmake --install /tmp/ds-build --prefix "$HOME/.local"
+```
+
+Если `~/.local/bin` ещё нет в `PATH`, добавьте эту строку в `~/.zshrc` (для Bash — в `~/.bashrc`) и откройте новый терминал.
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Перейдите в каталог с `main.mini` и запустите `mini main.mini`. Для запуска примера из корня проекта выполните следующие команды.
+
+```bash
+cd Interpreter/examples
+mini main.mini
+```
+
+Из другого каталога можно передать абсолютный путь к файлу или путь относительно текущего каталога. После изменений в интерпретаторе повторите сборку и установку.
 
 ## Порядок обработки
 
@@ -46,7 +69,7 @@ true
 | `1` | Ошибка чтения файла, анализа, выполнения или записи результата |
 | `2` | Не передан путь либо передано больше одного аргумента |
 
-Без аргументов CLI печатает `Использование: MiniLangCpp <путь к файлу .mini>`. Интерактивный режим и чтение программы из стандартного ввода не поддерживаются.
+При неверном числе аргументов CLI печатает `Использование: MiniLangCpp <путь к файлу .mini>`. Интерактивный режим и чтение программы из стандартного ввода не поддерживаются.
 
 ## CMake и тесты
 
@@ -66,12 +89,12 @@ ctest --test-dir /tmp/ds-build --output-on-failure
 ctest --test-dir /tmp/ds-build -R '^MiniLangCliTests$' --output-on-failure
 ```
 
-[CliTests.cmake](../../../tests/Interpreter/CliTests.cmake) запускает настоящий бинарник и проверяет коды завершения, `stdout` и `stderr`: успешный файл, пустой файл, путь с пробелами, отсутствие и избыток аргументов, отсутствующий файл, каталог вместо файла и ошибки каждого этапа. Проверки LF/CRLF и отсутствия завершающего перевода строки включены в успешный сценарий.
+[CliTests.cmake](../tests/CliTests.cmake) запускает настоящий бинарник и проверяет коды завершения, `stdout` и `stderr`: успешный файл, пустой файл, путь с пробелами, отсутствие и избыток аргументов, отсутствующий файл, каталог вместо файла и ошибки каждого этапа. Проверки LF/CRLF и отсутствия завершающего перевода строки включены в успешный сценарий.
 
 Сам сценарий CLI не зависит от GoogleTest и может запускаться напрямую даже при `BUILD_TESTING=OFF`:
 
 ```bash
-cmake -DMINILANG_EXECUTABLE=/tmp/ds-build/MiniLangCpp -DTEST_WORK_DIR=/tmp/ds-build/minilang-cli-tests -P tests/Interpreter/CliTests.cmake
+cmake -DMINILANG_EXECUTABLE=/tmp/ds-build/MiniLangCpp -DTEST_WORK_DIR=/tmp/ds-build/minilang-cli-tests -P Interpreter/tests/CliTests.cmake
 ```
 
-О синтаксисе см. [ТЗ](../specification.md), о выполнении AST — [описание исполнителя](../execution/README.md).
+Синтаксис описан в [спецификации](specification.md), выполнение AST — в [архитектуре](architecture.md).

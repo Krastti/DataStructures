@@ -1,0 +1,59 @@
+name: Valgrind
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  memcheck:
+    name: Valgrind / ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - UnitTests
+          - TreeSafetyTests
+          - SharedPtrAllocationTests
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install GoogleTest and Valgrind
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtest-dev valgrind
+
+      - name: Configure without Qt
+        run: |
+          cmake -S . -B build \
+            -DBUILD_GUI=OFF -DBUILD_TESTING=ON \
+            -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build test target
+        env:
+          TEST_TARGET: ${{ matrix.target }}
+        run: cmake --build build --target "$TEST_TARGET" --parallel 2
+
+      - name: Run Memcheck
+        env:
+          TEST_TARGET: ${{ matrix.target }}
+        run: |
+          # Сохраняем тестовые operator new/delete, моделирующие отказ выделения памяти.
+          valgrind --tool=memcheck \
+            --soname-synonyms=somalloc=nouserintercepts \
+            --leak-check=full \
+            --show-leak-kinds=all \
+            --errors-for-leak-kinds=definite,indirect,possible \
+            --track-origins=yes \
+            --error-exitcode=1 \
+            "./build/$TEST_TARGET"

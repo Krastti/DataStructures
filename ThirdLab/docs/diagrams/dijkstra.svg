@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="698" viewBox="0 0 740 698" role="img" aria-label="Алгоритм Дейкстры">
+  <title>Алгоритм Дейкстры</title>
+  <rect width="740" height="698" rx="12" fill="#f8fafc"/>
+  <rect x="143.5" y="14" width="305" height="42" rx="21" fill="#e4f4ec" stroke="#526980" stroke-width="1.4"/>
+  <text x="296" y="40" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Начало поиска</text>
+  <rect x="94" y="79" width="404" height="62" rx="8" fill="#eaf2fa" stroke="#526980" stroke-width="1.4"/>
+  <text x="296" y="104" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Проверить обе вершины</text>
+  <text x="296" y="126" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">и неотрицательность весов</text>
+  <path d="M296 167 456 202 296 237 136 202Z" fill="#fff4d9" stroke="#526980" stroke-width="1.4"/>
+  <text x="296" y="207" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Вход допустим?</text>
+  <rect x="515" y="179" width="200" height="46" rx="23" fill="#fbeaea" stroke="#526980" stroke-width="1.4"/>
+  <text x="615" y="207" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Сообщить об ошибке</text>
+  <rect x="94" y="263" width="404" height="62" rx="8" fill="#eaf2fa" stroke="#526980" stroke-width="1.4"/>
+  <text x="296" y="288" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Задать начальное расстояние 0</text>
+  <text x="296" y="310" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Остальные оценки неизвестны</text>
+  <rect x="94" y="359" width="404" height="62" rx="8" fill="#eaf2fa" stroke="#526980" stroke-width="1.4"/>
+  <text x="296" y="384" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Выбрать необработанную</text>
+  <text x="296" y="406" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">вершину с наименьшей оценкой</text>
+  <path d="M296 450 456 488 296 526 136 488Z" fill="#fff4d9" stroke="#526980" stroke-width="1.4"/>
+  <text x="296" y="493" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Вершина найдена?</text>
+  <rect x="515" y="465" width="200" height="46" rx="23" fill="#e4f4ec" stroke="#526980" stroke-width="1.4"/>
+  <text x="615" y="493" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Путь не найден</text>
+  <path d="M296 540 456 575 296 610 136 575Z" fill="#fff4d9" stroke="#526980" stroke-width="1.4"/>
+  <text x="296" y="580" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Это конечная вершина?</text>
+  <rect x="515" y="552" width="200" height="46" rx="23" fill="#e4f4ec" stroke="#526980" stroke-width="1.4"/>
+  <text x="615" y="580" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Восстановить путь</text>
+  <rect x="94" y="628.5" width="404" height="53" rx="8" fill="#eaf2fa" stroke="#526980" stroke-width="1.4"/>
+  <text x="296" y="649" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">Обработать вершину</text>
+  <text x="296" y="671" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="17" fill="#172d44">и релаксировать её переходы</text>
+  <path d="M296 56 V78" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M296 78 L292 69 L300 69Z" fill="#43566b"/>
+  <path d="M296 141 V166" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M296 166 L292 157 L300 157Z" fill="#43566b"/>
+  <path d="M456 202 H514" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M514 202 L505 206 L505 198Z" fill="#43566b"/>
+  <text x="485" y="192" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" fill="#172d44">нет</text>
+  <path d="M296 237 V262" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M296 262 L292 253 L300 253Z" fill="#43566b"/>
+  <text x="316" y="255" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" fill="#172d44">да</text>
+  <path d="M296 325 V358" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M296 358 L292 349 L300 349Z" fill="#43566b"/>
+  <path d="M296 421 V449" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M296 449 L292 440 L300 440Z" fill="#43566b"/>
+  <path d="M456 488 H514" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M514 488 L505 492 L505 484Z" fill="#43566b"/>
+  <text x="485" y="478" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" fill="#172d44">нет</text>
+  <path d="M296 526 V539" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M296 539 L292 530 L300 530Z" fill="#43566b"/>
+  <text x="317" y="537" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" fill="#172d44">да</text>
+  <path d="M456 575 H514" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M514 575 L505 579 L505 571Z" fill="#43566b"/>
+  <text x="485" y="565" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" fill="#172d44">да</text>
+  <path d="M296 610 V627" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M296 627 L292 618 L300 618Z" fill="#43566b"/>
+  <text x="320" y="623" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="15" fill="#172d44">нет</text>
+  <path d="M94 655 H52 V390 H93" fill="none" stroke="#43566b" stroke-width="1.6"/>
+  <path d="M93 390 L84 394 L84 386Z" fill="#43566b"/>
+</svg>

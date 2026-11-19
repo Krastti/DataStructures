@@ -1,6 +1,0 @@
-.git
-.idea
-cmake-build-debug/
-.build-*/
-tmp/
-pdf-text.txt

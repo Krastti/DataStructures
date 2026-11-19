@@ -18,7 +18,6 @@
 | [ЛР‑3. Кратчайшие пути](ThirdLab/docs/design.md) | Поиск кратчайшего пути в графе и сравнение алгоритмов. |
 | [Интерпретатор MiniLang](Interpreter/docs/design.md) | Модель языка, компоненты интерпретатора и требования к выполнению программ. |
 
-- [Шаблон дизайна учебной работы](TEMPLATE.md)
 - [Задание ЛР‑2](SecondLab/docs/ЛР-2.pdf) и [задание ЛР‑3](ThirdLab/docs/ЛР-3.pdf)
 - [Спецификация алфавитного указателя](DataStructures/docs/specs/alphabetical-index/specification.md) и [спецификация персонального индекса](DataStructures/docs/specs/person-index/specification.md)
 - [Спецификация деревьев](DataStructures/docs/specs/trees/specification.md) и [спецификация умных указателей](DataStructures/docs/specs/pointers/specification.md)

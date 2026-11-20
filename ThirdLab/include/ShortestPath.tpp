@@ -160,9 +160,9 @@ PathResult<Vertex, Weight> bellmanFord(const Graph<Vertex, Weight>& graph, const
 }
 
 template<typename Vertex, typename Weight>
-UndirectedGraph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_t extraEdges,
+UndirectedGraph<Vertex, Weight> generateConnectedGraph(const size_t vertexCount, const size_t extraEdges,
                                                        Weight minWeight, Weight maxWeight,
-                                                       unsigned int seed) {
+                                                       const unsigned int seed) {
   if (vertexCount == 0) throw std::invalid_argument("Граф должен содержать хотя бы одну вершину");
   if (vertexCount > 2000) throw std::invalid_argument("Генератор поддерживает не более 2000 вершин");
   if (minWeight < Weight{} || maxWeight < minWeight) {
@@ -178,8 +178,7 @@ UndirectedGraph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_
   for (size_t i = 0; i < vertexCount; ++i) graph.addVertex(static_cast<Vertex>(i));
   std::mt19937 random(seed);
   for (size_t i = 1; i < vertexCount; ++i) {
-    graph.addEdge(static_cast<Vertex>(i - 1), static_cast<Vertex>(i),
-                  generateWeight(random, minWeight, maxWeight));
+    graph.addEdge(static_cast<Vertex>(i - 1), static_cast<Vertex>(i), generateWeight(random, minWeight, maxWeight));
   }
 
   Array<Pair<size_t, size_t>> candidates;
@@ -196,8 +195,8 @@ UndirectedGraph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_
 
 template<typename Vertex, typename Weight>
 DirectedGraph<Vertex, Weight> generateStronglyConnectedDirectedGraph(
-    size_t vertexCount, size_t extraEdges, Weight minWeight, Weight maxWeight,
-    unsigned int seed) {
+    const size_t vertexCount, const size_t extraEdges, Weight minWeight, Weight maxWeight,
+    const unsigned int seed) {
   if (vertexCount == 0) throw std::invalid_argument("Граф должен содержать хотя бы одну вершину");
   if (vertexCount > 2000) throw std::invalid_argument("Генератор поддерживает не более 2000 вершин");
   if (minWeight < Weight{} || maxWeight < minWeight) {

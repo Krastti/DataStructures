@@ -12,8 +12,7 @@ struct PathResult {
 };
 
 template<typename Vertex, typename Weight>
-PathResult<Vertex, Weight> dijkstra(const Graph<Vertex,
-                                    Weight>& graph,
+PathResult<Vertex, Weight> dijkstra(const Graph<Vertex, Weight>& graph,
                                     const Vertex& source,
                                     const Vertex& target);
 
@@ -27,9 +26,9 @@ UndirectedGraph<Vertex, Weight> generateConnectedGraph(size_t vertexCount, size_
                                                        unsigned int seed = 1);
 
 template<typename Vertex, typename Weight>
-DirectedGraph<Vertex, Weight> generateStronglyConnectedDirectedGraph(
-    size_t vertexCount, size_t extraEdges, Weight minWeight, Weight maxWeight,
-    unsigned int seed = 1);
+DirectedGraph<Vertex, Weight> generateStronglyConnectedDirectedGraph(size_t vertexCount, size_t extraEdges,
+                                                                        Weight minWeight, Weight maxWeight,
+                                                                        unsigned int seed = 1);
 
 #include "ShortestPath.tpp"
 

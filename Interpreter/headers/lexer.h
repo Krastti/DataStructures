@@ -7,12 +7,14 @@
 #include <cstddef>
 #include <string>
 
+// TODO Привести лексер от hardcode к StateMachine на собственной реализации графов.
+
 class Lexer {
 private:
   static Token scanToken(char symbol);
+
   static std::size_t readNumber(const std::string& source, std::size_t start);
   static std::size_t readIdentifier(const std::string& source, std::size_t start);
-  // start указывает на открывающую кавычку; результат — позиция после закрывающей.
   static std::size_t readString(const std::string& source, std::size_t start);
 
 public:

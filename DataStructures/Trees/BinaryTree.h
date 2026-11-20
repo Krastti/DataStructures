@@ -37,6 +37,9 @@ protected:
 
   void transplant(Node* oldNode, Node* newNode) noexcept;
 
+  template<typename CloneNode>
+  void copyNodes(const BinaryTree& other, CloneNode cloneNode);
+
   Node* getSuccessor(Node* node);
   Node* findNode(const Key& key);
   const Node* findNode(const Key& key) const;
@@ -45,8 +48,8 @@ public:
   BinaryTree();
   explicit BinaryTree(Key key);
   explicit BinaryTree(Key key, Data data);
-  BinaryTree(const BinaryTree&) = delete;
-  BinaryTree& operator=(const BinaryTree&) = delete;
+  BinaryTree(const BinaryTree& other);
+  BinaryTree& operator=(const BinaryTree& other);
   BinaryTree(BinaryTree&& other) noexcept;
   BinaryTree& operator=(BinaryTree&& other) noexcept;
 

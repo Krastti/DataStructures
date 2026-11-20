@@ -37,6 +37,51 @@ BinaryTree<Key, Data>::BinaryTree(Key key, Data data) {
 }
 
 template <typename Key, typename Data>
+template <typename CloneNode>
+void BinaryTree<Key, Data>::copyNodes(const BinaryTree& other, CloneNode cloneNode) {
+  if (other.root == nullptr) return;
+
+  const Node* source = other.root;
+  root = cloneNode(*source);
+  Node* copy = root;
+
+  // Готовые ветви копии отмечают пройденные ветви исходного дерева.
+  while (source != nullptr) {
+    if (source->left != nullptr && copy->left == nullptr) {
+      source = source->left;
+      copy->left = cloneNode(*source);
+      copy->left->parent = copy;
+      copy = copy->left;
+    } else if (source->right != nullptr && copy->right == nullptr) {
+      source = source->right;
+      copy->right = cloneNode(*source);
+      copy->right->parent = copy;
+      copy = copy->right;
+    } else {
+      source = source->parent;
+      copy = copy->parent;
+    }
+  }
+  nodeCount = other.nodeCount;
+}
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>::BinaryTree(const BinaryTree& other) : BinaryTree() {
+  copyNodes(other, [](const Node& source) {
+    return new Node(source.key, source.data);
+  });
+}
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>& BinaryTree<Key, Data>::operator=(const BinaryTree& other) {
+  if (this != &other) {
+    BinaryTree copy(other);
+    *this = std::move(copy);
+  }
+  return *this;
+}
+
+template <typename Key, typename Data>
 BinaryTree<Key, Data>::BinaryTree(BinaryTree&& other) noexcept
   : Base(std::move(other)) {}
 

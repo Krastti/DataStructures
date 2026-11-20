@@ -220,6 +220,23 @@ RedBlackTree<Key, Data>::RedBlackTree(Key key) {
 }
 
 template <typename Key, typename Data>
+RedBlackTree<Key, Data>::RedBlackTree(const RedBlackTree& other) : Base() {
+  this->copyNodes(other, [](const Node& source) {
+    const auto& node = static_cast<const RBNode&>(source);
+    return new RBNode(node.key, node.data, node.color);
+  });
+}
+
+template <typename Key, typename Data>
+RedBlackTree<Key, Data>& RedBlackTree<Key, Data>::operator=(const RedBlackTree& other) {
+  if (this != &other) {
+    RedBlackTree copy(other);
+    *this = std::move(copy);
+  }
+  return *this;
+}
+
+template <typename Key, typename Data>
 void RedBlackTree<Key, Data>::insert(Key key, Data data) {
   if (this->root == nullptr) {
     this->root = new RBNode(key, data, Color::BLACK);

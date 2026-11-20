@@ -48,8 +48,8 @@ public:
 
     RedBlackTree() = default;
     explicit RedBlackTree(Key key);
-    RedBlackTree(const RedBlackTree&) = delete;
-    RedBlackTree& operator=(const RedBlackTree&) = delete;
+    RedBlackTree(const RedBlackTree& other);
+    RedBlackTree& operator=(const RedBlackTree& other);
     RedBlackTree(RedBlackTree&& other) noexcept = default;
     RedBlackTree& operator=(RedBlackTree&& other) noexcept = default;
 

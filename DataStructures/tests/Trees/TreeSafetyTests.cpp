@@ -13,19 +13,22 @@
 #include <new>
 #include <random>
 #include <stdexcept>
+#include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
 namespace {
-thread_local bool rejectAllocations = false;
+thread_local std::ptrdiff_t allocationBudget = -1;
 thread_local std::ptrdiff_t* allocationBalance = nullptr;
 }
 
 // Отдельный исполняемый файл изолирует отказ выделения памяти от остальных тестов.
 // Включаем отказ только на время проверяемой операции.
 void* operator new(std::size_t size) {
-  if (rejectAllocations) throw std::bad_alloc();
+  if (allocationBudget == 0) throw std::bad_alloc();
   if (void* memory = std::malloc(size == 0 ? 1 : size)) {
+    if (allocationBudget > 0) --allocationBudget;
     if (allocationBalance) ++*allocationBalance;
     return memory;
   }
@@ -56,14 +59,39 @@ void operator delete[](void* memory, const std::nothrow_t&) noexcept {
 
 namespace {
 struct RejectAllocations {
-  RejectAllocations() { rejectAllocations = true; }
-  ~RejectAllocations() { rejectAllocations = false; }
+  explicit RejectAllocations(std::ptrdiff_t allowed = 0) : previousBudget(allocationBudget) {
+    allocationBudget = allowed;
+  }
+
+  ~RejectAllocations() { allocationBudget = previousBudget; }
+
+private:
+  std::ptrdiff_t previousBudget;
 };
 
 struct TrackAllocations {
   explicit TrackAllocations(std::ptrdiff_t& balance) { allocationBalance = &balance; }
   ~TrackAllocations() { allocationBalance = nullptr; }
 };
+
+template<class Exception, class Operation>
+testing::AssertionResult throwsExactly(Operation operation) {
+  try {
+    operation();
+  } catch (const Exception& error) {
+    if (typeid(error) == typeid(Exception)) return testing::AssertionSuccess();
+    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
+                                       << ", caught " << typeid(error).name();
+  } catch (const std::exception& error) {
+    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
+                                       << ", caught " << typeid(error).name();
+  } catch (...) {
+    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
+                                       << ", caught a non-standard exception";
+  }
+  return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
+                                     << ", no exception thrown";
+}
 
 struct Faulty {
   inline static int alive = 0;
@@ -173,7 +201,7 @@ TYPED_TEST(TreeSafetyTests, LookupAndReplacePreserveContracts) {
   EXPECT_FALSE(tree.containsKey(1));
   EXPECT_THROW(tree.at(1), std::out_of_range);
   EXPECT_THROW(readOnly.at(1), std::out_of_range);
-  EXPECT_THROW(tree.replace(1, 10), std::logic_error);
+  EXPECT_TRUE(throwsExactly<std::logic_error>([&] { tree.replace(1, 10); }));
   for (int key : {4, 2, 6, 1, 3, 5, 7}) tree.insert(key, key * 10);
   for (int key : {4, 2, 6, 1, 3, 5, 7}) {
     ASSERT_TRUE(readOnly.containsKey(key));
@@ -186,8 +214,87 @@ TYPED_TEST(TreeSafetyTests, LookupAndReplacePreserveContracts) {
   EXPECT_EQ(tree.size(), 7);
   EXPECT_THROW(tree.at(8), std::out_of_range);
   EXPECT_THROW(readOnly.at(8), std::out_of_range);
-  EXPECT_THROW(tree.replace(8, 80), std::out_of_range);
+  EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { tree.replace(8, 80); }));
   EXPECT_EQ(tree.size(), 7);
+}
+
+TYPED_TEST(TreeSafetyTests, RootAndExtremaReturnValuesAndThrowOnEmptyTree) {
+  typename TypeParam::template Tree<int, int> tree;
+  EXPECT_TRUE(throwsExactly<std::logic_error>([&] { (void)tree.get_root(); }));
+  EXPECT_TRUE(throwsExactly<std::logic_error>([&] { (void)tree.min(); }));
+  EXPECT_TRUE(throwsExactly<std::logic_error>([&] { (void)tree.max(); }));
+
+  tree.insert(4, 40);
+  tree.insert(2, 90);
+  tree.insert(6, 10);
+  EXPECT_EQ(tree.get_root(), 40);
+  EXPECT_EQ(tree.min(), 90);
+  EXPECT_EQ(tree.max(), 10);
+}
+
+TYPED_TEST(TreeSafetyTests, RangeHandlesEmptyResultsEqualBoundsAndReversedBounds) {
+  typename TypeParam::template Tree<int, int> tree;
+  EXPECT_EQ(tree.range(2, 6).size(), 0);
+  EXPECT_TRUE(throwsExactly<std::invalid_argument>([&] { (void)tree.range(6, 2); }));
+
+  tree.insert(4, 40);
+  tree.insert(2, 20);
+  tree.insert(6, 60);
+  EXPECT_EQ(tree.range(7, 9).size(), 0);
+  EXPECT_EQ(tree.range(3, 3).size(), 0);
+  const auto single = tree.range(4, 4);
+  ASSERT_EQ(single.size(), 1);
+  EXPECT_EQ(single[0], (std::pair{4, 40}));
+  EXPECT_TRUE(throwsExactly<std::invalid_argument>([&] { (void)tree.range(6, 2); }));
+}
+
+TEST(RedBlackTreeTests, SingleKeyConstructorCreatesBlackRootWithDefaultValue) {
+  RedBlackTree<int, int> tree(17);
+  ASSERT_EQ(tree.size(), 1);
+  EXPECT_TRUE(tree.containsKey(17));
+  EXPECT_EQ(tree.get_root(), 0);
+  EXPECT_TRUE(tree.isBlack(17));
+  EXPECT_FALSE(tree.isRed(17));
+}
+
+TEST(RedBlackTreeTests, ColorLookupDistinguishesEmptyTreeFromMissingKey) {
+  RedBlackTree<int, int> tree;
+  EXPECT_TRUE(throwsExactly<std::logic_error>([&] { (void)tree.isRed(17); }));
+  EXPECT_TRUE(throwsExactly<std::logic_error>([&] { (void)tree.isBlack(17); }));
+
+  tree.insert(17, 170);
+  EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { (void)tree.isRed(18); }));
+  EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { (void)tree.isBlack(18); }));
+}
+
+TEST(SetSafetyTests, InsertFailuresPreserveExistingKeys) {
+  Set<Faulty> values;
+  for (int key : {4, 2, 6}) values.insert(Faulty(key));
+  const int before = Faulty::alive;
+  const auto verifyUnchanged = [&] {
+    EXPECT_EQ(Faulty::alive, before);
+    for (int key : {4, 2, 6}) EXPECT_TRUE(values.contains(Faulty(key)));
+    EXPECT_FALSE(values.contains(Faulty(3)));
+  };
+
+  EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
+    RejectAllocations guard;
+    values.insert(Faulty(3));
+  }));
+  verifyUnchanged();
+
+  Faulty::comparisonsLeft = 1;
+  EXPECT_TRUE(throwsExactly<std::runtime_error>([&] { values.insert(Faulty(3)); }));
+  Faulty::comparisonsLeft = -1;
+  verifyUnchanged();
+
+  Faulty::copiesLeft = 1;
+  EXPECT_TRUE(throwsExactly<std::runtime_error>([&] { values.insert(Faulty(3)); }));
+  Faulty::copiesLeft = -1;
+  verifyUnchanged();
+
+  values.insert(Faulty(3));
+  EXPECT_TRUE(values.contains(Faulty(3)));
 }
 
 TEST(SetSafetyTests, RemovalDoesNotAssignKeysAndDestructionReleasesAllKeys) {
@@ -333,6 +440,68 @@ TYPED_TEST(TreeSafetyTests, AllocationFailureDuringInsertPreservesTree) {
   }
 }
 
+TYPED_TEST(TreeSafetyTests, AllocationFailureReleasesPartialCopyAndPreservesBothTrees) {
+  using Tree = CheckedTree<TypeParam>;
+  if constexpr (std::is_copy_constructible_v<Tree> && std::is_copy_assignable_v<Tree>) {
+    Tree source;
+    const std::map<int, int> expected{{2, 20}, {3, 30}, {4, 40}, {6, 60},
+                                      {7, 70}, {8, 80}, {9, 90}};
+    for (int key : {4, 2, 8, 3, 6, 9, 7}) source.insert(key, expected.at(key));
+    Tree target;
+    target.insert(1, 10);
+    target.insert(5, 50);
+
+    for (int allowed : {2, 6}) {
+      SCOPED_TRACE(allowed);
+      std::ptrdiff_t balance = 0;
+      EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
+        TrackAllocations track(balance);
+        RejectAllocations reject(allowed);
+        (void)Tree(source);
+      }));
+      EXPECT_EQ(balance, 0);
+      source.verify(expected);
+
+      balance = 0;
+      EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
+        TrackAllocations track(balance);
+        RejectAllocations reject(allowed);
+        target = source;
+      }));
+      EXPECT_EQ(balance, 0);
+      source.verify(expected);
+      target.verify({{1, 10}, {5, 50}});
+    }
+  } else {
+    GTEST_SKIP() << "Tree copying is unavailable";
+  }
+}
+
+TYPED_TEST(TreeSafetyTests, MoveConstructionAndAssignmentPreserveInvariants) {
+  using Tree = CheckedTree<TypeParam>;
+  Tree source;
+  std::map<int, int> expected;
+  for (int key : {10, 20, 30, 15, 25, 5, 1, 6}) {
+    source.insert(key, key * 10);
+    expected.emplace(key, key * 10);
+  }
+
+  Tree constructed(std::move(source));
+  source.verify({});
+  constructed.verify(expected);
+  source.insert(42, 420);
+  source.verify({{42, 420}});
+
+  Tree assigned;
+  assigned.insert(99, 990);
+  assigned = std::move(constructed);
+  constructed.verify({});
+  assigned.verify(expected);
+  assigned.remove(20);
+  expected.erase(20);
+  assigned.verify(expected);
+}
+
 TYPED_TEST(TreeSafetyTests, PreservesInvariantsAcrossInsertionOrdersAndRootRemoval) {
   std::vector<int> order{1, 2, 3, 4, 5};
   do {
@@ -349,7 +518,7 @@ TYPED_TEST(TreeSafetyTests, PreservesInvariantsAcrossInsertionOrdersAndRootRemov
       expected.erase(key);
       tree.verify(expected);
     }
-    EXPECT_THROW(tree.remove(0), std::logic_error);
+    EXPECT_TRUE(throwsExactly<std::logic_error>([&] { tree.remove(0); }));
   } while (std::next_permutation(order.begin(), order.end()));
 }
 
@@ -364,8 +533,10 @@ TYPED_TEST(TreeSafetyTests, MixedOperationsMatchStdMapAndPreserveInvariants) {
       expected.emplace(key, step);
     } else if (expected.erase(key)) {
       tree.remove(key);
+    } else if (expected.empty()) {
+      EXPECT_TRUE(throwsExactly<std::logic_error>([&] { tree.remove(key); }));
     } else {
-      EXPECT_THROW(tree.remove(key), std::logic_error);
+      EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { tree.remove(key); }));
     }
     tree.verify(expected);
   }

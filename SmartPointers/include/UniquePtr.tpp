@@ -117,7 +117,6 @@ UniquePtr<T>::~UniquePtr() {
 
 template<typename T>
 template<typename U>
-
 UniquePtr<T[]>::UniquePtr(U* ptr) noexcept {
   static_assert(std::is_convertible_v<U(*)[], T(*)[]>, "Несовместимые типы массивов");
   this->ptr = ptr;

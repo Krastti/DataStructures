@@ -6,7 +6,6 @@
 #include <utility>
 
 // Смена типа объекта разрешена только при виртуальном деструкторе базы.
-// Добавление const не требует виртуального деструктора.
 template<typename T>
 class UniquePtr {
 private:
@@ -62,6 +61,7 @@ public:
 
   UniquePtr(const UniquePtr& other) = delete;
   UniquePtr& operator=(const UniquePtr& other) = delete;
+
   UniquePtr(UniquePtr&& other) noexcept;
   UniquePtr& operator=(UniquePtr&& other) noexcept;
 

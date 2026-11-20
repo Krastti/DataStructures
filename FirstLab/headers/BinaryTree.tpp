@@ -320,20 +320,19 @@ Data BinaryTree<Key, Data>::max() const {
 
 template<typename Key, typename Data>
 void BinaryTree<Key, Data>::print() const {
-  Node* current = root;
-  auto stack = new Stack<Node*>;
+  const Node* current = root;
+  Stack<const Node*> stack;
 
-  while (current != nullptr or !stack->empty()) {
+  while (current != nullptr || !stack.empty()) {
     while (current != nullptr) {
-      stack->push(current);
+      stack.push(current);
       current = current->left;
     }
-    current = stack->top();
-    stack->pop();
+    current = stack.top();
+    stack.pop();
     std::cout << current->key << ' ';
     current = current->right;
   }
-  delete stack;
 }
 
 template <typename Key, typename Data>

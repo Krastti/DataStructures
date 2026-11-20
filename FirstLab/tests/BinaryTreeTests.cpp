@@ -1,7 +1,7 @@
-#include "Trees/BinaryTree.h"
-#include "Trees/RedBlackTree.h"
-#include "Trees/Set.h"
-#include "../Array/ArrayTestHelpers.h"
+#include "BinaryTree.h"
+#include "RedBlackTree.h"
+#include "Set.h"
+#include "../../DataStructures/tests/Array/ArrayTestHelpers.h"
 #include <gtest/gtest.h>
 
 #include <string>

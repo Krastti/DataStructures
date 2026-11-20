@@ -4,7 +4,7 @@
 #include "Array/Array.h"
 #include "Optional/Optional.h"
 #include "UniquePtr.h"
-#include "Trees/RedBlackTree.h"
+#include "RedBlackTree.h"
 #include "statements.h"
 #include "visitors.h"
 

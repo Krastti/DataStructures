@@ -33,14 +33,14 @@ add_library(Sequence INTERFACE
 )
 
 add_library(BinaryTree INTERFACE
-        DataStructures/Trees/BinaryTreeBase.h
-        DataStructures/Trees/BinaryTreeBase.tpp
-        DataStructures/Trees/BinaryTree.h
-        DataStructures/Trees/BinaryTree.tpp
-        DataStructures/Trees/RedBlackTree.h
-        DataStructures/Trees/RedBlackTree.tpp
-        DataStructures/Trees/Set.h
-        DataStructures/Trees/Set.tpp
+        FirstLab/headers/BinaryTreeBase.h
+        FirstLab/headers/BinaryTreeBase.tpp
+        FirstLab/headers/BinaryTree.h
+        FirstLab/headers/BinaryTree.tpp
+        FirstLab/headers/RedBlackTree.h
+        FirstLab/headers/RedBlackTree.tpp
+        FirstLab/headers/Set.h
+        FirstLab/headers/Set.tpp
 )
 
 add_library(Stack INTERFACE
@@ -76,11 +76,12 @@ add_library(ThirdLabPaths INTERFACE
         ThirdLab/include/ShortestPath.tpp
 )
 
-foreach(module IN ITEMS Array Sequence Stack BinaryTree Optional Graph)
+foreach(module IN ITEMS Array Sequence Stack Optional Graph)
   target_include_directories(${module} INTERFACE DataStructures)
 endforeach()
 target_include_directories(SmartPointer INTERFACE SmartPointers/include)
 
+target_include_directories(BinaryTree INTERFACE FirstLab/headers)
 target_link_libraries(BinaryTree INTERFACE Array Stack)
 target_link_libraries(Graph INTERFACE Array BinaryTree)
 target_include_directories(ThirdLabPaths INTERFACE ThirdLab/include)
@@ -124,7 +125,7 @@ if(BUILD_TESTING)
           SmartPointers/tests/UniquePtrTests.cpp
           SmartPointers/tests/SmartPointerSafetyTests.cpp
           DataStructures/tests/Array/ArrayTests.cpp
-          DataStructures/tests/Trees/BinaryTreeTests.cpp
+          FirstLab/tests/BinaryTreeTests.cpp
           SecondLab/tests/AlphabeticalIndexTests.cpp
           ThirdLab/tests/ShortestPathTests.cpp
           DataStructures/tests/Timer.h
@@ -146,7 +147,7 @@ if(BUILD_TESTING)
   include(GoogleTest)
   gtest_discover_tests(UnitTests)
 
-  add_executable(TreeSafetyTests DataStructures/tests/Trees/TreeSafetyTests.cpp)
+  add_executable(TreeSafetyTests FirstLab/tests/TreeSafetyTests.cpp)
   target_link_libraries(TreeSafetyTests PRIVATE BinaryTree MiniLangCore GTest::gtest_main)
   gtest_discover_tests(TreeSafetyTests)
 
@@ -173,7 +174,6 @@ option(BUILD_GUI "Build Qt 6 Widgets application" OFF)
 if(BUILD_GUI)
   find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets Concurrent)
   add_executable(TreesGui GUI/source/TreesGui.cpp)
-  target_include_directories(TreesGui PRIVATE DataStructures/Trees)
   target_link_libraries(TreesGui PRIVATE BinaryTree Qt6::Widgets Qt6::Concurrent)
 
   add_library(DataStructuresGuiWidgets STATIC

@@ -1,6 +1,6 @@
-#include "Trees/BinaryTree.h"
-#include "Trees/RedBlackTree.h"
-#include "Trees/Set.h"
+#include "BinaryTree.h"
+#include "RedBlackTree.h"
+#include "Set.h"
 #include "lexer.h"
 #include "parser.h"
 #include <gtest/gtest.h>

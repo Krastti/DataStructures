@@ -2,7 +2,7 @@
 #define DATASTRUCTURES_ADJACENCY_GRAPH_H
 
 #include "Graph.h"
-#include "../Trees/RedBlackTree.h"
+#include "RedBlackTree.h"
 
 // Нужно подобрать более точное название для AdjacencyGraph.
 

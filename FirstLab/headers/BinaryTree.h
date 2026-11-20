@@ -2,8 +2,8 @@
 #define DATASTRUCTURES_BST_H
 
 #include "BinaryTreeBase.h"
-#include "../Stack/stack.h"
-#include "../Array/Array.h"
+#include "../../DataStructures/Stack/stack.h"
+#include "../../DataStructures/Array/Array.h"
 #include <cstddef>
 #include <utility>
 

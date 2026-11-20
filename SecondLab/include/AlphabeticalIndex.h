@@ -2,7 +2,7 @@
 #define DATASTRUCTURES_SECOND_LAB_ALPHABETICAL_INDEX_H
 
 #include "Array/Array.h"
-#include "Trees/RedBlackTree.h"
+#include "RedBlackTree.h"
 #include "UniquePtr.h"
 #include <cstddef>
 #include <string>

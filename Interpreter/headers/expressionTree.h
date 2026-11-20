@@ -2,7 +2,7 @@
 #define DATASTRUCTURES_EXPRESSION_TREE_H
 
 #include "UniquePtr.h"
-#include "Trees/BinaryTreeBase.h"
+#include "BinaryTreeBase.h"
 #include "expressions.h"
 
 #include <cstddef>

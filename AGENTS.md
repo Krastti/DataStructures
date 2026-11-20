@@ -2,7 +2,7 @@
 
 ## Структура проекта
 
-Проект на C++20 содержит реализации структур данных, консольные демонстрации и GUI на Qt 6. Точка входа консольных демонстраций — `main.cpp`, графического приложения — `GUI/source/main.cpp`. Структуры и их тесты находятся в `DataStructures/` и `DataStructures/tests/`. Индексы ЛР-2 находятся в `SecondLab/include/` и `SecondLab/source/`. Умные указатели находятся в `SmartPointers/include/`, их тесты — в `SmartPointers/tests/`. Интерфейс и сервисы находятся в `GUI/include/` и `GUI/source/`, тесты интерфейса — в `GUI/tests/`. Алгоритмы поиска кратчайшего пути ЛР-3 находятся в `ThirdLab/include/`, их тесты — в `ThirdLab/tests/`. Задания находятся в `SecondLab/docs/` и `ThirdLab/docs/`, изображения — в `DataStructures/docs/img/`.
+Проект на C++20 содержит реализации структур данных, консольные демонстрации и GUI на Qt 6. Точка входа консольных демонстраций — `main.cpp`, графического приложения — `GUI/source/main.cpp`. Деревья ЛР-1 и их тесты находятся в `FirstLab/headers/` и `FirstLab/tests/`. Остальные структуры и их тесты находятся в `DataStructures/` и `DataStructures/tests/`. Индексы ЛР-2 находятся в `SecondLab/include/` и `SecondLab/source/`. Умные указатели находятся в `SmartPointers/include/`, их тесты — в `SmartPointers/tests/`. Интерфейс и сервисы находятся в `GUI/include/` и `GUI/source/`, тесты интерфейса — в `GUI/tests/`. Алгоритмы поиска кратчайшего пути ЛР-3 находятся в `ThirdLab/include/`, их тесты — в `ThirdLab/tests/`. Задания находятся в `SecondLab/docs/` и `ThirdLab/docs/`, изображения — в `DataStructures/docs/img/`.
 
 ## Дизайн учебных работ
 

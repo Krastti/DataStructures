@@ -10,7 +10,7 @@ namespace {
 thread_local bool failNextAllocation = false;
 }
 
-// Отдельный исполняемый файл изолирует отказ выделения памяти от остальных тестов.
+// Подмена действует только в SmartPointersTests, отказ включается на одно выделение.
 void* operator new(std::size_t size) {
   if (std::exchange(failNextAllocation, false)) throw std::bad_alloc();
   if (void* address = std::malloc(size == 0 ? 1 : size)) return address;

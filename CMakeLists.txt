@@ -116,44 +116,54 @@ install(PROGRAMS "$<TARGET_FILE:MiniLangCpp>" DESTINATION bin RENAME "mini${CMAK
 # Тесты
 
 if(BUILD_TESTING)
-  add_executable(UnitTests
+  find_package(Threads REQUIRED)
+  include(GoogleTest)
+
+  add_executable(ArrayTests DataStructures/tests/Array/ArrayTests.cpp)
+  target_link_libraries(ArrayTests PRIVATE Array GTest::gtest_main)
+  gtest_discover_tests(ArrayTests PROPERTIES LABELS Array)
+
+  add_executable(TreesTests
+          FirstLab/tests/BinaryTreeTests.cpp
+          FirstLab/tests/TreeSafetyTests.cpp
+          DataStructures/tests/AllocationFailure.cpp
+  )
+  target_link_libraries(TreesTests PRIVATE BinaryTree GTest::gtest_main)
+  gtest_discover_tests(TreesTests PROPERTIES LABELS Trees)
+
+  add_executable(InterpreterTests
           Interpreter/tests/LexerTests.cpp
           Interpreter/tests/ExpressionTreeTests.cpp
+          Interpreter/tests/ExpressionTreeAllocationTests.cpp
           Interpreter/tests/ParserTests.cpp
           Interpreter/tests/InterpreterTests.cpp
+          DataStructures/tests/AllocationFailure.cpp
+  )
+  target_link_libraries(InterpreterTests PRIVATE MiniLangCore GTest::gtest_main)
+  add_dependencies(InterpreterTests MiniLangCpp)
+  gtest_discover_tests(InterpreterTests PROPERTIES LABELS Interpreter)
+
+  add_executable(SmartPointersTests
           SmartPointers/tests/SharedPtrTests.cpp
           SmartPointers/tests/UniquePtrTests.cpp
           SmartPointers/tests/SmartPointerSafetyTests.cpp
-          DataStructures/tests/Array/ArrayTests.cpp
-          FirstLab/tests/BinaryTreeTests.cpp
-          SecondLab/tests/AlphabeticalIndexTests.cpp
-          ThirdLab/tests/ShortestPathTests.cpp
-          DataStructures/tests/Timer.h
-      )
-
-  find_package(Threads REQUIRED)
-
-  target_link_libraries(UnitTests PRIVATE
-          MiniLangCore
-          SecondLabIndexes
-          Threads::Threads
-          SmartPointer
-          BinaryTree
-          ThirdLabPaths
-          Array
-          GTest::gtest_main
+          SmartPointers/tests/SharedPtrAllocationTests.cpp
   )
+  target_link_libraries(SmartPointersTests PRIVATE SmartPointer Threads::Threads GTest::gtest_main)
+  gtest_discover_tests(SmartPointersTests PROPERTIES LABELS SmartPointers)
 
-  include(GoogleTest)
-  gtest_discover_tests(UnitTests)
+  add_executable(SecondLabTests SecondLab/tests/AlphabeticalIndexTests.cpp)
+  target_link_libraries(SecondLabTests PRIVATE SecondLabIndexes GTest::gtest_main)
+  add_dependencies(SecondLabTests DataStructures)
+  gtest_discover_tests(SecondLabTests PROPERTIES LABELS SecondLab)
 
-  add_executable(TreeSafetyTests FirstLab/tests/TreeSafetyTests.cpp)
-  target_link_libraries(TreeSafetyTests PRIVATE BinaryTree MiniLangCore GTest::gtest_main)
-  gtest_discover_tests(TreeSafetyTests)
+  add_executable(ThirdLabTests ThirdLab/tests/ShortestPathTests.cpp)
+  target_link_libraries(ThirdLabTests PRIVATE ThirdLabPaths GTest::gtest_main)
+  gtest_discover_tests(ThirdLabTests PROPERTIES LABELS ThirdLab)
 
-  add_executable(SharedPtrAllocationTests SmartPointers/tests/SharedPtrAllocationTests.cpp)
-  target_link_libraries(SharedPtrAllocationTests PRIVATE SmartPointer GTest::gtest_main)
-  gtest_discover_tests(SharedPtrAllocationTests)
+  add_custom_target(UnitTests DEPENDS
+          ArrayTests TreesTests InterpreterTests SmartPointersTests SecondLabTests ThirdLabTests
+  )
 
   add_test(NAME MiniLangCliTests
     COMMAND ${CMAKE_COMMAND}
@@ -161,12 +171,15 @@ if(BUILD_TESTING)
       "-DTEST_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/minilang-cli-tests"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/Interpreter/tests/CliTests.cmake"
   )
+  set_tests_properties(MiniLangCliTests PROPERTIES LABELS Interpreter)
+
   add_test(NAME SecondLabCliTests
     COMMAND ${CMAKE_COMMAND}
       "-DSECOND_LAB_EXECUTABLE=$<TARGET_FILE:DataStructures>"
       "-DTEST_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/second-lab-cli-tests"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/SecondLab/tests/CliTests.cmake"
   )
+  set_tests_properties(SecondLabCliTests PROPERTIES LABELS SecondLab)
 endif()
 
 # Графический интерфейс собирается отдельно от консольной версии.
@@ -193,6 +206,7 @@ if(BUILD_GUI)
     add_executable(GuiTests GUI/tests/GuiTests.cpp)
     target_link_libraries(GuiTests PRIVATE DataStructuresGuiWidgets GTest::gtest)
     add_test(NAME GuiTests COMMAND GuiTests)
-    set_tests_properties(GuiTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 60)
+    add_dependencies(UnitTests GuiTests)
+    set_tests_properties(GuiTests PROPERTIES LABELS GUI ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 60)
   endif()
 endif()

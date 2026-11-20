@@ -1,78 +1,21 @@
 #include "BinaryTree.h"
 #include "RedBlackTree.h"
 #include "Set.h"
-#include "lexer.h"
-#include "parser.h"
+#include "../../DataStructures/tests/AllocationFailure.h"
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdlib>
 #include <limits>
 #include <map>
 #include <new>
 #include <random>
 #include <stdexcept>
-#include <type_traits>
 #include <typeinfo>
 #include <utility>
 #include <vector>
 
 namespace {
-thread_local std::ptrdiff_t allocationBudget = -1;
-thread_local std::ptrdiff_t* allocationBalance = nullptr;
-}
-
-// Отдельный исполняемый файл изолирует отказ выделения памяти от остальных тестов.
-// Включаем отказ только на время проверяемой операции.
-void* operator new(std::size_t size) {
-  if (allocationBudget == 0) throw std::bad_alloc();
-  if (void* memory = std::malloc(size == 0 ? 1 : size)) {
-    if (allocationBudget > 0) --allocationBudget;
-    if (allocationBalance) ++*allocationBalance;
-    return memory;
-  }
-  throw std::bad_alloc();
-}
-
-void operator delete(void* memory) noexcept {
-  if (memory && allocationBalance) --*allocationBalance;
-  std::free(memory);
-}
-void operator delete(void* memory, std::size_t) noexcept { ::operator delete(memory); }
-void* operator new[](std::size_t size) { return ::operator new(size); }
-void operator delete[](void* memory) noexcept { ::operator delete(memory); }
-void operator delete[](void* memory, std::size_t) noexcept { ::operator delete(memory); }
-void* operator new(std::size_t size, const std::nothrow_t&) noexcept {
-  try { return ::operator new(size); }
-  catch (...) { return nullptr; }
-}
-void* operator new[](std::size_t size, const std::nothrow_t&) noexcept {
-  return ::operator new(size, std::nothrow);
-}
-void operator delete(void* memory, const std::nothrow_t&) noexcept {
-  ::operator delete(memory);
-}
-void operator delete[](void* memory, const std::nothrow_t&) noexcept {
-  ::operator delete(memory);
-}
-
-namespace {
-struct RejectAllocations {
-  explicit RejectAllocations(std::ptrdiff_t allowed = 0) : previousBudget(allocationBudget) {
-    allocationBudget = allowed;
-  }
-
-  ~RejectAllocations() { allocationBudget = previousBudget; }
-
-private:
-  std::ptrdiff_t previousBudget;
-};
-
-struct TrackAllocations {
-  explicit TrackAllocations(std::ptrdiff_t& balance) { allocationBalance = &balance; }
-  ~TrackAllocations() { allocationBalance = nullptr; }
-};
 
 template<class Exception, class Operation>
 testing::AssertionResult throwsExactly(Operation operation) {
@@ -300,7 +243,7 @@ TEST(SetSafetyTests, InsertFailuresPreserveExistingKeys) {
   };
 
   EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
-    RejectAllocations guard;
+    test::RejectAllocations guard;
     values.insert(Faulty(3));
   }));
   verifyUnchanged();
@@ -445,12 +388,33 @@ TYPED_TEST(TreeSafetyTests, DestructionAndMoveAssignmentReleaseAllValues) {
   EXPECT_EQ(target.at(10).value, 100);
 }
 
+TYPED_TEST(TreeSafetyTests, DestructionAndMoveAssignmentDoNotAllocate) {
+  using Tree = typename TypeParam::template Tree<int, Faulty>;
+  auto* target = new Tree;
+  Tree source;
+  for (int key : {4, 2, 6, 1, 3, 5, 7}) target->insert(key, Faulty(key));
+  source.insert(10, Faulty(100));
+
+  {
+    test::RejectAllocations guard;
+    *target = std::move(source);
+  }
+  EXPECT_EQ(Faulty::alive, 1);
+  EXPECT_EQ(target->size(), 1u);
+  EXPECT_EQ(source.size(), 0u);
+  {
+    test::RejectAllocations guard;
+    delete target;
+  }
+  EXPECT_EQ(Faulty::alive, 0);
+}
+
 TYPED_TEST(TreeSafetyTests, AllocationFailureDuringInsertPreservesTree) {
   typename TypeParam::template Tree<int, int> tree;
   for (bool initiallyEmpty : {true, false}) {
     bool failed = false;
     {
-      RejectAllocations guard;
+      test::RejectAllocations guard;
       try { tree.insert(1, 10); }
       catch (const std::bad_alloc&) { failed = true; }
     }
@@ -482,6 +446,39 @@ TYPED_TEST(TreeSafetyTests, CopyFailureReleasesPartialCopyAndPreservesAssignment
   EXPECT_EQ(target.at(1).value, 10);
   EXPECT_EQ(source.size(), 7);
   EXPECT_EQ(source.at(7).value, 7);
+}
+
+TYPED_TEST(TreeSafetyTests, AllocationFailureReleasesPartialCopyAndPreservesBothTrees) {
+  using Tree = CheckedTree<TypeParam>;
+  Tree source;
+  const std::map<int, int> expected{{2, 20}, {3, 30}, {4, 40}, {6, 60},
+                                    {7, 70}, {8, 80}, {9, 90}};
+  for (int key : {4, 2, 8, 3, 6, 9, 7}) source.insert(key, expected.at(key));
+  Tree target;
+  target.insert(1, 10);
+  target.insert(5, 50);
+
+  for (int allowed : {2, 6}) {
+    SCOPED_TRACE(allowed);
+    std::ptrdiff_t balance = 0;
+    EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
+      test::TrackAllocations track(balance);
+      test::RejectAllocations reject(allowed);
+      (void)Tree(source);
+    }));
+    EXPECT_EQ(balance, 0);
+    source.verify(expected);
+
+    balance = 0;
+    EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
+      test::TrackAllocations track(balance);
+      test::RejectAllocations reject(allowed);
+      target = source;
+    }));
+    EXPECT_EQ(balance, 0);
+    source.verify(expected);
+    target.verify({{1, 10}, {5, 50}});
+  }
 }
 
 TYPED_TEST(TreeSafetyTests, CopiesPreserveStructureAndNodeProperties) {
@@ -516,43 +513,6 @@ TYPED_TEST(TreeSafetyTests, CopiesPreserveStructureAndNodeProperties) {
   emptyCopy.verifyCopyOf(empty);
   assigned = empty;
   assigned.verifyCopyOf(empty);
-}
-
-TYPED_TEST(TreeSafetyTests, AllocationFailureReleasesPartialCopyAndPreservesBothTrees) {
-  using Tree = CheckedTree<TypeParam>;
-  if constexpr (std::is_copy_constructible_v<Tree> && std::is_copy_assignable_v<Tree>) {
-    Tree source;
-    const std::map<int, int> expected{{2, 20}, {3, 30}, {4, 40}, {6, 60},
-                                      {7, 70}, {8, 80}, {9, 90}};
-    for (int key : {4, 2, 8, 3, 6, 9, 7}) source.insert(key, expected.at(key));
-    Tree target;
-    target.insert(1, 10);
-    target.insert(5, 50);
-
-    for (int allowed : {2, 6}) {
-      SCOPED_TRACE(allowed);
-      std::ptrdiff_t balance = 0;
-      EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
-        TrackAllocations track(balance);
-        RejectAllocations reject(allowed);
-        (void)Tree(source);
-      }));
-      EXPECT_EQ(balance, 0);
-      source.verify(expected);
-
-      balance = 0;
-      EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
-        TrackAllocations track(balance);
-        RejectAllocations reject(allowed);
-        target = source;
-      }));
-      EXPECT_EQ(balance, 0);
-      source.verify(expected);
-      target.verify({{1, 10}, {5, 50}});
-    }
-  } else {
-    GTEST_SKIP() << "Tree copying is unavailable";
-  }
 }
 
 TYPED_TEST(TreeSafetyTests, MoveConstructionAndAssignmentPreserveInvariants) {
@@ -618,62 +578,6 @@ TYPED_TEST(TreeSafetyTests, MixedOperationsMatchStdMapAndPreserveInvariants) {
     }
     tree.verify(expected);
   }
-}
-
-TYPED_TEST(TreeSafetyTests, DestructionAndMoveAssignmentDoNotAllocate) {
-  using Tree = typename TypeParam::template Tree<int, Faulty>;
-  auto* target = new Tree;
-  Tree source;
-  for (int key : {4, 2, 6, 1, 3, 5, 7}) target->insert(key, Faulty(key));
-  source.insert(10, Faulty(100));
-
-  {
-    RejectAllocations guard;
-    *target = std::move(source);
-  }
-  EXPECT_EQ(Faulty::alive, 1);
-  EXPECT_EQ(target->size(), 1u);
-  EXPECT_EQ(source.size(), 0u);
-  {
-    RejectAllocations guard;
-    delete target;
-  }
-  EXPECT_EQ(Faulty::alive, 0);
-}
-
-
-TEST(ExpressionTreeAllocationTests, AllocationFailureKeepsOperandTrees) {
-  auto left = ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("1")));
-  auto right = ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("2")));
-  const auto* leftRoot = left.getRoot();
-  const auto* rightRoot = right.getRoot();
-  bool failed = false;
-
-  {
-    RejectAllocations guard;
-    try { ast::ExpressionTree::makeBinary(TokenType::Plus, std::move(left), std::move(right)); }
-    catch (const std::bad_alloc&) { failed = true; }
-  }
-
-  EXPECT_TRUE(failed);
-  EXPECT_EQ(left.getRoot(), leftRoot);
-  EXPECT_EQ(right.getRoot(), rightRoot);
-  EXPECT_EQ(left.size(), 1u);
-  EXPECT_EQ(right.size(), 1u);
-}
-
-TEST(ExpressionTreeAllocationTests, ParseErrorReleasesPartialProgram) {
-  const auto tokens = Lexer::tokenize("remember longIdentifier = 1 + 2\nprint (3 * 4 + 5");
-  std::ptrdiff_t balance = 0;
-  bool failed = false;
-  {
-    // Токены созданы заранее. Считаем только ресурсы, выделенные и освобождённые при разборе.
-    TrackAllocations guard(balance);
-    try { Parser{}.parse(tokens); }
-    catch (const std::invalid_argument&) { failed = true; }
-  }
-  EXPECT_TRUE(failed);
-  EXPECT_EQ(balance, 0);
 }
 
 }

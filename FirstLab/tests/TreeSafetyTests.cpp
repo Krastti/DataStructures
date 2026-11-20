@@ -193,6 +193,28 @@ template<class Tag> struct CheckedTree : Tag::template Tree<int, int> {
   }
 
   int rootKey() const { return this->root->key; }
+
+  void verifyCopyOf(const CheckedTree& source) const {
+    const auto check = [this, &source](const auto& visit, const Node* original,
+                                      const Node* copy, const Node* parent) -> void {
+      if (original == nullptr) {
+        EXPECT_EQ(copy, nullptr);
+        return;
+      }
+      ASSERT_NE(copy, nullptr);
+      EXPECT_NE(copy, original);
+      EXPECT_EQ(copy->parent, parent);
+      EXPECT_EQ(copy->key, original->key);
+      EXPECT_EQ(copy->data, original->data);
+      if constexpr (Tag::balanced) {
+        EXPECT_EQ(this->isRed(copy->key), source.isRed(original->key));
+      }
+      visit(visit, original->left, copy->left, copy);
+      visit(visit, original->right, copy->right, copy);
+    };
+    EXPECT_EQ(this->size(), source.size());
+    check(check, source.root, this->root, nullptr);
+  }
 };
 
 TYPED_TEST(TreeSafetyTests, LookupAndReplacePreserveContracts) {
@@ -438,6 +460,62 @@ TYPED_TEST(TreeSafetyTests, AllocationFailureDuringInsertPreservesTree) {
     if (initiallyEmpty) tree.insert(2, 20);
     else EXPECT_EQ(tree.at(2), 20);
   }
+}
+
+TYPED_TEST(TreeSafetyTests, CopyFailureReleasesPartialCopyAndPreservesAssignmentTarget) {
+  using Tree = typename TypeParam::template Tree<int, Faulty>;
+  Tree source;
+  Tree target;
+  for (int key : {4, 2, 8, 3, 6, 9, 7}) source.insert(key, Faulty(key));
+  target.insert(1, Faulty(10));
+  const int before = Faulty::alive;
+
+  Faulty::copiesLeft = 5;
+  EXPECT_THROW((void)Tree(source), std::runtime_error);
+  EXPECT_EQ(Faulty::alive, before);
+
+  Faulty::copiesLeft = 5;
+  EXPECT_THROW(target = source, std::runtime_error);
+  Faulty::copiesLeft = -1;
+  EXPECT_EQ(Faulty::alive, before);
+  EXPECT_EQ(target.size(), 1);
+  EXPECT_EQ(target.at(1).value, 10);
+  EXPECT_EQ(source.size(), 7);
+  EXPECT_EQ(source.at(7).value, 7);
+}
+
+TYPED_TEST(TreeSafetyTests, CopiesPreserveStructureAndNodeProperties) {
+  using Tree = CheckedTree<TypeParam>;
+  Tree source;
+  std::map<int, int> expected;
+  for (int key : {10, 20, 30, 15, 25, 5, 1, 6}) {
+    source.insert(key, key * 10);
+    expected.emplace(key, key * 10);
+  }
+  source.remove(30);
+  expected.erase(30);
+
+  Tree constructed(source);
+  Tree assigned;
+  assigned.insert(99, 990);
+  assigned = source;
+  const Tree& self = assigned;
+  assigned = self;
+  constructed.verifyCopyOf(source);
+  assigned.verifyCopyOf(source);
+
+  assigned.remove(20);
+  assigned.at(15) = 8;
+  source.verify(expected);
+  expected.erase(20);
+  expected.at(15) = 8;
+  assigned.verify(expected);
+
+  const Tree empty;
+  const Tree emptyCopy(empty);
+  emptyCopy.verifyCopyOf(empty);
+  assigned = empty;
+  assigned.verifyCopyOf(empty);
 }
 
 TYPED_TEST(TreeSafetyTests, AllocationFailureReleasesPartialCopyAndPreservesBothTrees) {

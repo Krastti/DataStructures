@@ -33,8 +33,6 @@ add_library(Sequence INTERFACE
 )
 
 add_library(BinaryTree INTERFACE
-        FirstLab/headers/BinaryTreeBase.h
-        FirstLab/headers/BinaryTreeBase.tpp
         FirstLab/headers/BinaryTree.h
         FirstLab/headers/BinaryTree.tpp
         FirstLab/headers/RedBlackTree.h
@@ -99,6 +97,8 @@ target_link_libraries(DataStructures PRIVATE SecondLabIndexes ThirdLabPaths Arra
 
 # Общая реализация для CLI и тестов интерпретатора.
 add_library(MiniLangCore STATIC
+        FirstLab/headers/BinaryTreeBase.h
+        FirstLab/headers/BinaryTreeBase.tpp
         Interpreter/sources/lexer.cpp
         Interpreter/sources/parser.cpp
         Interpreter/headers/expressionTree.h

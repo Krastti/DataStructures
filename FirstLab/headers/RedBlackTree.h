@@ -46,10 +46,15 @@ public:
     using Base::replace;
     using Base::size;
 
+    // Порождающие
     RedBlackTree() = default;
     explicit RedBlackTree(Key key);
+
+    // Копирующие
     RedBlackTree(const RedBlackTree& other);
     RedBlackTree& operator=(const RedBlackTree& other);
+
+    // Перемещающие
     RedBlackTree(RedBlackTree&& other) noexcept = default;
     RedBlackTree& operator=(RedBlackTree&& other) noexcept = default;
 

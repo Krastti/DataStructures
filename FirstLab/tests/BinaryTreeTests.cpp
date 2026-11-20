@@ -43,6 +43,41 @@ TEST(BinaryTreeTests, RemoveAndMovePreserveOwnershipAndSize) {
   EXPECT_EQ(toVector(moved.keys()), (std::vector<int>{1, 2, 3, 5, 6, 7}));
 }
 
+TEST(BinaryTreeTests, CopiesOwnTheirNodesAndReplacePreviousContents) {
+  BinaryTree<int, int> original;
+  for (int key : {4, 2, 8, 3, 6, 9, 7}) original.insert(key, key * 10);
+
+  BinaryTree<int, int> constructed(original);
+  BinaryTree<int, int> assigned(1, 10);
+  assigned = original;
+
+  for (auto* copy : {&constructed, &assigned}) {
+    EXPECT_EQ(copy->size(), original.size());
+    EXPECT_EQ(copy->get_root(), original.get_root());
+    EXPECT_EQ(toVector(copy->entries()), toVector(original.entries()));
+    EXPECT_NE(&copy->at(7), &original.at(7));
+    copy->at(7) = 700;
+    copy->remove(4);
+    EXPECT_EQ(copy->size(), 6);
+    EXPECT_EQ(copy->get_root(), 60);
+    EXPECT_EQ(copy->at(7), 700);
+  }
+  EXPECT_EQ(original.size(), 7);
+  EXPECT_EQ(original.at(4), 40);
+  EXPECT_EQ(original.at(7), 70);
+
+  const auto& self = assigned;
+  assigned = self;
+  EXPECT_EQ(toVector(assigned.entries()), toVector(constructed.entries()));
+
+  const BinaryTree<int, int> empty;
+  const BinaryTree<int, int> emptyCopy(empty);
+  EXPECT_EQ(emptyCopy.size(), 0);
+  assigned = empty;
+  EXPECT_EQ(assigned.size(), 0);
+  EXPECT_FALSE(assigned.containsKey(7));
+}
+
 TEST(MapTests, RedBlackTreeExposesMutableValuesAndMaintainsSize) {
   Map<int, Array<int>> map;
   for (int key = 10; key >= 1; --key) {

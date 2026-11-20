@@ -11,6 +11,8 @@ private:
 public:
   Set() = default;
   explicit Set(Key key);
+  Set(const Set&) = delete;
+  Set& operator=(const Set&) = delete;
 
   void insert(Key key);
   void remove(const Key& key);

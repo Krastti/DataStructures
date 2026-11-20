@@ -1,40 +1,33 @@
 #ifndef DATASTRUCTURES_BST_H
 #define DATASTRUCTURES_BST_H
 
-#include "BinaryTreeBase.h"
 #include "../../DataStructures/Stack/stack.h"
 #include "../../DataStructures/Array/Array.h"
 #include <cstddef>
 #include <utility>
 
-namespace tree_detail {
-
 template<typename Key, typename Data>
-struct SearchNode {
-  Key key;
-  Data data;
-  SearchNode* left;
-  SearchNode* right;
-  SearchNode* parent;
-
-  explicit SearchNode(Key key, Data data, SearchNode* left = nullptr,
-                      SearchNode* right = nullptr, SearchNode* parent = nullptr)
-      : key(key), data(data), left(left), right(right), parent(parent) {}
-
-  virtual ~SearchNode() = default;
-};
-
-}
-
-template<typename Key, typename Data>
-class BinaryTree : protected BinaryTreeBase<tree_detail::SearchNode<Key, Data>> {
+class BinaryTree {
 protected:
-  using Node = tree_detail::SearchNode<Key, Data>;
-  using Base = BinaryTreeBase<Node>;
-  using Base::root;
-  using Base::nodeCount;
-  using Base::clear;
+  struct Node {
+    Key key;
+    Data data;
+    Node *left, *right;
+    Node *parent;
 
+    explicit Node(Key key, Data data, Node* left=nullptr, Node* right=nullptr, Node* parent=nullptr) : key(key), data(data) {
+      this->left = left;
+      this->right = right;
+      this->parent = parent;
+    }
+
+    virtual ~Node() = default;
+  };
+
+  Node* root;
+  size_t nodeCount;
+
+  void clear() noexcept;
   void transplant(Node* oldNode, Node* newNode) noexcept;
 
   template<typename CloneNode>
@@ -45,11 +38,16 @@ protected:
   const Node* findNode(const Key& key) const;
 
 public:
+  // Порождающие конструкторы
   BinaryTree();
   explicit BinaryTree(Key key);
   explicit BinaryTree(Key key, Data data);
+
+  // Копирующие конструкторы
   BinaryTree(const BinaryTree& other);
   BinaryTree& operator=(const BinaryTree& other);
+
+  // Перемещающие конструкторы
   BinaryTree(BinaryTree&& other) noexcept;
   BinaryTree& operator=(BinaryTree&& other) noexcept;
 
@@ -60,6 +58,7 @@ public:
   Data get_root() const;
   Data& at(const Key& key);
   const Data& at(const Key& key) const;
+
   [[nodiscard]] bool containsKey(const Key& key) const;
   [[nodiscard]] size_t size() const noexcept;
 

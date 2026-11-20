@@ -2,38 +2,43 @@
 #include <stdexcept>
 #include <iostream>
 
+template <typename Key, typename Data>
+void BinaryTree<Key, Data>::clear() noexcept {
+  // Поднимаемся от удалённого листа по ссылке на родителя без выделения памяти.
+  Node* current = root;
+  while (current != nullptr) {
+    if (current->left != nullptr) {
+      current = current->left;
+    } else if (current->right != nullptr) {
+      current = current->right;
+    } else {
+      Node* parent = current->parent;
+      if (parent != nullptr) {
+        if (parent->left == current) parent->left = nullptr;
+        else parent->right = nullptr;
+      }
+      delete current;
+      current = parent;
+    }
+  }
+  root = nullptr;
+  nodeCount = 0;
+}
+
 template<typename Key, typename Data>
-BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::getSuccessor(Node *node) {
-  if (root == nullptr) throw std::logic_error("Root is NULL");
-  if (node == nullptr) throw std::logic_error("Node is NULL");
+void BinaryTree<Key, Data>::transplant(Node* oldNode, Node* newNode) noexcept {
 
-  Node *ptr = nullptr;
-  if (node->right) {
-    Node *p = node->right;
-    while (p->left != nullptr) p = p->left;
-    return p;
+  if (oldNode->parent == nullptr) {
+    root = newNode;
+  } else if (oldNode == oldNode->parent->left) {
+    oldNode->parent->left = newNode;
+  } else {
+    oldNode->parent->right = newNode;
   }
-  ptr = node->parent;
-  while (ptr != nullptr && ptr->right == node) {
-    node = ptr;
-    ptr = node->parent;
+
+  if (newNode != nullptr) {
+    newNode->parent = oldNode->parent;
   }
-  return ptr;
-}
-
-template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree() { }
-
-template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree(Key key) {
-  root = new Node(key, Data());
-  nodeCount = 1;
-}
-
-template <typename Key, typename Data>
-BinaryTree<Key, Data>::BinaryTree(Key key, Data data) {
-  root = new Node(key, data);
-  nodeCount = 1;
 }
 
 template <typename Key, typename Data>
@@ -65,6 +70,56 @@ void BinaryTree<Key, Data>::copyNodes(const BinaryTree& other, CloneNode cloneNo
   nodeCount = other.nodeCount;
 }
 
+template<typename Key, typename Data>
+const typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::findNode(const Key& key) const {
+  const Node* current = root;
+  while (current != nullptr) {
+    if (current->key == key) return current;
+    current = current->key > key ? current->left : current->right;
+  }
+  return nullptr;
+}
+
+template<typename Key, typename Data>
+typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::findNode(const Key& key) {
+  return const_cast<Node*>(std::as_const(*this).findNode(key));
+}
+
+
+template<typename Key, typename Data>
+BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::getSuccessor(Node *node) {
+  if (root == nullptr) throw std::logic_error("Root is NULL");
+  if (node == nullptr) throw std::logic_error("Node is NULL");
+
+  Node *ptr = nullptr;
+  if (node->right) {
+    Node *p = node->right;
+    while (p->left != nullptr) p = p->left;
+    return p;
+  }
+  ptr = node->parent;
+  while (ptr != nullptr && ptr->right == node) {
+    node = ptr;
+    ptr = node->parent;
+  }
+  return ptr;
+}
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>::BinaryTree() : root(nullptr), nodeCount(0) { }
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>::BinaryTree(Key key) : root(nullptr), nodeCount(0) {
+  root = new Node(key, Data());
+  nodeCount = 1;
+}
+
+template <typename Key, typename Data>
+BinaryTree<Key, Data>::BinaryTree(Key key, Data data) : root(nullptr), nodeCount(0) {
+  root = new Node(key, data);
+  nodeCount = 1;
+}
+
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::BinaryTree(const BinaryTree& other) : BinaryTree() {
   copyNodes(other, [](const Node& source) {
@@ -83,11 +138,15 @@ BinaryTree<Key, Data>& BinaryTree<Key, Data>::operator=(const BinaryTree& other)
 
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::BinaryTree(BinaryTree&& other) noexcept
-  : Base(std::move(other)) {}
+  : root(std::exchange(other.root, nullptr)), nodeCount(std::exchange(other.nodeCount, 0)) {}
 
 template <typename Key, typename Data>
 BinaryTree<Key, Data>& BinaryTree<Key, Data>::operator=(BinaryTree&& other) noexcept {
-  Base::operator=(std::move(other));
+  if (this != &other) {
+    clear();
+    root = std::exchange(other.root, nullptr);
+    nodeCount = std::exchange(other.nodeCount, 0);
+  }
   return *this;
 }
 
@@ -116,19 +175,12 @@ void BinaryTree<Key, Data>::insert(Key key, Data data) {
 }
 
 template<typename Key, typename Data>
-void BinaryTree<Key, Data>::transplant(Node* oldNode, Node* newNode) noexcept {
-  if (oldNode->parent == nullptr) root = newNode;
-  else if (oldNode == oldNode->parent->left) oldNode->parent->left = newNode;
-  else oldNode->parent->right = newNode;
-  if (newNode != nullptr) newNode->parent = oldNode->parent;
-}
-
-template<typename Key, typename Data>
 void BinaryTree<Key, Data>::remove(Key key) {
   if (root == nullptr) throw std::logic_error("Root is NULL");
 
   Node* deletedNode = findNode(key);
   if (deletedNode == nullptr) throw std::out_of_range("Key does not exist");
+
   if (deletedNode->left == nullptr) {
     transplant(deletedNode, deletedNode->right);
   } else if (deletedNode->right == nullptr) {
@@ -162,21 +214,6 @@ template <typename Key, typename Data>
 Data BinaryTree<Key, Data>::get_root() const {
   if (root == nullptr) throw std::logic_error("Root is NULL");
   return root->data;
-}
-
-template<typename Key, typename Data>
-const typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::findNode(const Key& key) const {
-  const Node* current = root;
-  while (current != nullptr) {
-    if (current->key == key) return current;
-    current = current->key > key ? current->left : current->right;
-  }
-  return nullptr;
-}
-
-template<typename Key, typename Data>
-typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::findNode(const Key& key) {
-  return const_cast<Node*>(std::as_const(*this).findNode(key));
 }
 
 template<typename Key, typename Data>
@@ -300,4 +337,6 @@ void BinaryTree<Key, Data>::print() const {
 }
 
 template <typename Key, typename Data>
-BinaryTree<Key, Data>::~BinaryTree() = default;
+BinaryTree<Key, Data>::~BinaryTree() {
+  clear();
+}

@@ -13,6 +13,7 @@ protected:
 
   BinaryTreeBase(BinaryTreeBase&& other) noexcept;
   BinaryTreeBase& operator=(BinaryTreeBase&& other) noexcept;
+
   ~BinaryTreeBase();
 
   void clear() noexcept;

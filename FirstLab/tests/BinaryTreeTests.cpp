@@ -7,6 +7,7 @@
 #include <string>
 #include <random>
 #include <set>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -139,6 +140,27 @@ TEST(SetTests, MissingKeysThrowOutOfRangeOnEmptyAndNonemptySet) {
   EXPECT_TRUE(values.contains(2));
   values.remove(2);
   EXPECT_THROW(values.remove(2), std::out_of_range);
+}
+
+TEST(SetTests, EquivalentCompositeKeysAreStoredOnlyOnce) {
+  using Key = std::pair<std::string, int>;
+  Set<Key> values;
+  const Key first{"Иванов", 1980};
+  const Key duplicate{"Иванов", 1980};
+  const Key lookup{"Иванов", 1980};
+  const Key otherYear{"Иванов", 1981};
+  const Key otherName{"Петров", 1980};
+
+  values.insert(first);
+  values.insert(duplicate);
+  values.insert(otherYear);
+  values.insert(otherName);
+  ASSERT_TRUE(values.contains(lookup));
+  values.remove(lookup);
+  EXPECT_FALSE(values.contains(first));
+  EXPECT_THROW(values.remove(duplicate), std::out_of_range);
+  EXPECT_TRUE(values.contains(otherYear));
+  EXPECT_TRUE(values.contains(otherName));
 }
 
 TEST(SetTests, SingleKeyConstructorAndMixedOperationsMatchStdSet) {

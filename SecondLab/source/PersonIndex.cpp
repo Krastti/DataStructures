@@ -46,7 +46,7 @@ Array<PersonRecord> PersonIndex::findComposite(const std::string& firstName,
   }
 }
 
-Array<PersonRecord> PersonIndex::findBirthYearRange(int firstYear, int lastYear) const {
+Array<PersonRecord> PersonIndex::findBirthYearRange(const int firstYear, const int lastYear) const {
   if (firstYear > lastYear) throw std::invalid_argument("The first year must not exceed the last year");
   Array<PersonRecord> result;
   const auto matches = birthYearIndex.range(firstYear, lastYear);

@@ -1,3 +1,4 @@
+// ReSharper disable CppTooWideScopeInitStatement
 #include "../include/AlphabeticalIndex.h"
 
 #include <stdexcept>
@@ -6,20 +7,21 @@
 namespace {
 size_t characterCount(const std::string& text) {
   size_t count = 0;
-  for (unsigned char character : text) {
+  for (const unsigned char character : text) {
     if ((character & 0xC0) != 0x80) ++count;
   }
   return count;
 }
 }
 
-AlphabeticalIndex AlphabeticalIndex::build(const Array<std::string>& lines, size_t pageSize) {
+AlphabeticalIndex AlphabeticalIndex::build(const Array<std::string>& lines, const size_t pageSize) {
   if (pageSize < 2) throw std::invalid_argument("Page size must be at least two characters");
 
   AlphabeticalIndex index;
   index.pagesByWord.reset(new Map<std::string, Array<size_t>>());
   Array<std::string> words;
   Array<bool> beginsLine;
+
   for (size_t lineIndex = 0; lineIndex < lines.size(); ++lineIndex) {
     const std::string& line = lines[lineIndex];
     std::istringstream stream(line);

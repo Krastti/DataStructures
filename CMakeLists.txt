@@ -172,6 +172,10 @@ endif()
 option(BUILD_GUI "Build Qt 6 Widgets application" OFF)
 if(BUILD_GUI)
   find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets Concurrent)
+  add_executable(TreesGui GUI/source/TreesGui.cpp)
+  target_include_directories(TreesGui PRIVATE DataStructures/Trees)
+  target_link_libraries(TreesGui PRIVATE BinaryTree Qt6::Widgets Qt6::Concurrent)
+
   add_library(DataStructuresGuiWidgets STATIC
           GUI/source/AlphabeticalIndexWidget.cpp
           GUI/source/PersonIndexWidget.cpp

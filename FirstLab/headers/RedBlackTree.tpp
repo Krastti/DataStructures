@@ -79,17 +79,20 @@ void RedBlackTree<Key, Data>::fixInsert(RBNode *current) {
     if (parent == getLeft(grandParent)) {
       RBNode* uncle = getRight(grandParent);
 
+      // Случай 1: дядя красный. Перекрашиваем узлы и продолжаем от деда
       if (uncle != nullptr && uncle->color == Color::RED) {
         parent->color = Color::BLACK;
         uncle->color = Color::BLACK;
         grandParent->color = Color::RED;
         current = grandParent;
       } else {
+        // Случай 2: дядя чёрный, зигзаг. Поворотом вокруг родителя получаем прямую
         if (current == getRight(parent)) {
           current = parent;
           leftRotate(current);
           parent = getParent(current);
         }
+        // Случай 3: дядя чёрный, прямая. Перекрашиваем узлы и поворачиваем вокруг деда
         parent->color = Color::BLACK;
         grandParent->color = Color::RED;
         rightRotate(grandParent);
@@ -128,7 +131,7 @@ void RedBlackTree<Key, Data>::fixRemove(RBNode *node, RBNode *parent) {
     if (node == parent->left) {
       RBNode* sibling = getRight(parent);
 
-      // Случай 1: брат красный.
+      // Случай 1: брат красный
       if (sibling->color == Color::RED) {
         sibling->color = Color::BLACK;
         parent->color = Color::RED;
@@ -138,23 +141,23 @@ void RedBlackTree<Key, Data>::fixRemove(RBNode *node, RBNode *parent) {
 
       RBNode* sibLeft = getLeft(sibling);
       RBNode* sibRight = getRight(sibling);
-      bool leftBlack = (sibLeft == nullptr || sibLeft->color == Color::BLACK);
-      bool rightBlack = (sibRight == nullptr || sibRight->color == Color::BLACK);
+      const bool leftBlack = (sibLeft == nullptr || sibLeft->color == Color::BLACK);
+      const bool rightBlack = (sibRight == nullptr || sibRight->color == Color::BLACK);
 
       if (leftBlack && rightBlack) {
-        // Случай 2: у брата оба ребёнка чёрные.
+        // Случай 2: у брата оба ребёнка чёрные
         sibling->color = Color::RED;
         node = parent;
         parent = getParent(node);
       } else {
         if (rightBlack) {
-          // Случай 3: ближний (левый) ребёнок брата красный.
+          // Случай 3: ближний ребенок брата красный
           if (sibLeft != nullptr) sibLeft->color = Color::BLACK;
           sibling->color = Color::RED;
           rightRotate(sibling);
           sibling = getRight(parent);
         }
-        // Случай 4: дальний (правый) ребёнок брата красный.
+        // Случай 4: дальний ребёнок брата красный
         sibling->color = parent->color;
         parent->color = Color::BLACK;
         RBNode* sr = getRight(sibling);
@@ -175,8 +178,8 @@ void RedBlackTree<Key, Data>::fixRemove(RBNode *node, RBNode *parent) {
 
       RBNode* sibLeft = getLeft(sibling);
       RBNode* sibRight = getRight(sibling);
-      bool leftBlack = (sibLeft == nullptr || sibLeft->color == Color::BLACK);
-      bool rightBlack = (sibRight == nullptr || sibRight->color == Color::BLACK);
+      const bool leftBlack = (sibLeft == nullptr || sibLeft->color == Color::BLACK);
+      const bool rightBlack = (sibRight == nullptr || sibRight->color == Color::BLACK);
 
       if (leftBlack && rightBlack) {
         sibling->color = Color::RED;

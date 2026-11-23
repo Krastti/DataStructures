@@ -2,19 +2,18 @@
 #include "RedBlackTree.h"
 #include "../../DataStructures/tests/Array/ArrayTestHelpers.h"
 #include "../../DataStructures/tests/AllocationFailure.h"
+#include "TreeTestHelpers.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <compare>
 #include <cstddef>
-#include <exception>
-#include <initializer_list>
-#include <iostream>
 #include <iterator>
 #include <limits>
 #include <map>
+#include <memory>
 #include <new>
-#include <random>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -24,6 +23,15 @@
 #include <vector>
 
 namespace {
+
+using tree_test::CoutRedirect;
+using tree_test::Faulty;
+using tree_test::ComparisonFailure;
+using tree_test::CopyFailure;
+using tree_test::PrintFailure;
+using tree_test::UnprintableKey;
+using tree_test::throwsExactly;
+
 
 TEST(BinaryTreeTests, InsertsKeyAndValue) {
   BinaryTree<int, int> tree;
@@ -54,31 +62,13 @@ TEST(BinaryTreeTests, RemovesKey) {
   EXPECT_EQ(tree.size(), 1);
 }
 
-template<class Exception, class Operation>
-testing::AssertionResult throwsExactly(Operation operation) {
-  try {
-    operation();
-  } catch (const Exception& error) {
-    if (typeid(error) == typeid(Exception)) return testing::AssertionSuccess();
-    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
-                                       << ", caught " << typeid(error).name();
-  } catch (const std::exception& error) {
-    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
-                                       << ", caught " << typeid(error).name();
-  } catch (...) {
-    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
-                                       << ", caught a non-standard exception";
-  }
-  return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
-                                     << ", no exception thrown";
-}
-
 class CheckedBinaryTree : public BinaryTree<int, int> {
 public:
   void verify(const std::map<int, int>& expected) const {
     std::size_t count = 0;
-    verifyNode(root, nullptr, std::numeric_limits<long long>::min(),
-               std::numeric_limits<long long>::max(), count);
+    ASSERT_NO_FATAL_FAILURE(tree_test::verifySearchOrder(
+        root, static_cast<const Node*>(nullptr), std::numeric_limits<long long>::min(),
+        std::numeric_limits<long long>::max(), count));
     EXPECT_EQ(count, size());
     ASSERT_EQ(count, expected.size());
     const auto actual = entries();
@@ -91,7 +81,12 @@ public:
     }
   }
 
-  int rootKey() const { return root->key; }
+  std::optional<int> rootKey() const {
+    if (root == nullptr) {
+      return std::nullopt;
+    }
+    return root->key;
+  }
 
   void verifyCopyOf(const CheckedBinaryTree& source) const {
     EXPECT_EQ(size(), source.size());
@@ -99,17 +94,6 @@ public:
   }
 
 private:
-  void verifyNode(const Node* node, const Node* parent, long long low, long long high,
-                  std::size_t& count) const {
-    if (node == nullptr) return;
-    EXPECT_EQ(node->parent, parent);
-    EXPECT_GT(node->key, low);
-    EXPECT_LT(node->key, high);
-    ++count;
-    verifyNode(node->left, node, low, node->key, count);
-    verifyNode(node->right, node, node->key, high, count);
-  }
-
   void verifyCopiedNode(const Node* original, const Node* copy,
                         const Node* parent) const {
     if (original == nullptr) {
@@ -117,9 +101,9 @@ private:
       return;
     }
     ASSERT_NE(copy, nullptr);
-    EXPECT_NE(copy, original);
-    EXPECT_EQ(copy->parent, parent);
-    EXPECT_EQ(copy->key, original->key);
+    ASSERT_NE(copy, original);
+    ASSERT_EQ(copy->parent, parent);
+    ASSERT_EQ(copy->key, original->key);
     EXPECT_EQ(copy->data, original->data);
     verifyCopiedNode(original->left, copy->left, copy);
     verifyCopiedNode(original->right, copy->right, copy);
@@ -193,66 +177,6 @@ TEST(BinaryTreeTests, CopiesOwnTheirNodesAndReplacePreviousContents) {
   EXPECT_EQ(assigned.size(), 0);
   EXPECT_FALSE(assigned.containsKey(7));
 }
-
-struct Faulty {
-  inline static int alive = 0;
-  inline static int comparisonsLeft = -1;
-  inline static int copiesLeft = -1;
-  int value;
-
-  Faulty(int value = 0) : value(value) { ++alive; }
-  Faulty(const Faulty& other) : value(other.value) {
-    if (copiesLeft == 0) throw std::runtime_error("copy failed");
-    if (copiesLeft > 0) --copiesLeft;
-    ++alive;
-  }
-  ~Faulty() { --alive; }
-  Faulty& operator=(const Faulty&) { throw std::runtime_error("assignment failed"); }
-
-  static void compare() {
-    if (comparisonsLeft == 0) throw std::runtime_error("comparison failed");
-    if (comparisonsLeft > 0) --comparisonsLeft;
-  }
-  friend bool operator<(const Faulty& a, const Faulty& b) {
-    compare();
-    return a.value < b.value;
-  }
-  friend bool operator>(const Faulty& a, const Faulty& b) {
-    compare();
-    return a.value > b.value;
-  }
-  friend bool operator!=(const Faulty& a, const Faulty& b) {
-    compare();
-    return a.value != b.value;
-  }
-  friend bool operator==(const Faulty& a, const Faulty& b) {
-    compare();
-    return a.value == b.value;
-  }
-};
-
-struct PrintFailure : std::exception {};
-
-struct UnprintableKey {
-  int value;
-
-  auto operator<=>(const UnprintableKey&) const = default;
-
-  friend std::ostream& operator<<(std::ostream&, const UnprintableKey&) {
-    throw PrintFailure{};
-  }
-};
-
-struct CoutRedirect {
-  explicit CoutRedirect(std::ostream& output) : previous(std::cout.rdbuf(output.rdbuf())) {}
-  ~CoutRedirect() { std::cout.rdbuf(previous); }
-
-  CoutRedirect(const CoutRedirect&) = delete;
-  CoutRedirect& operator=(const CoutRedirect&) = delete;
-
-private:
-  std::streambuf* previous;
-};
 
 class BinaryTreeSafetyTests : public testing::Test {
 protected:
@@ -352,55 +276,33 @@ TEST_F(BinaryTreeSafetyTests, PrintReleasesTraversalStackWhenOutputThrows) {
 }
 
 TEST_F(BinaryTreeSafetyTests, RemovesTwoChildNodesWithoutAssigningKeys) {
-  // Проверяем непосредственного преемника, преемника в глубине поддерева и преемника с правым ребёнком.
-  for (const std::vector<int>& keys : {
-         std::vector<int>{2, 1, 3}, {4, 2, 8, 1, 3, 6, 9, 7}}) {
-    BinaryTree<Faulty, int> tree;
-    for (int key : keys) tree.insert(Faulty(key), key * 10);
-    for (int key : keys) {
-      EXPECT_NO_THROW(tree.remove(Faulty(key)));
-      EXPECT_FALSE(tree.containsKey(Faulty(key)));
-      for (int remaining : keys) {
-        if (tree.containsKey(Faulty(remaining))) {
-          EXPECT_EQ(tree.at(Faulty(remaining)), remaining * 10);
-        }
-      }
-    }
-    EXPECT_EQ(tree.size(), 0);
-  }
+  tree_test::verifyRemovalPreservesRemainingEntries<BinaryTree<Faulty, int>, Faulty, int>();
 }
 
 TEST_F(BinaryTreeSafetyTests, RemovesTwoChildNodesWithoutAssigningValues) {
-  for (const std::vector<int>& keys : {
-         std::vector<int>{2, 1, 3}, {4, 2, 8, 1, 3, 6, 9, 7}}) {
-    BinaryTree<int, Faulty> tree;
-    for (int key : keys) tree.insert(key, Faulty(key * 10));
-    for (int key : keys) {
-      EXPECT_NO_THROW(tree.remove(key));
-      EXPECT_FALSE(tree.containsKey(key));
-      for (int remaining : keys) {
-        if (tree.containsKey(remaining)) {
-          EXPECT_EQ(tree.at(remaining).value, remaining * 10);
-        }
-      }
-    }
-    EXPECT_EQ(tree.size(), 0);
-  }
+  tree_test::verifyRemovalPreservesRemainingEntries<BinaryTree<int, Faulty>, int, Faulty>();
 }
 
 TEST_F(BinaryTreeSafetyTests, ComparisonFailuresDuringInsertLeaveNoLeaksOrChanges) {
-  // Проверяем исключение на каждом сравнении, включая сравнение после выделения узла в прежней реализации.
+  // Меняем число сравнений, которые успевают выполниться до исключения.
   for (int budget = 0; budget < 8; ++budget) {
+    SCOPED_TRACE(budget);
     BinaryTree<Faulty, Faulty> tree;
     tree.insert(Faulty(2), Faulty(20));
-    int before = Faulty::alive;
+    const int aliveBefore = Faulty::alive;
     Faulty::comparisonsLeft = budget;
     bool failed = false;
-    try { tree.insert(Faulty(1), Faulty(10)); }
-    catch (const std::runtime_error&) { failed = true; }
+    try {
+      tree.insert(Faulty(1), Faulty(10));
+    } catch (const ComparisonFailure&) {
+      failed = true;
+    }
     Faulty::comparisonsLeft = -1;
+    if (budget == 0) {
+      EXPECT_TRUE(failed);
+    }
     EXPECT_EQ(tree.size(), failed ? 1 : 2);
-    EXPECT_EQ(Faulty::alive, before + (failed ? 0 : 2));
+    EXPECT_EQ(Faulty::alive, aliveBefore + (failed ? 0 : 2));
     EXPECT_EQ(tree.at(Faulty(2)).value, 20);
     EXPECT_EQ(tree.containsKey(Faulty(1)), !failed);
     if (!failed) EXPECT_EQ(tree.at(Faulty(1)).value, 10);
@@ -409,17 +311,25 @@ TEST_F(BinaryTreeSafetyTests, ComparisonFailuresDuringInsertLeaveNoLeaksOrChange
 
 TEST_F(BinaryTreeSafetyTests, CopyFailuresDuringInsertLeaveTreeUnchanged) {
   for (bool initiallyEmpty : {true, false}) {
+    SCOPED_TRACE(testing::Message() << "initially empty=" << initiallyEmpty);
     for (int budget = 0; budget < 12; ++budget) {
+      SCOPED_TRACE(budget);
       BinaryTree<Faulty, Faulty> tree;
       if (!initiallyEmpty) tree.insert(Faulty(2), Faulty(20));
-      int before = Faulty::alive;
+      const int aliveBefore = Faulty::alive;
       Faulty::copiesLeft = budget;
       bool failed = false;
-      try { tree.insert(Faulty(1), Faulty(10)); }
-      catch (const std::runtime_error&) { failed = true; }
+      try {
+        tree.insert(Faulty(1), Faulty(10));
+      } catch (const CopyFailure&) {
+        failed = true;
+      }
       Faulty::copiesLeft = -1;
+      if (budget == 0) {
+        EXPECT_TRUE(failed);
+      }
       EXPECT_EQ(tree.size(), (initiallyEmpty ? 0 : 1) + (failed ? 0 : 1));
-      EXPECT_EQ(Faulty::alive, before + (failed ? 0 : 2));
+      EXPECT_EQ(Faulty::alive, aliveBefore + (failed ? 0 : 2));
       EXPECT_EQ(tree.containsKey(Faulty(1)), !failed);
       if (!initiallyEmpty) EXPECT_EQ(tree.at(Faulty(2)).value, 20);
     }
@@ -428,13 +338,20 @@ TEST_F(BinaryTreeSafetyTests, CopyFailuresDuringInsertLeaveTreeUnchanged) {
 
 TEST_F(BinaryTreeSafetyTests, ComparisonFailuresDuringRemoveLeaveTreeUnchanged) {
   for (int budget = 0; budget < 8; ++budget) {
+    SCOPED_TRACE(budget);
     BinaryTree<Faulty, Faulty> tree;
     for (int key : {2, 1, 3}) tree.insert(Faulty(key), Faulty(key * 10));
     Faulty::comparisonsLeft = budget;
     bool failed = false;
-    try { tree.remove(Faulty(1)); }
-    catch (const std::runtime_error&) { failed = true; }
+    try {
+      tree.remove(Faulty(1));
+    } catch (const ComparisonFailure&) {
+      failed = true;
+    }
     Faulty::comparisonsLeft = -1;
+    if (budget == 0) {
+      EXPECT_TRUE(failed);
+    }
     EXPECT_EQ(tree.size(), failed ? 3 : 2);
     EXPECT_EQ(tree.containsKey(Faulty(1)), failed);
     EXPECT_EQ(tree.at(Faulty(2)).value, 20);
@@ -445,9 +362,12 @@ TEST_F(BinaryTreeSafetyTests, ComparisonFailuresDuringRemoveLeaveTreeUnchanged) 
 TEST_F(BinaryTreeSafetyTests, DestructionAndMoveAssignmentReleaseAllValues) {
   using Tree = BinaryTree<int, Faulty>;
   // Длинная цепочка в обычном BST дополнительно проверяет очистку без рекурсии.
-  auto* tree = new Tree;
-  for (int key = 0; key < 2048; ++key) tree->insert(key, Faulty(key));
-  delete tree;
+  {
+    Tree tree;
+    for (int key = 0; key < 2048; ++key) {
+      tree.insert(key, Faulty(key));
+    }
+  }
   EXPECT_EQ(Faulty::alive, 0);
 
   Tree source;
@@ -463,7 +383,7 @@ TEST_F(BinaryTreeSafetyTests, DestructionAndMoveAssignmentReleaseAllValues) {
 
 TEST_F(BinaryTreeSafetyTests, DestructionAndMoveAssignmentDoNotAllocate) {
   using Tree = BinaryTree<int, Faulty>;
-  auto* target = new Tree;
+  auto target = std::make_unique<Tree>();
   Tree source;
   for (int key : {4, 2, 6, 1, 3, 5, 7}) target->insert(key, Faulty(key));
   source.insert(10, Faulty(100));
@@ -475,27 +395,40 @@ TEST_F(BinaryTreeSafetyTests, DestructionAndMoveAssignmentDoNotAllocate) {
   EXPECT_EQ(Faulty::alive, 1);
   EXPECT_EQ(target->size(), 1u);
   EXPECT_EQ(source.size(), 0u);
+
+  target->insert(5, Faulty(50));
+  target->insert(15, Faulty(150));
+  ASSERT_EQ(target->size(), 3u);
   {
     test::RejectAllocations guard;
-    delete target;
+    target.reset();
   }
   EXPECT_EQ(Faulty::alive, 0);
 }
 
 TEST_F(BinaryTreeSafetyTests, AllocationFailureDuringInsertPreservesTree) {
-  BinaryTree<int, int> tree;
   for (bool initiallyEmpty : {true, false}) {
+    SCOPED_TRACE(testing::Message() << "initially empty=" << initiallyEmpty);
+    BinaryTree<int, int> tree;
+    if (!initiallyEmpty) {
+      tree.insert(2, 20);
+    }
+
     bool failed = false;
     {
       test::RejectAllocations guard;
-      try { tree.insert(1, 10); }
-      catch (const std::bad_alloc&) { failed = true; }
+      try {
+        tree.insert(1, 10);
+      } catch (const std::bad_alloc&) {
+        failed = true;
+      }
     }
     EXPECT_TRUE(failed);
     EXPECT_EQ(tree.size(), initiallyEmpty ? 0 : 1);
     EXPECT_FALSE(tree.containsKey(1));
-    if (initiallyEmpty) tree.insert(2, 20);
-    else EXPECT_EQ(tree.at(2), 20);
+    if (!initiallyEmpty) {
+      EXPECT_EQ(tree.at(2), 20);
+    }
   }
 }
 
@@ -505,16 +438,16 @@ TEST_F(BinaryTreeSafetyTests, CopyFailureReleasesPartialCopyAndPreservesAssignme
   Tree target;
   for (int key : {4, 2, 8, 3, 6, 9, 7}) source.insert(key, Faulty(key));
   target.insert(1, Faulty(10));
-  const int before = Faulty::alive;
+  const int aliveBefore = Faulty::alive;
 
   Faulty::copiesLeft = 5;
-  EXPECT_THROW((void)Tree(source), std::runtime_error);
-  EXPECT_EQ(Faulty::alive, before);
+  EXPECT_THROW((void)Tree(source), CopyFailure);
+  EXPECT_EQ(Faulty::alive, aliveBefore);
 
   Faulty::copiesLeft = 5;
-  EXPECT_THROW(target = source, std::runtime_error);
+  EXPECT_THROW(target = source, CopyFailure);
   Faulty::copiesLeft = -1;
-  EXPECT_EQ(Faulty::alive, before);
+  EXPECT_EQ(Faulty::alive, aliveBefore);
   EXPECT_EQ(target.size(), 1);
   EXPECT_EQ(target.at(1).value, 10);
   EXPECT_EQ(source.size(), 7);
@@ -580,8 +513,8 @@ TEST_F(BinaryTreeSafetyTests, KeyCopyFailureReleasesPartialCopyAndPreservesBothT
         test::TrackAllocations track(balance);
         try {
           operation();
-        } catch (const std::runtime_error& error) {
-          failed = typeid(error) == typeid(std::runtime_error);
+        } catch (const CopyFailure& error) {
+          failed = typeid(error) == typeid(CopyFailure);
         }
       }
       Faulty::copiesLeft = -1;
@@ -661,82 +594,27 @@ TEST_F(BinaryTreeSafetyTests, MoveConstructionAndAssignmentPreserveInvariants) {
 TEST_F(BinaryTreeSafetyTests, PreservesInvariantsAcrossInsertionOrdersAndRootRemoval) {
   std::vector<int> order{1, 2, 3, 4, 5};
   do {
+    SCOPED_TRACE(testing::PrintToString(order));
     CheckedBinaryTree tree;
     std::map<int, int> expected;
     for (int key : order) {
       tree.insert(key, key * 10);
       expected.emplace(key, key * 10);
-      tree.verify(expected);
+      ASSERT_NO_FATAL_FAILURE(tree.verify(expected));
     }
     while (!expected.empty()) {
-      int key = tree.rootKey();
-      tree.remove(key);
-      expected.erase(key);
-      tree.verify(expected);
+      const auto key = tree.rootKey();
+      ASSERT_TRUE(key.has_value());
+      tree.remove(*key);
+      expected.erase(*key);
+      ASSERT_NO_FATAL_FAILURE(tree.verify(expected));
     }
     EXPECT_TRUE(throwsExactly<std::logic_error>([&] { tree.remove(0); }));
   } while (std::next_permutation(order.begin(), order.end()));
 }
 
 TEST_F(BinaryTreeSafetyTests, MixedOperationsMatchStdMapAndPreserveInvariants) {
-  CheckedBinaryTree tree;
-  std::map<int, int> expected;
-  std::mt19937 random(147);
-  for (int step = 0; step < 20000; ++step) {
-    const int key = static_cast<int>(random() % 128) - 64;
-    const auto found = expected.find(key);
-    switch (random() % 5) {
-      case 0:
-        tree.insert(key, step);
-        expected.emplace(key, step);
-        break;
-      case 1:
-        if (found != expected.end()) {
-          tree.remove(key);
-          expected.erase(found);
-        } else if (expected.empty()) {
-          EXPECT_TRUE(throwsExactly<std::logic_error>([&] { tree.remove(key); }));
-        } else {
-          EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { tree.remove(key); }));
-        }
-        break;
-      case 2:
-        if (found != expected.end()) {
-          tree.replace(key, -step);
-          found->second = -step;
-        } else if (expected.empty()) {
-          EXPECT_TRUE(throwsExactly<std::logic_error>([&] { tree.replace(key, -step); }));
-        } else {
-          EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { tree.replace(key, -step); }));
-        }
-        break;
-      case 3:
-        EXPECT_EQ(tree.containsKey(key), found != expected.end());
-        if (found != expected.end()) {
-          EXPECT_EQ(std::as_const(tree).at(key), found->second);
-        } else {
-          EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { (void)std::as_const(tree).at(key); }));
-        }
-        break;
-      default: {
-        const int other = static_cast<int>(random() % 160) - 80;
-        const auto [first, last] = std::minmax(key, other);
-        const auto matches = tree.range(first, last);
-        auto begin = expected.lower_bound(first);
-        const auto end = expected.upper_bound(last);
-        ASSERT_EQ(matches.size(), static_cast<std::size_t>(std::distance(begin, end)));
-        for (std::size_t i = 0; begin != end; ++begin, ++i) {
-          EXPECT_EQ(matches[i], (std::pair{begin->first, begin->second}));
-        }
-        break;
-      }
-    }
-    if (!expected.empty()) {
-      EXPECT_EQ(tree.min(), expected.begin()->second);
-      EXPECT_EQ(tree.max(), expected.rbegin()->second);
-    }
-    tree.verify(expected);
-  }
+  tree_test::verifyMixedOperationsAgainstStdMap<CheckedBinaryTree>();
 }
 
 } // namespace

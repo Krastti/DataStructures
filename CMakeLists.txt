@@ -37,6 +37,8 @@ add_library(BinaryTree INTERFACE
         FirstLab/headers/BinaryTree.tpp
         FirstLab/headers/RedBlackTree.h
         FirstLab/headers/RedBlackTree.tpp
+        FirstLab/headers/Set.h
+        FirstLab/headers/Set.tpp
 )
 
 add_library(Stack INTERFACE
@@ -124,6 +126,7 @@ if(BUILD_TESTING)
   add_executable(TreesTests
           FirstLab/tests/BinaryTreeTests.cpp
           FirstLab/tests/RedBlackTree.cpp
+          FirstLab/tests/SetTests.cpp
           DataStructures/tests/AllocationFailure.cpp
   )
   target_link_libraries(TreesTests PRIVATE BinaryTree GTest::gtest_main)

@@ -34,6 +34,7 @@ protected:
   void copyNodes(const BinaryTree& other, CloneNode cloneNode);
 
   Node* getSuccessor(Node* node);
+  const Node* getSuccessor(const Node* node) const;
   Node* findNode(const Key& key);
   const Node* findNode(const Key& key) const;
 

@@ -87,22 +87,26 @@ typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::findNode(const Key&
 
 
 template<typename Key, typename Data>
-BinaryTree<Key, Data>::Node * BinaryTree<Key, Data>::getSuccessor(Node *node) {
+typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::getSuccessor(Node* node) {
+  return const_cast<Node*>(std::as_const(*this).getSuccessor(node));
+}
+
+template<typename Key, typename Data>
+const typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::getSuccessor(const Node* node) const {
   if (root == nullptr) throw std::logic_error("Root is NULL");
   if (node == nullptr) throw std::logic_error("Node is NULL");
 
-  Node *ptr = nullptr;
   if (node->right) {
-    Node *p = node->right;
-    while (p->left != nullptr) p = p->left;
-    return p;
+    const Node* next = node->right;
+    while (next->left != nullptr) next = next->left;
+    return next;
   }
-  ptr = node->parent;
-  while (ptr != nullptr && ptr->right == node) {
-    node = ptr;
-    ptr = node->parent;
+  const Node* parent = node->parent;
+  while (parent != nullptr && parent->right == node) {
+    node = parent;
+    parent = node->parent;
   }
-  return ptr;
+  return parent;
 }
 
 template <typename Key, typename Data>

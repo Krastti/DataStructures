@@ -1,5 +1,4 @@
 #include "TreeTestHelpers.h"
-#include "Set.h"
 #include "../../DataStructures/tests/AllocationFailure.h"
 #include <gtest/gtest.h>
 
@@ -184,52 +183,6 @@ TYPED_TEST(TreeSafetyTests, PrintReleasesTraversalStackWhenOutputThrows) {
   EXPECT_EQ(balance, 0);
   EXPECT_EQ(tree.size(), 3);
   EXPECT_EQ(tree.at({2}), 20);
-}
-
-TEST(SetSafetyTests, InsertFailuresPreserveExistingKeys) {
-  Set<Faulty> values;
-  for (int key : {4, 2, 6}) values.insert(Faulty(key));
-  const int before = Faulty::alive;
-  const auto verifyUnchanged = [&] {
-    EXPECT_EQ(Faulty::alive, before);
-    for (int key : {4, 2, 6}) EXPECT_TRUE(values.contains(Faulty(key)));
-    EXPECT_FALSE(values.contains(Faulty(3)));
-  };
-
-  EXPECT_TRUE(throwsExactly<std::bad_alloc>([&] {
-    test::RejectAllocations guard;
-    values.insert(Faulty(3));
-  }));
-  verifyUnchanged();
-
-  Faulty::comparisonsLeft = 1;
-  EXPECT_TRUE(throwsExactly<std::runtime_error>([&] { values.insert(Faulty(3)); }));
-  Faulty::comparisonsLeft = -1;
-  verifyUnchanged();
-
-  Faulty::copiesLeft = 1;
-  EXPECT_TRUE(throwsExactly<std::runtime_error>([&] { values.insert(Faulty(3)); }));
-  Faulty::copiesLeft = -1;
-  verifyUnchanged();
-
-  values.insert(Faulty(3));
-  EXPECT_TRUE(values.contains(Faulty(3)));
-}
-
-TEST(SetSafetyTests, RemovalDoesNotAssignKeysAndDestructionReleasesAllKeys) {
-  {
-    Set<Faulty> values;
-    for (int key : {4, 2, 6, 1, 3, 5, 7}) values.insert(Faulty(key));
-    for (int key : {4, 2, 6, 1, 3, 5, 7}) {
-      EXPECT_NO_THROW(values.remove(Faulty(key)));
-      EXPECT_FALSE(values.contains(Faulty(key)));
-    }
-  }
-  EXPECT_EQ(Faulty::alive, 0);
-  auto* values = new Set<Faulty>;
-  for (int key = 0; key < 1024; ++key) values->insert(Faulty(key));
-  delete values;
-  EXPECT_EQ(Faulty::alive, 0);
 }
 
 TYPED_TEST(TreeSafetyTests, RemovesTwoChildNodesWithoutAssigningKeys) {

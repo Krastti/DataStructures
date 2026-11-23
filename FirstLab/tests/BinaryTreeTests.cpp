@@ -1,13 +1,9 @@
 #include "BinaryTree.h"
 #include "RedBlackTree.h"
-#include "Set.h"
 #include "../../DataStructures/tests/Array/ArrayTestHelpers.h"
 #include <gtest/gtest.h>
 
 #include <string>
-#include <random>
-#include <set>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -113,75 +109,4 @@ TEST(MapTests, MaintainsOrderingAcrossSequentialInsertionsAndDeletions) {
 
   EXPECT_EQ(map.size(), 0);
   EXPECT_EQ(map.keys().size(), 0);
-}
-
-TEST(SetTests, IgnoresDuplicatesAndRemovesKeys) {
-  Set<int> values;
-  for (int key : {4, 2, 6, 1, 3, 5, 7}) values.insert(key);
-  values.insert(4);
-  EXPECT_TRUE(values.contains(4));
-  EXPECT_TRUE(values.contains(7));
-
-  values.remove(4);
-  EXPECT_FALSE(values.contains(4));
-  EXPECT_TRUE(values.contains(5));
-  values.remove(1);
-  values.remove(7);
-  values.remove(2);
-  EXPECT_FALSE(values.contains(2));
-}
-
-TEST(SetTests, MissingKeysThrowOutOfRangeOnEmptyAndNonemptySet) {
-  Set<int> values;
-  EXPECT_FALSE(values.contains(1));
-  EXPECT_THROW(values.remove(1), std::out_of_range);
-  values.insert(2);
-  EXPECT_THROW(values.remove(1), std::out_of_range);
-  EXPECT_TRUE(values.contains(2));
-  values.remove(2);
-  EXPECT_THROW(values.remove(2), std::out_of_range);
-}
-
-TEST(SetTests, EquivalentCompositeKeysAreStoredOnlyOnce) {
-  using Key = std::pair<std::string, int>;
-  Set<Key> values;
-  const Key first{"Иванов", 1980};
-  const Key duplicate{"Иванов", 1980};
-  const Key lookup{"Иванов", 1980};
-  const Key otherYear{"Иванов", 1981};
-  const Key otherName{"Петров", 1980};
-
-  values.insert(first);
-  values.insert(duplicate);
-  values.insert(otherYear);
-  values.insert(otherName);
-  ASSERT_TRUE(values.contains(lookup));
-  values.remove(lookup);
-  EXPECT_FALSE(values.contains(first));
-  EXPECT_THROW(values.remove(duplicate), std::out_of_range);
-  EXPECT_TRUE(values.contains(otherYear));
-  EXPECT_TRUE(values.contains(otherName));
-}
-
-TEST(SetTests, SingleKeyConstructorAndMixedOperationsMatchStdSet) {
-  Set<int> values(10);
-  std::set<int> expected{10};
-  std::mt19937 random(147);
-  for (int step = 0; step < 10000; ++step) {
-    int key = static_cast<int>(random() % 128);
-    if (random() % 2) {
-      values.insert(key);
-      expected.insert(key);
-    } else if (expected.erase(key)) {
-      values.remove(key);
-    } else {
-      EXPECT_THROW(values.remove(key), std::out_of_range);
-    }
-    for (int candidate = 0; candidate < 128; ++candidate) {
-      ASSERT_EQ(values.contains(candidate), expected.contains(candidate));
-    }
-  }
-  for (int key : expected) values.remove(key);
-  EXPECT_FALSE(values.contains(10));
-  EXPECT_THROW(values.remove(10), std::out_of_range);
 }

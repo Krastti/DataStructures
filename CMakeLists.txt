@@ -37,8 +37,6 @@ add_library(BinaryTree INTERFACE
         FirstLab/headers/BinaryTree.tpp
         FirstLab/headers/RedBlackTree.h
         FirstLab/headers/RedBlackTree.tpp
-        FirstLab/headers/Set.h
-        FirstLab/headers/Set.tpp
 )
 
 add_library(Stack INTERFACE

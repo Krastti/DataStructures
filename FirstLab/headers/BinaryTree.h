@@ -31,12 +31,15 @@ protected:
   void transplant(Node* oldNode, Node* newNode) noexcept;
 
   template<typename CloneNode>
-  void copyNodes(const BinaryTree& other, CloneNode cloneNode);
+  void copyNodes(const Node* source, CloneNode cloneNode);
 
   Node* getSuccessor(Node* node);
   const Node* getSuccessor(const Node* node) const;
   Node* findNode(const Key& key);
   const Node* findNode(const Key& key) const;
+
+private:
+  static Node* clonePlainNode(const Node& source);
 
 public:
   // Порождающие конструкторы
@@ -61,6 +64,8 @@ public:
   const Data& at(const Key& key) const;
 
   [[nodiscard]] bool containsKey(const Key& key) const;
+  [[nodiscard]] bool containsSubtree(const BinaryTree& subtree) const;
+  [[nodiscard]] BinaryTree extractSubtree(const Key& key) const;
   [[nodiscard]] size_t size() const noexcept;
 
   Array<std::pair<Key, Data>> entries() const;

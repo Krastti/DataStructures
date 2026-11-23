@@ -50,6 +50,83 @@ TEST(BinaryTreeTests, FindsValueByKey) {
   EXPECT_EQ(tree.at(2), 20);
 }
 
+TEST(BinaryTreeTests, FindsMatchingSubtreeBelowRoot) {
+  BinaryTree<int, int> tree(4, 40);
+  tree.insert(2, 20);
+  tree.insert(1, 10);
+  tree.insert(3, 30);
+  tree.insert(6, 60);
+
+  BinaryTree<int, int> subtree(2, 20);
+  subtree.insert(1, 10);
+  subtree.insert(3, 30);
+
+  EXPECT_TRUE(tree.containsSubtree(subtree));
+  EXPECT_TRUE(tree.containsSubtree(tree));
+}
+
+TEST(BinaryTreeTests, RejectsSubtreesWithDifferentShapeOrContents) {
+  BinaryTree<int, int> tree(4, 40);
+  tree.insert(2, 20);
+  tree.insert(1, 10);
+
+  BinaryTree<int, int> subtree(2, 20);
+  EXPECT_FALSE(tree.containsSubtree(subtree));
+
+  subtree.insert(1, 99);
+  EXPECT_FALSE(tree.containsSubtree(subtree));
+
+  const BinaryTree<int, int> missing(3, 30);
+  EXPECT_FALSE(tree.containsSubtree(missing));
+}
+
+TEST(BinaryTreeTests, HandlesEmptySubtreeAndEmptySource) {
+  const BinaryTree<int, int> empty;
+  const BinaryTree<int, int> tree(2, 20);
+
+  EXPECT_TRUE(tree.containsSubtree(empty));
+  EXPECT_TRUE(empty.containsSubtree(empty));
+  EXPECT_FALSE(empty.containsSubtree(tree));
+}
+
+TEST(BinaryTreeTests, ExtractsIndependentCopyOfBranch) {
+  BinaryTree<int, int> tree(8, 80);
+  for (int key : {4, 2, 6, 5, 12}) tree.insert(key, key * 10);
+
+  auto subtree = tree.extractSubtree(4);
+  EXPECT_EQ(subtree.get_root(), 40);
+  EXPECT_EQ(subtree.size(), 4);
+  EXPECT_TRUE(tree.containsSubtree(subtree));
+  EXPECT_FALSE(subtree.containsKey(8));
+  EXPECT_FALSE(subtree.containsKey(12));
+
+  subtree.replace(5, 99);
+  subtree.remove(4);
+  EXPECT_EQ(tree.at(5), 50);
+  EXPECT_TRUE(tree.containsKey(4));
+}
+
+TEST(BinaryTreeTests, ExtractsWholeTreeAndSingleLeaf) {
+  BinaryTree<int, int> tree(4, 40);
+  tree.insert(2, 20);
+
+  const auto whole = tree.extractSubtree(4);
+  EXPECT_EQ(whole.size(), tree.size());
+  EXPECT_TRUE(whole.containsSubtree(tree));
+
+  const auto leaf = tree.extractSubtree(2);
+  EXPECT_EQ(leaf.size(), 1);
+  EXPECT_EQ(leaf.get_root(), 20);
+}
+
+TEST(BinaryTreeTests, ExtractingMissingSubtreeThrows) {
+  const BinaryTree<int, int> empty;
+  const BinaryTree<int, int> tree(4, 40);
+
+  EXPECT_THROW(static_cast<void>(empty.extractSubtree(4)), std::out_of_range);
+  EXPECT_THROW(static_cast<void>(tree.extractSubtree(2)), std::out_of_range);
+}
+
 TEST(BinaryTreeTests, RemovesKey) {
   BinaryTree<int, int> tree;
   tree.insert(4, 40);
@@ -81,7 +158,7 @@ public:
     }
   }
 
-  std::optional<int> rootKey() const {
+  [[nodiscard]] std::optional<int> rootKey() const {
     if (root == nullptr) {
       return std::nullopt;
     }
@@ -94,8 +171,8 @@ public:
   }
 
 private:
-  void verifyCopiedNode(const Node* original, const Node* copy,
-                        const Node* parent) const {
+  static void verifyCopiedNode(const Node* original, const Node* copy,
+                               const Node* parent) {
     if (original == nullptr) {
       EXPECT_EQ(copy, nullptr);
       return;

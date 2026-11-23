@@ -43,15 +43,15 @@ void BinaryTree<Key, Data>::transplant(Node* oldNode, Node* newNode) noexcept {
 
 template <typename Key, typename Data>
 template <typename CloneNode>
-void BinaryTree<Key, Data>::copyNodes(const BinaryTree& other, CloneNode cloneNode) {
-  if (other.root == nullptr) return;
+void BinaryTree<Key, Data>::copyNodes(const Node* source, CloneNode cloneNode) {
+  if (source == nullptr) return;
 
-  const Node* source = other.root;
   root = cloneNode(*source);
   Node* copy = root;
+  size_t copiedCount = 0;
 
   // Готовые ветви копии отмечают пройденные ветви исходного дерева.
-  while (source != nullptr) {
+  while (copy != nullptr) {
     if (source->left != nullptr && copy->left == nullptr) {
       source = source->left;
       copy->left = cloneNode(*source);
@@ -63,11 +63,17 @@ void BinaryTree<Key, Data>::copyNodes(const BinaryTree& other, CloneNode cloneNo
       copy->right->parent = copy;
       copy = copy->right;
     } else {
+      ++copiedCount;
       source = source->parent;
       copy = copy->parent;
     }
   }
-  nodeCount = other.nodeCount;
+  nodeCount = copiedCount;
+}
+
+template <typename Key, typename Data>
+typename BinaryTree<Key, Data>::Node* BinaryTree<Key, Data>::clonePlainNode(const Node& source) {
+  return new Node(source.key, source.data);
 }
 
 template<typename Key, typename Data>
@@ -126,9 +132,7 @@ BinaryTree<Key, Data>::BinaryTree(Key key, Data data) : root(nullptr), nodeCount
 
 template <typename Key, typename Data>
 BinaryTree<Key, Data>::BinaryTree(const BinaryTree& other) : BinaryTree() {
-  copyNodes(other, [](const Node& source) {
-    return new Node(source.key, source.data);
-  });
+  copyNodes(other.root, clonePlainNode);
 }
 
 template <typename Key, typename Data>
@@ -237,6 +241,45 @@ const Data& BinaryTree<Key, Data>::at(const Key& key) const {
 template<typename Key, typename Data>
 bool BinaryTree<Key, Data>::containsKey(const Key& key) const {
   return findNode(key) != nullptr;
+}
+
+template<typename Key, typename Data>
+bool BinaryTree<Key, Data>::containsSubtree(const BinaryTree& subtree) const {
+  if (subtree.root == nullptr) return true;
+
+  const Node* candidate = findNode(subtree.root->key);
+  if (candidate == nullptr) return false;
+
+  Stack<std::pair<const Node*, const Node*>> nodesToCompare;
+  nodesToCompare.push({candidate, subtree.root});
+
+  while (!nodesToCompare.empty()) {
+    const auto [actual, expected] = nodesToCompare.top();
+    nodesToCompare.pop();
+
+    if (actual == nullptr || expected == nullptr) {
+      if (actual != expected) return false;
+      continue;
+    }
+
+    if (!(actual->key == expected->key) || !(actual->data == expected->data)) {
+      return false;
+    }
+
+    nodesToCompare.push({actual->right, expected->right});
+    nodesToCompare.push({actual->left, expected->left});
+  }
+  return true;
+}
+
+template<typename Key, typename Data>
+BinaryTree<Key, Data> BinaryTree<Key, Data>::extractSubtree(const Key& key) const {
+  const Node* subtreeRoot = findNode(key);
+  if (subtreeRoot == nullptr) throw std::out_of_range("Key does not exist");
+
+  BinaryTree result;
+  result.copyNodes(subtreeRoot, clonePlainNode);
+  return result;
 }
 
 template<typename Key, typename Data>

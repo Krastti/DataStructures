@@ -224,7 +224,7 @@ RedBlackTree<Key, Data>::RedBlackTree(Key key) {
 
 template <typename Key, typename Data>
 RedBlackTree<Key, Data>::RedBlackTree(const RedBlackTree& other) : Base() {
-  this->copyNodes(other, [](const Node& source) {
+  this->copyNodes(other.root, [](const Node& source) {
     const auto& node = static_cast<const RBNode&>(source);
     return new RBNode(node.key, node.data, node.color);
   });

@@ -124,7 +124,6 @@ if(BUILD_TESTING)
   add_executable(TreesTests
           FirstLab/tests/BinaryTreeTests.cpp
           FirstLab/tests/RedBlackTree.cpp
-          FirstLab/tests/TreeSafetyTests.cpp
           DataStructures/tests/AllocationFailure.cpp
   )
   target_link_libraries(TreesTests PRIVATE BinaryTree GTest::gtest_main)

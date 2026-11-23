@@ -1,5 +1,4 @@
-#include "BinaryTree.h"
-#include "RedBlackTree.h"
+#include "TreeTestHelpers.h"
 #include "Set.h"
 #include "../../DataStructures/tests/AllocationFailure.h"
 #include <gtest/gtest.h>
@@ -7,6 +6,7 @@
 #include <algorithm>
 #include <compare>
 #include <cstddef>
+#include <exception>
 #include <initializer_list>
 #include <iostream>
 #include <iterator>
@@ -22,24 +22,10 @@
 
 namespace {
 
-template<class Exception, class Operation>
-testing::AssertionResult throwsExactly(Operation operation) {
-  try {
-    operation();
-  } catch (const Exception& error) {
-    if (typeid(error) == typeid(Exception)) return testing::AssertionSuccess();
-    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
-                                       << ", caught " << typeid(error).name();
-  } catch (const std::exception& error) {
-    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
-                                       << ", caught " << typeid(error).name();
-  } catch (...) {
-    return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
-                                       << ", caught a non-standard exception";
-  }
-  return testing::AssertionFailure() << "Expected " << typeid(Exception).name()
-                                     << ", no exception thrown";
-}
+using tree_test::BinaryTag;
+using tree_test::CheckedTree;
+using tree_test::RedBlackTag;
+using tree_test::throwsExactly;
 
 struct Faulty {
   inline static int alive = 0;
@@ -101,15 +87,6 @@ private:
   std::streambuf* previous;
 };
 
-struct BinaryTag {
-  template<class K, class V> using Tree = BinaryTree<K, V>;
-  static constexpr bool balanced = false;
-};
-struct RedBlackTag {
-  template<class K, class V> using Tree = RedBlackTree<K, V>;
-  static constexpr bool balanced = true;
-};
-
 template<class Tag> class TreeSafetyTests : public testing::Test {
 protected:
   void TearDown() override {
@@ -120,73 +97,6 @@ protected:
 };
 using TreeTypes = testing::Types<BinaryTag, RedBlackTag>;
 TYPED_TEST_SUITE(TreeSafetyTests, TreeTypes);
-
-template<class Tag> struct CheckedTree : Tag::template Tree<int, int> {
-  using Node = typename BinaryTree<int, int>::Node;
-
-  int verifyNode(Node* node, Node* parent, long long low, long long high,
-                 std::size_t& count) const {
-    if (node == nullptr) return 1;
-    EXPECT_EQ(node->parent, parent);
-    EXPECT_GT(node->key, low);
-    EXPECT_LT(node->key, high);
-    ++count;
-    int leftHeight = verifyNode(node->left, node, low, node->key, count);
-    int rightHeight = verifyNode(node->right, node, node->key, high, count);
-    if constexpr (Tag::balanced) {
-      EXPECT_EQ(leftHeight, rightHeight) << "key=" << node->key;
-      if (this->isRed(node->key)) {
-        if (node->left) EXPECT_TRUE(this->isBlack(node->left->key));
-        if (node->right) EXPECT_TRUE(this->isBlack(node->right->key));
-      }
-      return leftHeight + (this->isBlack(node->key) ? 1 : 0);
-    }
-    return 0;
-  }
-
-  void verify(const std::map<int, int>& expected) const {
-    std::size_t count = 0;
-    verifyNode(this->root, nullptr, std::numeric_limits<long long>::min(),
-               std::numeric_limits<long long>::max(), count);
-    EXPECT_EQ(count, this->size());
-    ASSERT_EQ(count, expected.size());
-    if constexpr (Tag::balanced) {
-      if (this->root) EXPECT_TRUE(this->isBlack(this->root->key));
-    }
-    auto entries = this->entries();
-    ASSERT_EQ(entries.size(), expected.size());
-    std::size_t index = 0;
-    for (const auto& [key, value] : expected) {
-      EXPECT_EQ(entries[index].first, key);
-      EXPECT_EQ(entries[index].second, value);
-      ++index;
-    }
-  }
-
-  int rootKey() const { return this->root->key; }
-
-  void verifyCopyOf(const CheckedTree& source) const {
-    const auto check = [this, &source](const auto& visit, const Node* original,
-                                      const Node* copy, const Node* parent) -> void {
-      if (original == nullptr) {
-        EXPECT_EQ(copy, nullptr);
-        return;
-      }
-      ASSERT_NE(copy, nullptr);
-      EXPECT_NE(copy, original);
-      EXPECT_EQ(copy->parent, parent);
-      EXPECT_EQ(copy->key, original->key);
-      EXPECT_EQ(copy->data, original->data);
-      if constexpr (Tag::balanced) {
-        EXPECT_EQ(this->isRed(copy->key), source.isRed(original->key));
-      }
-      visit(visit, original->left, copy->left, copy);
-      visit(visit, original->right, copy->right, copy);
-    };
-    EXPECT_EQ(this->size(), source.size());
-    check(check, source.root, this->root, nullptr);
-  }
-};
 
 TYPED_TEST(TreeSafetyTests, LookupAndReplacePreserveContracts) {
   typename TypeParam::template Tree<int, int> tree;
@@ -274,86 +184,6 @@ TYPED_TEST(TreeSafetyTests, PrintReleasesTraversalStackWhenOutputThrows) {
   EXPECT_EQ(balance, 0);
   EXPECT_EQ(tree.size(), 3);
   EXPECT_EQ(tree.at({2}), 20);
-}
-
-TEST(RedBlackTreeTests, SingleKeyConstructorCreatesBlackRootWithDefaultValue) {
-  RedBlackTree<int, int> tree(17);
-  ASSERT_EQ(tree.size(), 1);
-  EXPECT_TRUE(tree.containsKey(17));
-  EXPECT_EQ(tree.get_root(), 0);
-  EXPECT_TRUE(tree.isBlack(17));
-  EXPECT_FALSE(tree.isRed(17));
-}
-
-TEST(RedBlackTreeTests, ColorLookupDistinguishesEmptyTreeFromMissingKey) {
-  RedBlackTree<int, int> tree;
-  EXPECT_TRUE(throwsExactly<std::logic_error>([&] { (void)tree.isRed(17); }));
-  EXPECT_TRUE(throwsExactly<std::logic_error>([&] { (void)tree.isBlack(17); }));
-
-  tree.insert(17, 170);
-  EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { (void)tree.isRed(18); }));
-  EXPECT_TRUE(throwsExactly<std::out_of_range>([&] { (void)tree.isBlack(18); }));
-}
-
-TEST(RedBlackTreeTests, RebalancesInnerAndOuterInsertionsOnBothSides) {
-  const std::initializer_list<int> orders[] = {{3, 2, 1}, {3, 1, 2}, {1, 2, 3}, {1, 3, 2}};
-  for (const auto& order : orders) {
-    SCOPED_TRACE(testing::PrintToString(order));
-    CheckedTree<RedBlackTag> tree;
-    std::map<int, int> expected;
-    for (int key : order) {
-      tree.insert(key, key * 10);
-      expected.emplace(key, key * 10);
-      tree.verify(expected);
-    }
-    EXPECT_EQ(tree.rootKey(), 2);
-  }
-}
-
-TEST(RedBlackTreeTests, RebalancesRedSiblingAndNearAndFarRedChildrenOnBothSides) {
-  const std::initializer_list<int> orders[] = {{2, 1, 4, 3, 5, 6}, {2, 1, 4, 3}, {2, 1, 4, 5}};
-  for (int sign : {1, -1}) {
-    SCOPED_TRACE(sign);
-    for (const auto& order : orders) {
-      SCOPED_TRACE(testing::PrintToString(order));
-      CheckedTree<RedBlackTag> tree;
-      std::map<int, int> expected;
-      for (int key : order) {
-        tree.insert(sign * key, key * 10);
-        expected.emplace(sign * key, key * 10);
-      }
-      ASSERT_TRUE(tree.isBlack(sign));
-      tree.remove(sign);
-      expected.erase(sign);
-      tree.verify(expected);
-    }
-  }
-}
-
-TEST(RedBlackTreeTests, PropagatesBlackHeightLossToRootOnBothSides) {
-  for (int sign : {1, -1}) {
-    SCOPED_TRACE(sign);
-    CheckedTree<RedBlackTag> tree;
-    std::map<int, int> expected;
-    for (int key = 1; key <= 10; ++key) {
-      tree.insert(sign * key, key * 10);
-      expected.emplace(sign * key, key * 10);
-    }
-    for (int key : {8, 9}) {
-      tree.remove(sign * key);
-      expected.erase(sign * key);
-    }
-    tree.verify(expected);
-    ASSERT_EQ(tree.rootKey(), sign * 4);
-    for (int key : {1, 2, 3, 6}) ASSERT_TRUE(tree.isBlack(sign * key));
-
-    tree.remove(sign);
-    expected.erase(sign);
-    tree.verify(expected);
-    EXPECT_EQ(tree.rootKey(), sign * 4);
-    EXPECT_TRUE(tree.isRed(sign * 3));
-    EXPECT_TRUE(tree.isRed(sign * 6));
-  }
 }
 
 TEST(SetSafetyTests, InsertFailuresPreserveExistingKeys) {

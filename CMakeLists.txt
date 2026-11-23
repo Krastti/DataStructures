@@ -125,6 +125,7 @@ if(BUILD_TESTING)
 
   add_executable(TreesTests
           FirstLab/tests/BinaryTreeTests.cpp
+          FirstLab/tests/RedBlackTree.cpp
           FirstLab/tests/TreeSafetyTests.cpp
           DataStructures/tests/AllocationFailure.cpp
   )

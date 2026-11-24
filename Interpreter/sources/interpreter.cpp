@@ -53,10 +53,7 @@ void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, st
   output = &outputStream;
 
   try {
-    for (std::size_t i = 0; i < statements.size(); ++i) {
-      if (!statements[i]) throw std::invalid_argument("Ошибка выполнения: пустая инструкция");
-      statements[i]->accept(*this);
-    }
+    executeStatements(statements);
   } catch (...) {
     // Поток принадлежит вызывающему коду, поэтому не сохраняем ссылку на него после запуска.
     output = nullptr;
@@ -65,6 +62,13 @@ void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, st
   }
   output = nullptr;
   lastValue.reset();
+}
+
+void Interpreter::executeStatements(const Array<UniquePtr<ast::Statement>>& statements) {
+  for (std::size_t i = 0; i < statements.size(); ++i) {
+    if (!statements[i]) throw std::invalid_argument("Ошибка выполнения: пустая инструкция");
+    statements[i]->accept(*this);
+  }
 }
 
 Interpreter::Value Interpreter::evaluate(const ast::Expr& expression) {
@@ -76,6 +80,20 @@ Interpreter::Value Interpreter::evaluate(const ast::Expr& expression) {
   Value result = std::move(lastValue.value());
   lastValue.reset();
   return result;
+}
+
+bool Interpreter::evaluateCondition(const ast::ExpressionTree& condition, const char* instruction) {
+  const auto* expression = condition.getRoot();
+  if (!expression) {
+    throw std::invalid_argument(std::string("Ошибка выполнения: отсутствует условие ") + instruction);
+  }
+  const Value value = evaluate(*expression);
+  const auto* boolean = std::get_if<bool>(&value);
+  if (!boolean) {
+    throw std::invalid_argument(std::string("Ошибка выполнения: условие ") + instruction +
+                                " должно быть логическим");
+  }
+  return *boolean;
 }
 
 void Interpreter::visit(const ast::NumberLiteral& node) {
@@ -133,4 +151,15 @@ void Interpreter::visit(const ast::Print& node) {
   output->write(text.data(), static_cast<std::streamsize>(text.size()));
   output->put('\n');
   if (!*output) throw std::runtime_error("Ошибка выполнения: не удалось записать результат");
+}
+
+void Interpreter::visit(const ast::When& node) {
+  const bool condition = evaluateCondition(node.condition, "when");
+  executeStatements(condition ? node.thenBranch : node.otherwiseBranch);
+}
+
+void Interpreter::visit(const ast::RepeatWhile& node) {
+  while (evaluateCondition(node.condition, "repeat while")) {
+    executeStatements(node.body);
+  }
 }

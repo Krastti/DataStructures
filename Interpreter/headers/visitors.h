@@ -9,6 +9,8 @@ struct StringLiteral;
 struct Binary;
 struct Remember;
 struct Print;
+struct When;
+struct RepeatWhile;
 
 struct ExprVisitor {
   virtual ~ExprVisitor() = default;
@@ -24,6 +26,8 @@ struct StatementVisitor {
 
   virtual void visit(const Remember& node) = 0;
   virtual void visit(const Print& node) = 0;
+  virtual void visit(const When& node) = 0;
+  virtual void visit(const RepeatWhile& node) = 0;
 };
 
 }

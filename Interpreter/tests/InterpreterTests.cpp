@@ -50,6 +50,85 @@ TEST(InterpreterTests, StoresReplacesAndChangesVariableTypes) {
             "2.0\ntrue\ntext\n");
 }
 
+TEST(InterpreterTests, WhenEvaluatesOnlyTheSelectedBranch) {
+  EXPECT_EQ(runProgram(
+      "remember flag = 1 < 2\n"
+      "when flag\n"
+      "  remember flag = 1 > 2\n"
+      "  print 1\n"
+      "otherwise\n"
+      "  print missing\n"
+      "end\n"
+      "when flag\n"
+      "  print missing\n"
+      "otherwise\n"
+      "  print 2\n"
+      "end\n"
+      "when flag\n"
+      "  print missing\n"
+      "end"), "1.0\n2.0\n");
+}
+
+TEST(InterpreterTests, RepeatWhileSkipsTheBodyWhenInitiallyFalse) {
+  EXPECT_EQ(runProgram("repeat while 1 > 2\nprint missing\nend\nprint 3"), "3.0\n");
+}
+
+TEST(InterpreterTests, NestedBlocksShareVariablesAndRepeatWhileChecksEachIteration) {
+  EXPECT_EQ(runProgram(
+      "remember n = 0\n"
+      "when n == 0\n"
+      "  repeat while n < 3\n"
+      "    when n == 1\n"
+      "      remember label = \"середина\"\n"
+      "    otherwise\n"
+      "      print n\n"
+      "    end\n"
+      "    remember n = n + 1\n"
+      "  end\n"
+      "end\n"
+      "print n\n"
+      "print label"), "0.0\n2.0\n3.0\nсередина\n");
+}
+
+TEST(InterpreterTests, SkippedBlocksDoNotCreateVariables) {
+  EXPECT_THROW(runProgram("when 1 > 2\nremember hidden = 1\nend\nprint hidden"),
+               std::invalid_argument);
+}
+
+TEST(InterpreterTests, RequiresBooleanConditionsInWhenAndRepeatWhile) {
+  for (const auto* instruction : {"when", "repeat while"}) {
+    for (const auto* condition : {"1", "\"text\""}) {
+      const std::string source = std::string(instruction) + " " + condition + "\nprint 1\nend";
+      Interpreter interpreter;
+      std::ostringstream output;
+      try {
+        interpreter.execute(parseProgram(source), output);
+        ADD_FAILURE() << source;
+      } catch (const std::invalid_argument& error) {
+        EXPECT_EQ(error.what(), std::string("Ошибка выполнения: условие ") + instruction +
+                                " должно быть логическим");
+      }
+      EXPECT_TRUE(output.str().empty());
+    }
+  }
+}
+
+TEST(InterpreterTests, RepeatWhileStopsOnAnErrorInANestedBranch) {
+  Interpreter interpreter;
+  std::ostringstream output;
+  EXPECT_THROW(interpreter.execute(parseProgram(
+      "remember n = 0\n"
+      "repeat while n < 2\n"
+      "  print n\n"
+      "  remember n = n + 1\n"
+      "  when n == 1\n"
+      "    print missing\n"
+      "  end\n"
+      "end\n"
+      "print 9"), output), std::invalid_argument);
+  EXPECT_EQ(output.str(), "0.0\n");
+}
+
 TEST(InterpreterTests, PrintsStringsWithoutQuotesAndPreservesContents) {
   EXPECT_EQ(runProgram("remember text = \"hello world\"\r\nprint text\nprint \"\"\n"
                        "print \"a\tb\\c\"\nprint \"Привет\""),

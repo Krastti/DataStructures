@@ -21,6 +21,21 @@ TEST(LexerTests, TokenizesAssignmentAndPrint) {
   EXPECT_EQ(tokens[7].type, TokenType::EndOfFile);
 }
 
+TEST(LexerTests, TokenizesRepeatWhileWhenOtherwiseEnd) {
+  Lexer lexer;
+
+  const auto tokens = lexer.tokenize("repeat while when otherwise end end");
+  ASSERT_EQ(tokens.size(), 7u);
+  EXPECT_EQ(tokens[0].type, TokenType::Repeat);
+  EXPECT_EQ(tokens[1].type, TokenType::While);
+  EXPECT_EQ(tokens[2].type, TokenType::When);
+  EXPECT_EQ(tokens[3].type, TokenType::Otherwise);
+  EXPECT_EQ(tokens[4].type, TokenType::End);
+  EXPECT_EQ(tokens[5].type, TokenType::End);
+  EXPECT_EQ(tokens[6].type, TokenType::EndOfFile);
+
+}
+
 TEST(LexerTests, RecognizesEveryOperatorAndParenthesis) {
   Lexer lexer;
   const auto tokens = lexer.tokenize("+ - * / = == != < <= > >= ( )");

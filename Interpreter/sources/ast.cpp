@@ -19,6 +19,15 @@ Remember::Remember(std::string variable, ExpressionTree right)
 
 Print::Print(ExpressionTree forOutput) : forOutput(std::move(forOutput)) {}
 
+When::When(ExpressionTree condition, Array<UniquePtr<Statement>> thenBranch,
+           Array<UniquePtr<Statement>> otherwiseBranch)
+    : condition(std::move(condition)),
+      thenBranch(std::move(thenBranch)),
+      otherwiseBranch(std::move(otherwiseBranch)) {}
+
+RepeatWhile::RepeatWhile(ExpressionTree condition, Array<UniquePtr<Statement>> body)
+    : condition(std::move(condition)), body(std::move(body)) {}
+
 void NumberLiteral::accept(ExprVisitor& visitor) const {
   visitor.visit(*this);
 }
@@ -40,6 +49,14 @@ void Remember::accept(StatementVisitor& visitor) const {
 }
 
 void Print::accept(StatementVisitor& visitor) const {
+  visitor.visit(*this);
+}
+
+void When::accept(StatementVisitor& visitor) const {
+  visitor.visit(*this);
+}
+
+void RepeatWhile::accept(StatementVisitor& visitor) const {
   visitor.visit(*this);
 }
 

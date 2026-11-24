@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 Array<UniquePtr<ast::Statement>> Parser::parse(const Array<Token>& tokens) {
@@ -57,9 +58,91 @@ Parser::ParsedStatement Parser::parseStatement(const Array<Token>& tokens, const
         .nextPosition = value.nextPosition
       };
     }
+    case TokenType::When: {
+      const TokenType firstConditionToken = tokens[position + 1].type;
+      if (firstConditionToken == TokenType::Newline || firstConditionToken == TokenType::EndOfFile) {
+        throw std::invalid_argument("Ожидалось условие после when");
+      }
+
+      auto condition = parseEquality(tokens, position + 1);
+      requireToken(tokens, condition.nextPosition, TokenType::Newline,
+                   "Ожидался перевод строки после условия when");
+
+      auto thenBranch = parseBody(tokens, condition.nextPosition + 1,
+                                  {TokenType::Otherwise, TokenType::End}, "when");
+      std::size_t endPosition = thenBranch.nextPosition;
+
+      Array<UniquePtr<ast::Statement>> otherwiseBranch;
+      if (tokens[endPosition].type == TokenType::Otherwise) {
+        requireToken(tokens, endPosition + 1, TokenType::Newline,
+                     "Ожидался перевод строки после otherwise");
+
+        auto branch = parseBody(tokens, endPosition + 2, {TokenType::End}, "when");
+        otherwiseBranch = std::move(branch.statements);
+        endPosition = branch.nextPosition;
+      }
+
+      requireToken(tokens, endPosition, TokenType::End, "Ожидался end для блока when");
+      return {.statement = UniquePtr<ast::Statement>(
+        new ast::When(std::move(condition.expression), std::move(thenBranch.statements),
+                      std::move(otherwiseBranch))),
+        .nextPosition = endPosition + 1
+      };
+    }
+    case TokenType::Repeat: {
+      requireToken(tokens, position + 1, TokenType::While, "Ожидался while после repeat");
+
+      const TokenType firstConditionToken = tokens[position + 2].type;
+      if (firstConditionToken == TokenType::Newline || firstConditionToken == TokenType::EndOfFile) {
+        throw std::invalid_argument("Ожидалось условие после repeat while");
+      }
+
+      auto condition = parseEquality(tokens, position + 2);
+      requireToken(tokens, condition.nextPosition, TokenType::Newline,
+                   "Ожидался перевод строки после условия repeat while");
+
+      auto body = parseBody(tokens, condition.nextPosition + 1, {TokenType::End}, "repeat while");
+      return {.statement = UniquePtr<ast::Statement>(
+        new ast::RepeatWhile(std::move(condition.expression), std::move(body.statements))),
+        .nextPosition = body.nextPosition + 1
+      };
+    }
+    case TokenType::Otherwise:
+      throw std::invalid_argument("Неожиданный otherwise вне блока when");
+    case TokenType::End:
+      throw std::invalid_argument("Неожиданный end вне блока");
     default:
       throw std::invalid_argument("Неожиданный токен в начале инструкции");
   }
+}
+
+Parser::ParsedBody Parser::parseBody(const Array<Token>& tokens, std::size_t position,
+                                    const std::initializer_list<TokenType> terminators,
+                                    const char* blockName) {
+  Array<UniquePtr<ast::Statement>> statements;
+  while (position < tokens.size()) {
+    const TokenType type = tokens[position].type;
+    if (type == TokenType::EndOfFile) break;
+    if (type == TokenType::Newline) {
+      ++position;
+      continue;
+    }
+    if (std::ranges::find(terminators, type) != terminators.end()) {
+      return {.statements = std::move(statements), .nextPosition = position};
+    }
+    if (type == TokenType::Otherwise) {
+      throw std::invalid_argument(std::string("Неожиданный otherwise в блоке ") + blockName);
+    }
+
+    auto statement = parseStatement(tokens, position);
+    position = statement.nextPosition;
+    if (position == tokens.size() || tokens[position].type == TokenType::EndOfFile) break;
+    requireToken(tokens, position, TokenType::Newline,
+                 "Ожидался перевод строки после инструкции в блоке");
+    statements.push_back(std::move(statement.statement));
+    ++position;
+  }
+  throw std::invalid_argument(std::string("Ожидался end для блока ") + blockName);
 }
 
 void Parser::requireStatementEnd(const Array<Token>& tokens, const std::size_t position) {

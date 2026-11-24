@@ -29,6 +29,11 @@ private:
     std::size_t nextPosition;
   };
 
+  struct ParsedBody {
+    Array<UniquePtr<ast::Statement>> statements;
+    std::size_t nextPosition;
+  };
+
   // Функция, которая разбирает операнд на следующем уровне приоритета.
   using ExpressionParser = ParsedExpr (*)(const Array<Token>&, std::size_t);
 
@@ -39,8 +44,12 @@ private:
   // Проверяет, что после инструкции идёт перевод строки или EOF.
   static void requireStatementEnd(const Array<Token>& tokens, std::size_t position);
 
-  // Разбирает одну инструкцию remember или print и возвращает позицию после неё.
+  // Разбирает одну инструкцию и возвращает позицию после неё.
   static ParsedStatement parseStatement(const Array<Token>& tokens, std::size_t position);
+
+  // Собирает инструкции блока и оставляет позицию на маркере его окончания.
+  static ParsedBody parseBody(const Array<Token>& tokens, std::size_t position,
+                              std::initializer_list<TokenType> terminators, const char* blockName);
 
   // Создаёт лист дерева из токена числа, строки или имени переменной.
   static ast::ExpressionTree parseOperand(const Array<Token>& tokens, std::size_t position);

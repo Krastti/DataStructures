@@ -36,6 +36,152 @@ TEST(ParserTests, ParsesRememberAndPrintInOrder) {
   EXPECT_EQ(name->name, "x");
 }
 
+TEST(ParserTests, ParsesNestedWhenAndKeepsEachBranchAtItsOwnLevel) {
+  const auto program = parse(
+      "when (x + 1) < 3\n"
+      "  when x == 1\n"
+      "    print 1\n"
+      "  otherwise\n"
+      "    remember x = 2\n"
+      "  end\n"
+      "  print x\n"
+      "otherwise\n"
+      "  remember x = 3\n"
+      "end\n"
+      "print x");
+  ASSERT_EQ(program.size(), 2u);
+  const auto* outer = dynamic_cast<const ast::When*>(program[0].get());
+  ASSERT_NE(outer, nullptr);
+  const auto* condition = dynamic_cast<const ast::Binary*>(outer->condition.getRoot());
+  ASSERT_NE(condition, nullptr);
+  EXPECT_EQ(condition->operation, TokenType::Less);
+  ASSERT_EQ(outer->thenBranch.size(), 2u);
+  ASSERT_EQ(outer->otherwiseBranch.size(), 1u);
+
+  const auto* inner = dynamic_cast<const ast::When*>(outer->thenBranch[0].get());
+  ASSERT_NE(inner, nullptr);
+  ASSERT_EQ(inner->thenBranch.size(), 1u);
+  ASSERT_EQ(inner->otherwiseBranch.size(), 1u);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(inner->thenBranch[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Remember*>(inner->otherwiseBranch[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(outer->thenBranch[1].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Remember*>(outer->otherwiseBranch[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(program[1].get()), nullptr);
+}
+
+TEST(ParserTests, ParsesEmptyWhenBranchesAndEndBeforeEof) {
+  const auto program = parse("when 1 < 2\r\n\r\nend\r\nwhen flag\notherwise\n\nend");
+  ASSERT_EQ(program.size(), 2u);
+  for (std::size_t i = 0; i < program.size(); ++i) {
+    const auto* when = dynamic_cast<const ast::When*>(program[i].get());
+    ASSERT_NE(when, nullptr);
+    EXPECT_NE(when->condition.getRoot(), nullptr);
+    EXPECT_EQ(when->thenBranch.size(), 0u);
+    EXPECT_EQ(when->otherwiseBranch.size(), 0u);
+  }
+}
+
+TEST(ParserTests, ParsesWhenInsideRepeatWhile) {
+  const auto program = parse(
+      "repeat while n < 3\n"
+      "  when n == 1\n"
+      "    print 1\n"
+      "  otherwise\n"
+      "    print n\n"
+      "  end\n"
+      "  remember n = n + 1\n"
+      "end\n"
+      "print n");
+  ASSERT_EQ(program.size(), 2u);
+  const auto* loop = dynamic_cast<const ast::RepeatWhile*>(program[0].get());
+  ASSERT_NE(loop, nullptr);
+  const auto* condition = dynamic_cast<const ast::Binary*>(loop->condition.getRoot());
+  ASSERT_NE(condition, nullptr);
+  EXPECT_EQ(condition->operation, TokenType::Less);
+  ASSERT_EQ(loop->body.size(), 2u);
+
+  const auto* when = dynamic_cast<const ast::When*>(loop->body[0].get());
+  ASSERT_NE(when, nullptr);
+  ASSERT_EQ(when->thenBranch.size(), 1u);
+  ASSERT_EQ(when->otherwiseBranch.size(), 1u);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(when->thenBranch[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(when->otherwiseBranch[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Remember*>(loop->body[1].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(program[1].get()), nullptr);
+}
+
+TEST(ParserTests, ParsesRepeatWhileInsideWhen) {
+  const auto program = parse(
+      "when flag\n"
+      "  repeat while n < 3\n"
+      "    remember n = n + 1\n"
+      "  end\n"
+      "  print n\n"
+      "otherwise\n"
+      "  repeat while other\n"
+      "\n"
+      "  end\n"
+      "end");
+  ASSERT_EQ(program.size(), 1u);
+  const auto* when = dynamic_cast<const ast::When*>(program[0].get());
+  ASSERT_NE(when, nullptr);
+  ASSERT_EQ(when->thenBranch.size(), 2u);
+  ASSERT_EQ(when->otherwiseBranch.size(), 1u);
+
+  const auto* loop = dynamic_cast<const ast::RepeatWhile*>(when->thenBranch[0].get());
+  ASSERT_NE(loop, nullptr);
+  ASSERT_EQ(loop->body.size(), 1u);
+  EXPECT_NE(dynamic_cast<const ast::Remember*>(loop->body[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(when->thenBranch[1].get()), nullptr);
+
+  const auto* emptyLoop = dynamic_cast<const ast::RepeatWhile*>(when->otherwiseBranch[0].get());
+  ASSERT_NE(emptyLoop, nullptr);
+  EXPECT_EQ(emptyLoop->body.size(), 0u);
+}
+
+TEST(ParserTests, RejectsMalformedRepeatWhileWithBlockDiagnostics) {
+  const std::pair<const char*, const char*> cases[] = {
+    {"repeat", "Ожидался while после repeat"},
+    {"repeat n < 3\nend", "Ожидался while после repeat"},
+    {"repeat while\nend", "Ожидалось условие после repeat while"},
+    {"repeat while flag end", "Ожидался перевод строки после условия repeat while"},
+    {"repeat while flag\nprint 1", "Ожидался end для блока repeat while"},
+    {"repeat while flag\nend print 1", "Ожидался перевод строки или конец файла"},
+    {"when flag\nrepeat while other\notherwise\nend", "Неожиданный otherwise в блоке repeat while"}
+  };
+  for (const auto& [source, message] : cases) {
+    try {
+      parse(source);
+      ADD_FAILURE() << source;
+    } catch (const std::invalid_argument& error) {
+      EXPECT_STREQ(error.what(), message) << source;
+    }
+  }
+}
+
+TEST(ParserTests, RejectsMalformedWhenWithBlockDiagnostics) {
+  const std::pair<const char*, const char*> cases[] = {
+    {"when\nend", "Ожидалось условие после when"},
+    {"when flag print 1\nend", "Ожидался перевод строки после условия when"},
+    {"when flag\notherwise print 1\nend", "Ожидался перевод строки после otherwise"},
+    {"when flag\nprint 1 end", "Ожидался перевод строки после инструкции в блоке"},
+    {"when flag\nprint 1", "Ожидался end для блока when"},
+    {"when flag\notherwise\notherwise\nend", "Неожиданный otherwise в блоке when"},
+    {"when flag\nwhen other\nend", "Ожидался end для блока when"},
+    {"when flag\nend print 1", "Ожидался перевод строки или конец файла"},
+    {"otherwise\n", "Неожиданный otherwise вне блока when"},
+    {"end", "Неожиданный end вне блока"}
+  };
+  for (const auto& [source, message] : cases) {
+    try {
+      parse(source);
+      ADD_FAILURE() << source;
+    } catch (const std::invalid_argument& error) {
+      EXPECT_STREQ(error.what(), message) << source;
+    }
+  }
+}
+
 TEST(ParserTests, MultiplicationBindsMoreTightlyThanAddition) {
   const auto program = parse("print 2 + 3 * 4");
   const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
@@ -195,6 +341,25 @@ public:
     events.push_back("print");
     if (visitChildren) node.forOutput.getRoot()->accept(*this);
   }
+
+  void visit(const ast::When& node) override {
+    lastStatement = &node;
+    events.push_back("when");
+    if (visitChildren) {
+      node.condition.getRoot()->accept(*this);
+      for (std::size_t i = 0; i < node.thenBranch.size(); ++i) node.thenBranch[i]->accept(*this);
+      for (std::size_t i = 0; i < node.otherwiseBranch.size(); ++i) node.otherwiseBranch[i]->accept(*this);
+    }
+  }
+
+  void visit(const ast::RepeatWhile& node) override {
+    lastStatement = &node;
+    events.push_back("repeat while");
+    if (visitChildren) {
+      node.condition.getRoot()->accept(*this);
+      for (std::size_t i = 0; i < node.body.size(); ++i) node.body[i]->accept(*this);
+    }
+  }
 };
 }
 
@@ -220,16 +385,24 @@ TEST(ParserTests, AcceptDispatchesEachExpressionThroughConstBaseReference) {
 
 TEST(ParserTests, AcceptDispatchesStatementsWithoutVisitingChildrenAutomatically) {
   const auto program = parse("remember x = 1\nprint x");
+  ASSERT_EQ(program.size(), 2u);
+  const ast::When when(ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::Identifier("flag"))),
+                       {}, {});
+  const ast::RepeatWhile repeat(ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::Identifier("flag"))),
+                                {});
+  const ast::Statement* statements[] = {program[0].get(), program[1].get(), &when, &repeat};
+
   RecordingVisitor visitor;
   ast::StatementVisitor& statementVisitor = visitor;
-  for (std::size_t i = 0; i < program.size(); ++i) {
-    const ast::Statement& statement = *program[i];
-    statement.accept(statementVisitor);
-    EXPECT_EQ(visitor.lastStatement, &statement);
+  for (const auto* statement : statements) {
+    statement->accept(statementVisitor);
+    EXPECT_EQ(visitor.lastStatement, statement);
   }
-  ASSERT_EQ(visitor.events.size(), 2u);
+  ASSERT_EQ(visitor.events.size(), 4u);
   EXPECT_EQ(visitor.events[0], "remember:x");
   EXPECT_EQ(visitor.events[1], "print");
+  EXPECT_EQ(visitor.events[2], "when");
+  EXPECT_EQ(visitor.events[3], "repeat while");
   EXPECT_EQ(visitor.lastExpression, nullptr);
 }
 

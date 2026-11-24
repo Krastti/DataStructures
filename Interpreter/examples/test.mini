@@ -1,5 +1,13 @@
-remember name = "Ярослав"
-remember age = 18 + 1
+remember n = 0
 
-print name
-print age
+repeat while n < 3
+    when n == 1
+        print "Середина"
+    otherwise
+        print n
+    end
+
+    remember n = n + 1
+end
+
+print n

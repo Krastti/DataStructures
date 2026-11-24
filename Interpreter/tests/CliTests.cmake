@@ -36,6 +36,23 @@ file(WRITE "${TEST_WORK_DIR}/empty.mini" "")
 file(WRITE "${TEST_WORK_DIR}/lexical.mini" "print 1\n@")
 file(WRITE "${TEST_WORK_DIR}/syntax.mini" "print 1\nprint (")
 file(WRITE "${TEST_WORK_DIR}/runtime.mini" "print 1\nprint missing\nprint 2")
+file(WRITE "${TEST_WORK_DIR}/control-flow.mini"
+  "remember n = 0\n"
+  "repeat while n < 3\n"
+  "  when n == 1\n"
+  "    print \"середина\"\n"
+  "  otherwise\n"
+  "    print n\n"
+  "  end\n"
+  "  remember n = n + 1\n"
+  "end\n"
+  "print n")
+file(WRITE "${TEST_WORK_DIR}/unclosed-block.mini"
+  "print 1\nwhen 1 < 2\n  repeat while 1 > 2\n  end")
+file(WRITE "${TEST_WORK_DIR}/when-condition.mini"
+  "when 1\nprint 2\nend")
+file(WRITE "${TEST_WORK_DIR}/repeat-condition.mini"
+  "print 1\nrepeat while \"text\"\nprint 2\nend\nprint 3")
 
 check_cli(no_arguments 2 "" "Использование:")
 check_cli(extra_arguments 2 "" "Использование:" "one.mini" "two.mini")
@@ -47,3 +64,11 @@ check_cli(lexical_error 1 "" "Ошибка лексического анализ
 check_cli(syntax_error 1 "" "Ошибка синтаксического анализа:" "${TEST_WORK_DIR}/syntax.mini")
 check_cli(runtime_error 1 "1.0\n" "Ошибка выполнения: неизвестная переменная: missing"
   "${TEST_WORK_DIR}/runtime.mini")
+check_cli(control_flow 0 "0.0\nсередина\n2.0\n3.0\n" ""
+  "${TEST_WORK_DIR}/control-flow.mini")
+check_cli(unclosed_block 1 "" "Ошибка синтаксического анализа: Ожидался end для блока when"
+  "${TEST_WORK_DIR}/unclosed-block.mini")
+check_cli(when_condition_type 1 "" "Ошибка выполнения: условие when должно быть логическим"
+  "${TEST_WORK_DIR}/when-condition.mini")
+check_cli(repeat_condition_type 1 "1.0\n" "Ошибка выполнения: условие repeat while должно быть логическим"
+  "${TEST_WORK_DIR}/repeat-condition.mini")

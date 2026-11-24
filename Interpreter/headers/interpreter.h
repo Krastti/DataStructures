@@ -27,6 +27,8 @@ public:
 
   void visit(const ast::Remember& node) override;
   void visit(const ast::Print& node) override;
+  void visit(const ast::When& node) override;
+  void visit(const ast::RepeatWhile& node) override;
 
 private:
   Map<std::string, Value> variables;
@@ -37,6 +39,8 @@ private:
 
   // Забирает результат после accept, до перехода к следующему выражению.
   Value evaluate(const ast::Expr& expression);
+  bool evaluateCondition(const ast::ExpressionTree& condition, const char* instruction);
+  void executeStatements(const Array<UniquePtr<ast::Statement>>& statements);
 };
 
 #endif //DATASTRUCTURES_INTERPRETER_H

@@ -126,6 +126,11 @@ Array<Token> Lexer::tokenize(const std::string& source) {
         type = TokenType::Identifier;
         if (source.compare(start, length, "remember") == 0) type = TokenType::Remember;
         else if (source.compare(start, length, "print") == 0) type = TokenType::Print;
+        else if (source.compare(start, length, "when") == 0) type = TokenType::When;
+        else if (source.compare(start, length, "otherwise") == 0) type = TokenType::Otherwise;
+        else if (source.compare(start, length, "repeat") == 0) type = TokenType::Repeat;
+        else if (source.compare(start, length, "end") == 0) type = TokenType::End;
+        else if (source.compare(start, length, "while") == 0) type = TokenType::While;
         break;
       case State::StringClosed:
         type = TokenType::String;

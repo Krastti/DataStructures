@@ -27,7 +27,13 @@ enum class TokenType {
   LeftParen,
   RightParen,
   Newline,
-  EndOfFile
+  EndOfFile,
+
+  When,
+  Otherwise,
+  Repeat,
+  While,
+  End
 };
 
 struct Token {

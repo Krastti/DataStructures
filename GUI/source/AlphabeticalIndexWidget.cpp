@@ -1,4 +1,5 @@
 #include "../include/Common.h"
+#include "../include/IndexAppearance.h"
 #include "AlphabeticalIndex.h"
 #include <memory>
 
@@ -13,48 +14,103 @@ struct Result {
 
 QWidget* alphabeticalTab() {
   auto* root = new QWidget;
+  indexAppearance::stylePage(root);
   auto* layout = new QVBoxLayout(root);
-  auto* controls = new QHBoxLayout;
-  auto* size = number(2, 1000000, 80);
-  controls->addWidget(new QLabel("Символов на странице:"));
-  controls->addWidget(size);
-  layout->addLayout(controls);
+  layout->setContentsMargins(24, 16, 24, 18);
+  layout->setSpacing(10);
+  auto* workspace = new QHBoxLayout;
+  workspace->setSpacing(16);
+  layout->addLayout(workspace, 1);
+
   auto* split = new QSplitter;
+  split->setChildrenCollapsible(false);
+  workspace->addWidget(split, 1);
+  auto* source = new QWidget;
+  auto* sourceLayout = new QVBoxLayout(source);
+  sourceLayout->setContentsMargins(0, 0, 10, 0);
+  auto* sourceBar = new QHBoxLayout;
+  indexAppearance::heading(sourceBar, "Исходный текст");
+  sourceBar->addStretch();
+  sourceLayout->addLayout(sourceBar);
   auto* text = new QPlainTextEdit("кот мир\nдом кот");
   text->setObjectName("sourceText");
+  text->setAccessibleName("Исходный текст");
   text->setPlaceholderText("Введите текст или загрузите TXT");
-  split->addWidget(text);
+  sourceLayout->addWidget(text);
+  split->addWidget(source);
+
   auto* results = new QWidget;
   auto* resultLayout = new QVBoxLayout(results);
+  resultLayout->setContentsMargins(10, 0, 0, 0);
+  auto* indexBar = new QHBoxLayout;
+  indexAppearance::heading(indexBar, "Указатель");
+  indexBar->addStretch();
+  resultLayout->addLayout(indexBar);
   auto* entries = table({"Слово", "Страницы"});
   entries->setObjectName("wordEntries");
-  auto* page = number(1, 1, 1);
+  indexAppearance::styleTable(entries);
+  auto* page = indexAppearance::number(1, 1, 1);
+  auto* pageControls = new QHBoxLayout;
+  auto* pageLabel = new QLabel("&Страница");
+  pageLabel->setBuddy(page);
+  pageControls->addWidget(pageLabel);
+  pageControls->addWidget(page);
+  pageControls->addStretch();
   auto* preview = new QPlainTextEdit;
+  preview->setAccessibleName("Просмотр страницы");
   preview->setReadOnly(true);
-  resultLayout->addWidget(entries);
-  resultLayout->addWidget(new QLabel("Просмотр страницы:"));
-  resultLayout->addWidget(page);
-  resultLayout->addWidget(preview);
+  resultLayout->addWidget(entries, 2);
+  resultLayout->addLayout(pageControls);
+  resultLayout->addWidget(preview, 1);
   split->addWidget(results);
-  layout->addWidget(split);
-  auto* search = new QHBoxLayout;
+  split->setStretchFactor(0, 1);
+  split->setStretchFactor(1, 1);
+
+  workspace->addWidget(indexAppearance::divider(Qt::Vertical));
+  auto* sidebar = new QVBoxLayout;
+  sidebar->setSpacing(8);
+  workspace->addLayout(sidebar);
+  indexAppearance::heading(sidebar, "Построение указателя");
+  auto* size = indexAppearance::number(2, 1000000, 80);
+  auto* sizeLabel = new QLabel("С&имволов на странице");
+  sizeLabel->setBuddy(size);
+  sidebar->addWidget(sizeLabel);
+  sidebar->addWidget(size);
+  auto* controls = new QVBoxLayout;
+  sidebar->addLayout(controls);
+  sidebar->addSpacing(8);
+  sidebar->addWidget(indexAppearance::divider(Qt::Horizontal));
+  sidebar->addSpacing(8);
+
+  auto* search = new QVBoxLayout;
+  sidebar->addLayout(search);
+  indexAppearance::heading(search, "Поиск слова");
   auto* query = new QLineEdit;
   query->setObjectName("wordQuery");
+  query->setAccessibleName("Слово для поиска");
   query->setPlaceholderText("Слово для поиска");
-  auto* algorithm = new QComboBox;
+  auto* algorithm = new indexAppearance::SearchModeInput;
+  algorithm->setAccessibleName("Метод поиска слова");
   algorithm->addItems({"Бинарный поиск", "Красно-чёрное дерево", "Сравнить"});
   search->addWidget(query);
   search->addWidget(algorithm);
-  layout->addLayout(search);
+  sidebar->addStretch();
+
+  layout->addWidget(indexAppearance::divider(Qt::Horizontal));
+  auto* measurementBar = new QHBoxLayout;
+  indexAppearance::heading(measurementBar, "Замеры");
+  measurementBar->addStretch();
+  layout->addLayout(measurementBar);
   auto* status = new QLabel("Введите текст и постройте указатель");
   status->setWordWrap(true);
-  status->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   status->setObjectName("status");
   layout->addWidget(status);
   auto* metrics = table({"Операция", "Результат и время"});
-  metrics->setMaximumHeight(110);
+  indexAppearance::styleTable(metrics);
+  metrics->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+  metrics->setFixedHeight(120);
   layout->addWidget(metrics);
-  button("Экспорт замеров", controls, [=] { exportTable(root, metrics); });
+  button("Экспорт замеров", measurementBar, [=] { exportTable(root, metrics); });
   auto state = std::make_shared<std::shared_ptr<AlphabeticalIndex>>();
   auto invalidate = [=] {
     state->reset();
@@ -65,14 +121,14 @@ QWidget* alphabeticalTab() {
   };
   QObject::connect(text, &QPlainTextEdit::textChanged, root, invalidate);
   QObject::connect(size, &QSpinBox::valueChanged, root, invalidate);
-  button("Загрузить TXT", controls, [=] {
+  button("Загрузить TXT", sourceBar, [=] {
     const QString path = QFileDialog::getOpenFileName(root, "Открыть текст", {}, "Текст (*.txt);;Все файлы (*)");
     if (path.isEmpty()) return;
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) throw std::runtime_error(file.errorString().toStdString());
     text->setPlainText(QString::fromUtf8(file.readAll()));
   });
-  button("Построить", controls, [=] {
+  auto* build = button("Построить", controls, [=] {
     const QString source = text->toPlainText();
     const int capacity = size->value();
     background(root, status, [=] {
@@ -101,6 +157,7 @@ QWidget* alphabeticalTab() {
       row(metrics, {"Замер", result.summary});
     });
   });
+  build->setProperty("indexPrimary", true);
   QObject::connect(page, &QSpinBox::valueChanged, root, [=](int value) {
     if (*state) preview->setPlainText(utf((*state)->pages()[value - 1]));
   });
@@ -145,6 +202,6 @@ QWidget* alphabeticalTab() {
     preview->moveCursor(QTextCursor::Start);
     preview->find(query->text());
   });
-  button("Экспорт указателя", controls, [=] { exportTable(root, entries); });
+  button("Экспорт указателя", indexBar, [=] { exportTable(root, entries); });
   return root;
 }

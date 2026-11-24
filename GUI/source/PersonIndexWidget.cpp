@@ -1,4 +1,5 @@
 #include "../include/Common.h"
+#include "../include/IndexAppearance.h"
 #include "PersonIndex.h"
 #include <memory>
 #include <random>
@@ -22,55 +23,122 @@ void showPeople(QTableWidget* target, const Array<PersonRecord>& people) {
 
 QWidget* personTab() {
   auto* root = new QWidget;
+  indexAppearance::stylePage(root);
   auto* layout = new QVBoxLayout(root);
-  auto* tools = new QHBoxLayout;
-  auto* count = number(1, 100000, 100);
-  auto* seed = number(0, 1000000, 1);
-  tools->addWidget(new QLabel("Размер:"));
-  tools->addWidget(count);
-  tools->addWidget(new QLabel("Seed:"));
-  tools->addWidget(seed);
-  layout->addLayout(tools);
-  auto* sourceTools = new QHBoxLayout;
-  layout->addLayout(sourceTools);
+  layout->setContentsMargins(24, 16, 24, 18);
+  layout->setSpacing(10);
+  auto* workspace = new QHBoxLayout;
+  workspace->setSpacing(16);
+  layout->addLayout(workspace, 1);
+
+  auto* split = new QSplitter(Qt::Vertical);
+  split->setChildrenCollapsible(false);
+  workspace->addWidget(split, 1);
+  auto* sourcePanel = new QWidget;
+  auto* sourceLayout = new QVBoxLayout(sourcePanel);
+  sourceLayout->setContentsMargins(0, 0, 0, 6);
+  indexAppearance::heading(sourceLayout, "Исходные записи");
   auto* source = table({"ID", "Имя", "Фамилия", "Год"}, true);
   source->setObjectName("peopleSource");
-  layout->addWidget(new QLabel("Исходные записи"));
-  layout->addWidget(source);
-  auto* exact = new QHBoxLayout;
-  auto* first = new QLineEdit;
-  first->setPlaceholderText("Имя");
-  auto* last = new QLineEdit;
-  last->setPlaceholderText("Фамилия");
-  auto* year = number(-10000, 10000, 2000);
-  exact->addWidget(first);
-  exact->addWidget(last);
-  exact->addWidget(year);
-  layout->addLayout(exact);
-  auto* range = new QHBoxLayout;
-  auto* from = number(-10000, 10000, 1980);
-  auto* to = number(-10000, 10000, 2000);
-  auto* mode = new QComboBox;
-  mode->addItems({"Индекс", "Полный просмотр", "Сравнить"});
-  range->addWidget(new QLabel("Годы от"));
-  range->addWidget(from);
-  range->addWidget(new QLabel("до"));
-  range->addWidget(to);
-  range->addWidget(mode);
-  layout->addLayout(range);
+  indexAppearance::styleTable(source);
+  sourceLayout->addWidget(source, 1);
+  auto* sourceTools = new QHBoxLayout;
+  sourceLayout->addLayout(sourceTools);
+  split->addWidget(sourcePanel);
+  auto* resultPanel = new QWidget;
+  auto* resultLayout = new QVBoxLayout(resultPanel);
+  resultLayout->setContentsMargins(0, 6, 0, 0);
+  auto* resultBar = new QHBoxLayout;
+  indexAppearance::heading(resultBar, "Результат поиска");
+  resultBar->addStretch();
+  resultLayout->addLayout(resultBar);
   auto* output = table({"ID", "Имя", "Фамилия", "Год"});
   output->setObjectName("peopleResults");
-  layout->addWidget(new QLabel("Результат поиска"));
-  layout->addWidget(output);
+  indexAppearance::styleTable(output);
+  resultLayout->addWidget(output, 1);
+  split->addWidget(resultPanel);
+  split->setStretchFactor(0, 1);
+  split->setStretchFactor(1, 1);
+
+  workspace->addWidget(indexAppearance::divider(Qt::Vertical));
+  auto* sidebar = new QVBoxLayout;
+  sidebar->setSpacing(8);
+  workspace->addLayout(sidebar);
+  indexAppearance::heading(sidebar, "Подготовка индекса");
+  auto* count = indexAppearance::number(1, 100000, 100);
+  auto* seed = indexAppearance::number(0, 1000000, 1);
+  auto* generationFields = new QGridLayout;
+  auto* countLabel = new QLabel("Число записей");
+  countLabel->setBuddy(count);
+  auto* seedLabel = new QLabel("Seed");
+  seedLabel->setBuddy(seed);
+  generationFields->addWidget(countLabel, 0, 0);
+  generationFields->addWidget(seedLabel, 0, 1);
+  generationFields->addWidget(count, 1, 0);
+  generationFields->addWidget(seed, 1, 1);
+  sidebar->addLayout(generationFields);
+  auto* tools = new QHBoxLayout;
+  sidebar->addLayout(tools);
+  sidebar->addWidget(indexAppearance::divider(Qt::Horizontal));
+
+  indexAppearance::heading(sidebar, "Точный поиск");
+  auto* names = new QHBoxLayout;
+  auto* first = new QLineEdit;
+  first->setPlaceholderText("Имя");
+  first->setAccessibleName("Имя");
+  auto* last = new QLineEdit;
+  last->setPlaceholderText("Фамилия");
+  last->setAccessibleName("Фамилия");
+  names->addWidget(first);
+  names->addWidget(last);
+  sidebar->addLayout(names);
+  auto* exact = new QHBoxLayout;
+  auto* year = indexAppearance::number(-10000, 10000, 2000);
+  auto* yearLabel = new QLabel("Год");
+  yearLabel->setBuddy(year);
+  exact->addWidget(yearLabel);
+  exact->addWidget(year, 1);
+  sidebar->addLayout(exact);
+  sidebar->addWidget(indexAppearance::divider(Qt::Horizontal));
+
+  indexAppearance::heading(sidebar, "Поиск по диапазону");
+  auto* years = new QHBoxLayout;
+  auto* from = indexAppearance::number(-10000, 10000, 1980);
+  auto* to = indexAppearance::number(-10000, 10000, 2000);
+  auto* fromLabel = new QLabel("С");
+  fromLabel->setBuddy(from);
+  from->setAccessibleName("Начальный год");
+  auto* toLabel = new QLabel("по");
+  toLabel->setBuddy(to);
+  to->setAccessibleName("Конечный год");
+  years->addWidget(fromLabel);
+  years->addWidget(from, 1);
+  years->addWidget(toLabel);
+  years->addWidget(to, 1);
+  sidebar->addLayout(years);
+  auto* range = new QHBoxLayout;
+  auto* mode = new indexAppearance::SearchModeInput;
+  mode->setAccessibleName("Метод поиска по диапазону");
+  mode->addItems({"Индекс", "Полный просмотр", "Сравнить"});
+  range->addWidget(mode, 1);
+  sidebar->addLayout(range);
+  sidebar->addStretch();
+
+  layout->addWidget(indexAppearance::divider(Qt::Horizontal));
+  auto* measurementBar = new QHBoxLayout;
+  indexAppearance::heading(measurementBar, "Замеры");
+  measurementBar->addStretch();
+  layout->addLayout(measurementBar);
   auto* status = new QLabel("Добавьте записи или сгенерируйте набор");
   status->setWordWrap(true);
-  status->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   status->setObjectName("status");
   layout->addWidget(status);
   auto* metrics = table({"Операция", "Результат и время"});
-  metrics->setMaximumHeight(110);
+  indexAppearance::styleTable(metrics);
+  metrics->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+  metrics->setFixedHeight(120);
   layout->addWidget(metrics);
-  button("Экспорт замеров", sourceTools, [=] { exportTable(root, metrics); });
+  button("Экспорт замеров", measurementBar, [=] { exportTable(root, metrics); });
   auto index = std::make_shared<std::shared_ptr<PersonIndex>>();
   auto people = std::make_shared<Array<PersonRecord>>();
   QObject::connect(source, &QTableWidget::itemChanged, root, [=] {
@@ -108,7 +176,7 @@ QWidget* personTab() {
       status->setText("Набор создан — постройте индекс");
     });
   });
-  button("Построить индекс", sourceTools, [=] {
+  auto* build = button("Построить индекс", tools, [=] {
     Array<PersonRecord> input;
     for (int r = 0; r < source->rowCount(); ++r) {
       const auto name = cell(source, r, 1).trimmed();
@@ -135,6 +203,7 @@ QWidget* personTab() {
       row(metrics, {"Замер", result.summary});
     });
   });
+  build->setProperty("indexPrimary", true);
   button("Точный поиск", exact, [=] {
     if (!*index) throw std::invalid_argument("Сначала постройте индекс");
     auto current = *index;
@@ -178,6 +247,6 @@ QWidget* personTab() {
     }, [=](const Result& result) { showPeople(output, result.matches); status->setText(result.summary);
       row(metrics, {"Замер", result.summary}); });
   });
-  button("Экспорт результата", sourceTools, [=] { exportTable(root, output); });
+  button("Экспорт результата", resultBar, [=] { exportTable(root, output); });
   return root;
 }

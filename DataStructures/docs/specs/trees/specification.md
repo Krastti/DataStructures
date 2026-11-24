@@ -117,8 +117,8 @@
 |---|---|
 | `SecondLab/include/AlphabeticalIndex.h` | `Map`: слово → номера страниц |
 | `SecondLab/include/PersonIndex.h` | `Map`: составной ключ → записи; год рождения → записи |
-| `Graph/AdjacencyGraph` | `Map`: вершина → список смежных рёбер |
-| `ThirdLab/include/ShortestPath.h` | `Map`: расстояния, предшественники, посещённые вершины |
+| `Graph/AGraph` | `Map`: вершина → список смежных рёбер |
+| `../../../../ThirdLab/headers` | `Map`: расстояния, предшественники, посещённые вершины |
 | `FirstLab/tests` | Проверки операций, владения памятью, исключений и инвариантов |
 
 Теория и случаи балансировки: [шпаргалка](theory.md).

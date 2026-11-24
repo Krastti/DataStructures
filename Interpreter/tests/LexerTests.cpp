@@ -39,6 +39,26 @@ TEST(LexerTests, RecognizesEveryOperatorAndParenthesis) {
   EXPECT_EQ(tokens[13].type, TokenType::EndOfFile);
 }
 
+TEST(LexerTests, KeepsTokenBoundariesWithoutWhitespace) {
+  const auto tokens = Lexer::tokenize("print2<=12_x==7>3");
+  const Token expected[] = {
+    {TokenType::Identifier, "print2"},
+    {TokenType::LessEqual, "<="},
+    {TokenType::Number, "12"},
+    {TokenType::Identifier, "_x"},
+    {TokenType::EqualEqual, "=="},
+    {TokenType::Number, "7"},
+    {TokenType::Greater, ">"},
+    {TokenType::Number, "3"},
+    {TokenType::EndOfFile, ""}
+  };
+  ASSERT_EQ(tokens.size(), sizeof(expected) / sizeof(expected[0]));
+  for (std::size_t i = 0; i < tokens.size(); ++i) {
+    EXPECT_EQ(tokens[i].type, expected[i].type);
+    EXPECT_EQ(tokens[i].lexeme, expected[i].lexeme);
+  }
+}
+
 TEST(LexerTests, HandlesWhitespaceAndBothNewlineFormats) {
   Lexer lexer;
   const auto tokens = lexer.tokenize(" \t\r\n\n");

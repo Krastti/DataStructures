@@ -3,19 +3,14 @@
 
 #include "Array/Array.h"
 #include "token.h"
+#include "../enums/lexerEvent.h"
+#include "../enums/lexerState.h"
 
-#include <cstddef>
 #include <string>
-
-// TODO Привести лексер от hardcode к StateMachine на собственной реализации графов.
 
 class Lexer {
 private:
-  static Token scanToken(char symbol);
-
-  static std::size_t readNumber(const std::string& source, std::size_t start);
-  static std::size_t readIdentifier(const std::string& source, std::size_t start);
-  static std::size_t readString(const std::string& source, std::size_t start);
+  static TokenType singleSymbolType(char symbol);
 
 public:
   static Array<Token> tokenize(const std::string& source);

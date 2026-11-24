@@ -1,7 +1,7 @@
 #ifndef DATASTRUCTURES_SHORTEST_PATH_H
 #define DATASTRUCTURES_SHORTEST_PATH_H
 
-#include "Graph/AdjacencyGraph.h"
+#include "Graph/AGraph.h"
 #include "Optional/Optional.h"
 
 template<typename Vertex, typename Weight>

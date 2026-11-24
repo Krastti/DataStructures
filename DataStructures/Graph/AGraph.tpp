@@ -1,13 +1,13 @@
 #pragma once
 
 template<typename Vertex, typename Weight>
-void AdjacencyGraph<Vertex, Weight>::addVertex(const Vertex& vertex) {
-  if (!adjacency.containsKey(vertex)) adjacency.insert(vertex, Array<Edge>{});
+void AGraph<Vertex, Weight>::addVertex(const Vertex& vertex) {
+  if (!storage.containsKey(vertex)) storage.insert(vertex, Array<Edge>{});
 }
 
 template<typename Vertex, typename Weight>
-bool AdjacencyGraph<Vertex, Weight>::upsertEdge(const Vertex& from, const Vertex& to, const Weight& weight) {
-  Array<Edge>& edges = adjacency.at(from);
+bool AGraph<Vertex, Weight>::upsertEdge(const Vertex& from, const Vertex& to, const Weight& weight) {
+  Array<Edge>& edges = storage.at(from);
 
   for (size_t i = 0; i < edges.size(); ++i) {
     Edge& edge = edges[i];
@@ -36,27 +36,27 @@ void DirectedGraph<Vertex, Weight>::addEdge(const Vertex& from, const Vertex& to
 }
 
 template<typename Vertex, typename Weight>
-bool AdjacencyGraph<Vertex, Weight>::containsVertex(const Vertex& vertex) const {
-  return adjacency.containsKey(vertex);
+bool AGraph<Vertex, Weight>::containsVertex(const Vertex& vertex) const {
+  return storage.containsKey(vertex);
 }
 
 template<typename Vertex, typename Weight>
-const Array<typename AdjacencyGraph<Vertex, Weight>::Edge>&
-AdjacencyGraph<Vertex, Weight>::neighbors(const Vertex& vertex) const {
-  return adjacency.at(vertex);
+const Array<typename AGraph<Vertex, Weight>::Edge>&
+AGraph<Vertex, Weight>::neighbors(const Vertex& vertex) const {
+  return storage.at(vertex);
 }
 
 template<typename Vertex, typename Weight>
-Array<Vertex> AdjacencyGraph<Vertex, Weight>::vertices() const {
-  return adjacency.keys();
+Array<Vertex> AGraph<Vertex, Weight>::vertices() const {
+  return storage.keys();
 }
 
 template<typename Vertex, typename Weight>
-size_t AdjacencyGraph<Vertex, Weight>::vertexCount() const {
-  return adjacency.size();
+size_t AGraph<Vertex, Weight>::vertexCount() const {
+  return storage.size();
 }
 
 template<typename Vertex, typename Weight>
-size_t AdjacencyGraph<Vertex, Weight>::edgeCount() const {
+size_t AGraph<Vertex, Weight>::edgeCount() const {
   return edgesCount;
 }

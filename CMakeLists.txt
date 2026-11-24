@@ -65,13 +65,18 @@ add_library(Optional INTERFACE
 
 add_library(Graph INTERFACE
         DataStructures/Graph/Graph.h
-        DataStructures/Graph/AdjacencyGraph.h
-        DataStructures/Graph/AdjacencyGraph.tpp
+        DataStructures/Graph/AGraph.h
+        DataStructures/Graph/AGraph.tpp
 )
 
 add_library(ThirdLabPaths INTERFACE
-        ThirdLab/include/ShortestPath.h
-        ThirdLab/include/ShortestPath.tpp
+        ThirdLab/headers/algoritms/ShortestPath.h
+        ThirdLab/headers/algoritms/ShortestPath.tpp
+)
+
+add_library(ThirdLabStateMachine INTERFACE
+        ThirdLab/headers/StateMachine/StateMachine.h
+        ThirdLab/headers/StateMachine/StateMachine.tpp
 )
 
 foreach(module IN ITEMS Array Sequence Stack Optional Graph)
@@ -82,8 +87,10 @@ target_include_directories(SmartPointer INTERFACE SmartPointers/include)
 target_include_directories(BinaryTree INTERFACE FirstLab/headers)
 target_link_libraries(BinaryTree INTERFACE Array Stack)
 target_link_libraries(Graph INTERFACE Array BinaryTree)
-target_include_directories(ThirdLabPaths INTERFACE ThirdLab/include)
+target_include_directories(ThirdLabPaths INTERFACE ThirdLab/headers/algoritms)
 target_link_libraries(ThirdLabPaths INTERFACE Graph Optional)
+target_include_directories(ThirdLabStateMachine INTERFACE ThirdLab/headers)
+target_link_libraries(ThirdLabStateMachine INTERFACE Array Graph)
 
 add_library(SecondLabIndexes STATIC
         SecondLab/source/AlphabeticalIndex.cpp
@@ -108,6 +115,7 @@ add_library(MiniLangCore STATIC
 )
 target_include_directories(MiniLangCore PUBLIC Interpreter/headers)
 target_link_libraries(MiniLangCore PUBLIC Array BinaryTree Optional SmartPointer)
+target_link_libraries(MiniLangCore PRIVATE ThirdLabStateMachine)
 
 add_executable(MiniLangCpp Interpreter/main.cpp)
 target_link_libraries(MiniLangCpp PRIVATE MiniLangCore)
@@ -158,8 +166,10 @@ if(BUILD_TESTING)
   add_dependencies(SecondLabTests DataStructures)
   gtest_discover_tests(SecondLabTests PROPERTIES LABELS SecondLab)
 
-  add_executable(ThirdLabTests ThirdLab/tests/ShortestPathTests.cpp)
-  target_link_libraries(ThirdLabTests PRIVATE ThirdLabPaths GTest::gtest_main)
+  add_executable(ThirdLabTests
+          ThirdLab/tests/StateMachineTests.cpp
+  )
+  target_link_libraries(ThirdLabTests PRIVATE ThirdLabPaths ThirdLabStateMachine GTest::gtest_main)
   gtest_discover_tests(ThirdLabTests PROPERTIES LABELS ThirdLab)
 
   add_custom_target(UnitTests DEPENDS

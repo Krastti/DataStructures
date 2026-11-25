@@ -12,10 +12,13 @@ Stack<T>::Stack(T data) {
 }
 
 template<typename T>
-void Stack<T>::push(T value) {
-    Node *tmp = head;
-    head = new Node(value);
-    head->next = tmp;
+void Stack<T>::push(const T& value) {
+    head = new Node(value, head);
+}
+
+template<typename T>
+void Stack<T>::push(T&& value) {
+    head = new Node(std::move(value), head);
 }
 
 template<typename T>
@@ -27,7 +30,13 @@ void Stack<T>::pop() {
 }
 
 template<typename T>
-T Stack<T>::top() const {
+T& Stack<T>::top() {
+    if (empty()) throw std::logic_error("Stack is empty");
+    return head->data;
+}
+
+template<typename T>
+const T& Stack<T>::top() const {
     if (empty()) throw std::logic_error("Stack is empty");
     return head->data;
 }

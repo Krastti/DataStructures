@@ -132,6 +132,10 @@ if(BUILD_TESTING)
   target_link_libraries(ArrayTests PRIVATE Array GTest::gtest_main)
   gtest_discover_tests(ArrayTests PROPERTIES LABELS Array)
 
+  add_executable(StackTests DataStructures/tests/Stack/StackTests.cpp)
+  target_link_libraries(StackTests PRIVATE Stack GTest::gtest_main)
+  gtest_discover_tests(StackTests PROPERTIES LABELS Stack)
+
   add_executable(TreesTests
           FirstLab/tests/BinaryTreeTests.cpp
           FirstLab/tests/RedBlackTree.cpp
@@ -174,7 +178,7 @@ if(BUILD_TESTING)
   gtest_discover_tests(ThirdLabTests PROPERTIES LABELS ThirdLab)
 
   add_custom_target(UnitTests DEPENDS
-          ArrayTests TreesTests InterpreterTests SmartPointersTests SecondLabTests ThirdLabTests
+          ArrayTests StackTests TreesTests InterpreterTests SmartPointersTests SecondLabTests ThirdLabTests
   )
 
   add_test(NAME MiniLangCliTests

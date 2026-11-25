@@ -20,8 +20,13 @@ Call::~Call() = default;
 
 Binary::Binary(const TokenType operation) : operation(operation) {}
 
-Remember::Remember(std::string variable, ExpressionTree right)
-    : variable(std::move(variable)), right(std::move(right)) {}
+Update::Update(std::string variable, const TokenType operation, const bool postfix)
+    : variable(std::move(variable)), operation(operation), postfix(postfix) {}
+
+Remember::Remember(std::string variable, ExpressionTree right, const TokenType operation)
+    : variable(std::move(variable)), right(std::move(right)), operation(operation) {}
+
+UpdateStatement::UpdateStatement(ExpressionTree expression) : expression(std::move(expression)) {}
 
 Print::Print(ExpressionTree forOutput) : forOutput(std::move(forOutput)) {}
 
@@ -37,8 +42,10 @@ RepeatWhile::RepeatWhile(ExpressionTree condition, Array<UniquePtr<Statement>> b
 For::For(std::string variable, ExpressionTree stop, Array<UniquePtr<Statement>> body)
     : variable(std::move(variable)), stop(std::move(stop)), body(std::move(body)) {}
 
-Function::Function(std::string name, Array<std::string> parameters, ExpressionTree result)
-    : name(std::move(name)), parameters(std::move(parameters)), result(std::move(result)) { }
+Function::Function(std::string name, Array<std::string> parameters, ExpressionTree result,
+                   Array<UniquePtr<Statement>> body)
+    : name(std::move(name)), parameters(std::move(parameters)), body(std::move(body)),
+      result(std::move(result)) {}
 
 void NumberLiteral::accept(ExprVisitor& visitor) const {
   visitor.visit(*this);
@@ -60,7 +67,15 @@ void Binary::accept(ExprVisitor& visitor) const {
   visitor.visit(*this);
 }
 
+void Update::accept(ExprVisitor& visitor) const {
+  visitor.visit(*this);
+}
+
 void Remember::accept(StatementVisitor& visitor) const {
+  visitor.visit(*this);
+}
+
+void UpdateStatement::accept(StatementVisitor& visitor) const {
   visitor.visit(*this);
 }
 

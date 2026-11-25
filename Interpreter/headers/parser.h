@@ -59,7 +59,10 @@ private:
   // Разбирает простой операнд или выражение в скобках.
   static ParsedExpr parsePrimary(const Array<Token>& tokens, std::size_t position);
 
-  // Разбирает * и /, получая операнды через parsePrimary.
+  // Разбирает префиксное и постфиксное изменение переменной.
+  static ParsedExpr parseUnary(const Array<Token>& tokens, std::size_t position);
+
+  // Разбирает * и /, получая операнды через parseUnary.
   static ParsedExpr parseMultiplication(const Array<Token>& tokens, std::size_t position);
 
   // Разбирает + и -, сначала собирая произведения и частные.

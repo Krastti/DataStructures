@@ -42,6 +42,11 @@ enum class TokenType {
   Function,
   Arrow,
   Comma,
+  Return,
+  Increment,
+  Decrement,
+  PlusEquals,
+  MinusEquals,
 };
 
 struct Token {

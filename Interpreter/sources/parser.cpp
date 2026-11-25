@@ -7,6 +7,12 @@
 #include <string>
 #include <utility>
 
+namespace {
+bool isUpdateOperator(const TokenType type) {
+  return type == TokenType::Increment || type == TokenType::Decrement;
+}
+}
+
 Array<UniquePtr<ast::Statement>> Parser::parse(const Array<Token>& tokens) {
   if (tokens.size() == 0 || tokens[tokens.size() - 1].type != TokenType::EndOfFile) {
     throw std::invalid_argument("Ожидался токен конца файла");
@@ -51,6 +57,29 @@ Parser::ParsedStatement Parser::parseStatement(const Array<Token>& tokens, const
       return {.statement = UniquePtr<ast::Statement>(
         new ast::Remember(name.lexeme, std::move(value.expression))),
         .nextPosition = value.nextPosition
+      };
+    }
+    case TokenType::Identifier:
+    case TokenType::Increment:
+    case TokenType::Decrement: {
+      if (tokens[position].type == TokenType::Identifier) {
+        const TokenType operation = tokens[position + 1].type;
+        if (operation == TokenType::PlusEquals || operation == TokenType::MinusEquals) {
+          auto value = parseEquality(tokens, position + 2);
+          return {
+            .statement = UniquePtr<ast::Statement>(
+              new ast::Remember(tokens[position].lexeme, std::move(value.expression), operation)),
+            .nextPosition = value.nextPosition
+          };
+        }
+        if (!isUpdateOperator(operation)) {
+          throw std::invalid_argument("Ожидался оператор изменения переменной после имени");
+        }
+      }
+      auto update = parseUnary(tokens, position);
+      return {
+        .statement = UniquePtr<ast::Statement>(new ast::UpdateStatement(std::move(update.expression))),
+        .nextPosition = update.nextPosition
       };
     }
     case TokenType::Print: {
@@ -129,6 +158,8 @@ Parser::ParsedStatement Parser::parseStatement(const Array<Token>& tokens, const
     }
     case TokenType::Function:
       throw std::invalid_argument("Объявление функции допустимо только на верхнем уровне программы");
+    case TokenType::Return:
+      throw std::invalid_argument("return допустим только в конце многострочного тела функции");
     case TokenType::Otherwise:
       throw std::invalid_argument("Неожиданный otherwise вне блока when");
     case TokenType::End:
@@ -166,18 +197,36 @@ Parser::ParsedStatement Parser::parseFunction(const Array<Token>& tokens, const 
   requireToken(tokens, next + 1, TokenType::Arrow,
                "Ожидалась стрелка -> после списка параметров");
 
-  auto result = parseEquality(tokens, next + 2);
-  requireToken(tokens, result.nextPosition, TokenType::End, "Ожидался end после выражения функции");
+  next += 2;
+  Array<UniquePtr<ast::Statement>> body;
+  const bool multiline = next < tokens.size() && tokens[next].type == TokenType::Newline;
+  if (multiline) {
+    auto parsedBody = parseBody(tokens, next + 1, {TokenType::Return, TokenType::End}, "function");
+    requireToken(tokens, parsedBody.nextPosition, TokenType::Return,
+                 "Ожидался итоговый return в теле функции");
+    body = std::move(parsedBody.statements);
+    next = parsedBody.nextPosition + 1;
+  }
+
+  auto result = parseEquality(tokens, next);
+  next = result.nextPosition;
+  if (multiline) {
+    requireToken(tokens, next, TokenType::Newline, "Ожидался перевод строки после return");
+    do {
+      ++next;
+    } while (next < tokens.size() && tokens[next].type == TokenType::Newline);
+  }
+  requireToken(tokens, next, TokenType::End, "Ожидался end после выражения функции");
   return {
     .statement = UniquePtr<ast::Statement>(
-      new ast::Function(name.lexeme, std::move(parameters), std::move(result.expression))),
-    .nextPosition = result.nextPosition + 1
+      new ast::Function(name.lexeme, std::move(parameters), std::move(result.expression), std::move(body))),
+    .nextPosition = next + 1
   };
 }
 
 Parser::ParsedBody Parser::parseBody(const Array<Token>& tokens, std::size_t position,
-                                    const std::initializer_list<TokenType> terminators,
-                                    const char* blockName) {
+                                     const std::initializer_list<TokenType> terminators,
+                                     const char* blockName) {
   Array<UniquePtr<ast::Statement>> statements;
   while (position < tokens.size()) {
     const TokenType type = tokens[position].type;
@@ -267,8 +316,32 @@ Parser::ParsedExpr Parser::parsePrimary(const Array<Token>& tokens, const std::s
   return {.expression = parseOperand(tokens, position), .nextPosition = position + 1};
 }
 
+Parser::ParsedExpr Parser::parseUnary(const Array<Token>& tokens, const std::size_t position) {
+  if (position < tokens.size()) {
+    const auto& current = tokens[position];
+    if (isUpdateOperator(current.type)) {
+      const auto& name = requireToken(tokens, position + 1, TokenType::Identifier,
+                                      "Ожидалось имя переменной после ++ или --");
+      return {
+        .expression = ast::ExpressionTree::makeLeaf(
+          UniquePtr<ast::Expr>(new ast::Update(name.lexeme, current.type, false))),
+        .nextPosition = position + 2
+      };
+    }
+    if (current.type == TokenType::Identifier && position + 1 < tokens.size() &&
+        isUpdateOperator(tokens[position + 1].type)) {
+      return {
+        .expression = ast::ExpressionTree::makeLeaf(
+          UniquePtr<ast::Expr>(new ast::Update(current.lexeme, tokens[position + 1].type, true))),
+        .nextPosition = position + 2
+      };
+    }
+  }
+  return parsePrimary(tokens, position);
+}
+
 Parser::ParsedExpr Parser::parseMultiplication(const Array<Token>& tokens, const std::size_t position) {
-  return parseBinaryChain(tokens, position, parsePrimary, {TokenType::Star, TokenType::Slash});
+  return parseBinaryChain(tokens, position, parseUnary, {TokenType::Star, TokenType::Slash});
 }
 
 Parser::ParsedExpr Parser::parseAddition(const Array<Token>& tokens, const std::size_t position) {

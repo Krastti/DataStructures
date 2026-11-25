@@ -10,9 +10,11 @@ enum class LexerEvent {
   EqualsSign,
   LessSign,
   GreaterSign,
+  PlusSign,
   MinusSign,
+  Dot,
   Bang,
-  SingleSymbol, // + * / ( ) ,
+  SingleSymbol, // * / ( ) ,
 
   CR,
   LF,

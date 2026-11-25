@@ -19,8 +19,16 @@ struct Statement {
 struct Remember : Statement {
   std::string variable;
   ExpressionTree right;
+  TokenType operation;
 
-  Remember(std::string variable, ExpressionTree right);
+  Remember(std::string variable, ExpressionTree right, TokenType operation = TokenType::Equals);
+  void accept(StatementVisitor& visitor) const override;
+};
+
+struct UpdateStatement : Statement {
+  ExpressionTree expression;
+
+  explicit UpdateStatement(ExpressionTree expression);
   void accept(StatementVisitor& visitor) const override;
 };
 
@@ -61,9 +69,11 @@ struct For : Statement {
 struct Function : Statement {
   std::string name;
   Array<std::string> parameters;
+  Array<UniquePtr<Statement>> body;
   ExpressionTree result;
 
-  Function(std::string name, Array<std::string> parameters, ExpressionTree result);
+  Function(std::string name, Array<std::string> parameters, ExpressionTree result,
+           Array<UniquePtr<Statement>> body = {});
   void accept(StatementVisitor& visitor) const override;
 };
 

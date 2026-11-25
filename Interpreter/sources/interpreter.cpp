@@ -52,8 +52,10 @@ Interpreter::Value applyNumericOperation(const TokenType operation, const double
 
 void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, std::ostream& outputStream,
                           Observer* trace) {
+  FunctionTable declarations;
   environment.reset();
   lastValue.reset();
+  functions = &declarations;
   output = &outputStream;
   observer = trace;
 
@@ -61,11 +63,13 @@ void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, st
     executeStatements(statements);
   } catch (...) {
     // Поток и наблюдатель принадлежат вызывающему коду.
+    functions = nullptr;
     output = nullptr;
     observer = nullptr;
     lastValue.reset();
     throw;
   }
+  functions = nullptr;
   output = nullptr;
   observer = nullptr;
   lastValue.reset();
@@ -95,6 +99,12 @@ Interpreter::Value Interpreter::evaluate(const ast::Expr& expression) {
   lastValue.reset();
   if (observer) observer->leaveCall(&result);
   return result;
+}
+
+double Interpreter::lookupNumber(const std::string& name) const {
+  const auto* number = std::get_if<double>(&environment.lookup(name));
+  if (!number) throw std::invalid_argument("Ошибка выполнения: переменная должна быть числом: " + name);
+  return *number;
 }
 
 bool Interpreter::evaluateCondition(const ast::ExpressionTree& condition, const char* instruction) {
@@ -132,8 +142,28 @@ void Interpreter::visit(const ast::StringLiteral& node) {
   lastValue = Value{node.lexeme.substr(1, node.lexeme.size() - 2)};
 }
 
-void Interpreter::visit(const ast::Call&) {
-  throw std::logic_error("Вычисление вызовов функций ещё не реализовано");
+void Interpreter::visit(const ast::Call& node) {
+  if (!functions || !functions->containsKey(node.name)) {
+    throw std::invalid_argument("Ошибка выполнения: неизвестная функция: " + node.name);
+  }
+  const auto& function = *functions->at(node.name);
+  if (function.parameters.size() != node.arguments.size()) {
+    throw std::invalid_argument("Ошибка выполнения: неверное число аргументов: " + node.name);
+  }
+
+  Array<Value> arguments;
+  for (std::size_t i = 0; i < node.arguments.size(); ++i) {
+    const auto* argument = node.arguments[i].getRoot();
+    if (!argument) throw std::invalid_argument("Ошибка выполнения: отсутствует аргумент функции: " + node.name);
+    arguments.push_back(evaluate(*argument));
+  }
+
+  const auto* result = function.result.getRoot();
+  if (!result) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение функции: " + node.name);
+  lastValue = environment.withFunctionScope(function.parameters, arguments, [&] {
+    executeStatements(function.body);
+    return evaluate(*result);
+  });
 }
 
 void Interpreter::visit(const ast::Binary& node) {
@@ -148,15 +178,43 @@ void Interpreter::visit(const ast::Binary& node) {
   lastValue = applyNumericOperation(node.operation, *left, *right);
 }
 
-void Interpreter::visit(const ast::Function&) {
-  throw std::logic_error("Выполнение объявлений функций ещё не реализовано");
+void Interpreter::visit(const ast::Update& node) {
+  const double previous = lookupNumber(node.variable);
+  const double change = node.operation == TokenType::Increment ? 1.0 : -1.0;
+  const double updated = previous + change;
+  environment.assign(node.variable, updated);
+  lastValue = Value{node.postfix ? previous : updated};
+}
+
+void Interpreter::visit(const ast::Function& node) {
+  if (!functions) throw std::logic_error("Function можно выполнять только во время execute");
+  if (functions->containsKey(node.name)) {
+    throw std::invalid_argument("Ошибка выполнения: повторное объявление функции: " + node.name);
+  }
+  functions->insert(node.name, &node);
 }
 
 void Interpreter::visit(const ast::Remember& node) {
   const auto* expression = node.right.getRoot();
   if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение remember");
-  // Сначала вычисляем правую часть, чтобы при ошибке сохранить старое значение переменной.
-  environment.assign(node.variable, evaluate(*expression));
+  if (node.operation == TokenType::Equals) {
+    environment.assign(node.variable, evaluate(*expression));
+    return;
+  }
+
+  // Правая часть может изменить ту же переменную, поэтому сохраняем левое значение заранее.
+  const double previous = lookupNumber(node.variable);
+  const Value operand = evaluate(*expression);
+  const auto* number = std::get_if<double>(&operand);
+  if (!number) throw std::invalid_argument("Ошибка выполнения: составное присваивание ожидает число");
+  const TokenType arithmetic = node.operation == TokenType::PlusEquals ? TokenType::Plus : TokenType::Minus;
+  environment.assign(node.variable, applyNumericOperation(arithmetic, previous, *number));
+}
+
+void Interpreter::visit(const ast::UpdateStatement& node) {
+  const auto* expression = node.expression.getRoot();
+  if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение изменения переменной");
+  evaluate(*expression);
 }
 
 void Interpreter::visit(const ast::Print& node) {

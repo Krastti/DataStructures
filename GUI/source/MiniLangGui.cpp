@@ -78,12 +78,24 @@ QString tokenName(const TokenType type) {
     case TokenType::For: return "For";
     case TokenType::In: return "In";
     case TokenType::Range: return "Range";
+    case TokenType::Function: return "Function";
+    case TokenType::Arrow: return "Arrow";
+    case TokenType::Comma: return "Comma";
+    case TokenType::Return: return "Return";
+    case TokenType::Increment: return "Increment";
+    case TokenType::Decrement: return "Decrement";
+    case TokenType::PlusEquals: return "PlusEquals";
+    case TokenType::MinusEquals: return "MinusEquals";
   }
   return {};
 }
 
 QString operatorText(const TokenType type) {
   switch (type) {
+    case TokenType::Increment: return "++";
+    case TokenType::Decrement: return "--";
+    case TokenType::PlusEquals: return "+=";
+    case TokenType::MinusEquals: return "-=";
     case TokenType::Plus: return "+";
     case TokenType::Minus: return "-";
     case TokenType::Star: return "*";
@@ -355,8 +367,15 @@ private:
   }
 
   void visit(const ast::Remember& node) override {
-    addStatement(node, "Remember", QString::fromStdString(node.variable));
+    const auto name = QString::fromStdString(node.variable);
+    if (node.operation == TokenType::Equals) addStatement(node, "Remember", name);
+    else addStatement(node, "Assign", name + " " + operatorText(node.operation));
     addExpression("right", node.right);
+  }
+
+  void visit(const ast::UpdateStatement& node) override {
+    addStatement(node, "Update");
+    addExpression("expression", node.expression);
   }
 
   void visit(const ast::Print& node) override {
@@ -394,6 +413,13 @@ private:
     }
     signature += ")";
     addStatement(node, "Function", signature);
+    if (node.body.size() != 0) {
+      auto* statementParent = statementItem;
+      auto* astParent = astItem;
+      addBranch("body", statementParent->text(0) + ".", node.body, statementParent, astParent);
+      statementItem = statementParent;
+      astItem = astParent;
+    }
     addExpression("result", node.result);
   }
 
@@ -413,10 +439,16 @@ private:
     addExprNode(node, "Call", QString::fromStdString(node.name));
     auto* parent = astItem;
     for (std::size_t i = 0; i < node.arguments.size(); ++i) {
-      astItem = addExpressionChild(parent, "argument " + QString::number(i + 1));
+      astItem = addExpressionChild(parent, "arg " + QString::number(i + 1));
       node.arguments[i].getRoot()->accept(*this);
     }
     astItem = parent;
+  }
+
+  void visit(const ast::Update& node) override {
+    const auto name = QString::fromStdString(node.variable);
+    const auto operation = operatorText(node.operation);
+    addExprNode(node, "Update", node.postfix ? name + operation : operation + name);
   }
 
   void visit(const ast::Binary& node) override {

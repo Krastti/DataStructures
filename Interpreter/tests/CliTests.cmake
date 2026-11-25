@@ -53,6 +53,19 @@ file(WRITE "${TEST_WORK_DIR}/when-condition.mini"
   "when 1\nprint 2\nend")
 file(WRITE "${TEST_WORK_DIR}/repeat-condition.mini"
   "print 1\nrepeat while \"text\"\nprint 2\nend\nprint 3")
+file(WRITE "${TEST_WORK_DIR}/functions.mini"
+  "function add(a, b) -> a + b end\n"
+  "function twice(x) -> add(x, x) end\n"
+  "print twice(3 + 2) * 2")
+file(WRITE "${TEST_WORK_DIR}/factorial.mini"
+  "function factorial(n) ->\n"
+  "  remember result = 1\n"
+  "  when n > 1\n"
+  "    remember result = n * factorial(n - 1)\n"
+  "  end\n"
+  "  return result\n"
+  "end\n"
+  "print factorial(5)")
 
 check_cli(no_arguments 2 "" "Использование:")
 check_cli(extra_arguments 2 "" "Использование:" "one.mini" "two.mini")
@@ -72,3 +85,8 @@ check_cli(when_condition_type 1 "" "Ошибка выполнения: усло�
   "${TEST_WORK_DIR}/when-condition.mini")
 check_cli(repeat_condition_type 1 "1.0\n" "Ошибка выполнения: условие repeat while должно быть логическим"
   "${TEST_WORK_DIR}/repeat-condition.mini")
+check_cli(functions 0 "20.0\n" "" "${TEST_WORK_DIR}/functions.mini")
+check_cli(factorial 0 "120.0\n" "" "${TEST_WORK_DIR}/factorial.mini")
+file(WRITE "${TEST_WORK_DIR}/updates.mini"
+  "remember x = 1.5\nprint x++\nx += 2.25\nx -= 0.25\nprint --x")
+check_cli(updates 0 "1.5\n3.5\n" "" "${TEST_WORK_DIR}/updates.mini")

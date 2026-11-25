@@ -22,8 +22,8 @@ struct Expr {
   virtual void accept(ExprVisitor& visitor) const = 0;
 
 protected:
-  const Expr* leftChild() const noexcept { return left; }
-  const Expr* rightChild() const noexcept { return right; }
+  [[nodiscard]] const Expr* leftChild() const noexcept { return left; }
+  [[nodiscard]] const Expr* rightChild() const noexcept { return right; }
 
 private:
   friend class ::BinaryTreeBase<Expr>;
@@ -65,11 +65,20 @@ struct Call : Expr {
   void accept(ExprVisitor& visitor) const override;
 };
 
+struct Update : Expr {
+  std::string variable;
+  TokenType operation;
+  bool postfix;
+
+  Update(std::string variable, TokenType operation, bool postfix);
+  void accept(ExprVisitor& visitor) const override;
+};
+
 struct Binary : Expr {
   TokenType operation;
 
-  const Expr* leftOperand() const noexcept { return leftChild(); }
-  const Expr* rightOperand() const noexcept { return rightChild(); }
+  [[nodiscard]] const Expr* leftOperand() const noexcept { return leftChild(); }
+  [[nodiscard]] const Expr* rightOperand() const noexcept { return rightChild(); }
   void accept(ExprVisitor& visitor) const override;
 
 private:

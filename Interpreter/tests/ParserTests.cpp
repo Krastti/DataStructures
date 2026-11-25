@@ -20,6 +20,33 @@ TEST(ParserTests, ParsesEmptyProgramAndBlankLines) {
   EXPECT_EQ(parse("\n\r\n\n").size(), 0u);
 }
 
+TEST(ParserTests, BindsNumericUpdatesBeforeMultiplication) {
+  const auto program = parse("print ++x * y--");
+  ASSERT_EQ(program.size(), 1u);
+  const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
+  ASSERT_NE(print, nullptr);
+  const auto* product = dynamic_cast<const ast::Binary*>(print->forOutput.getRoot());
+  ASSERT_NE(product, nullptr);
+  EXPECT_EQ(product->operation, TokenType::Star);
+  const auto* prefix = dynamic_cast<const ast::Update*>(product->leftOperand());
+  const auto* postfix = dynamic_cast<const ast::Update*>(product->rightOperand());
+  ASSERT_NE(prefix, nullptr);
+  ASSERT_NE(postfix, nullptr);
+  EXPECT_EQ(prefix->variable, "x");
+  EXPECT_EQ(prefix->operation, TokenType::Increment);
+  EXPECT_FALSE(prefix->postfix);
+  EXPECT_EQ(postfix->variable, "y");
+  EXPECT_EQ(postfix->operation, TokenType::Decrement);
+  EXPECT_TRUE(postfix->postfix);
+}
+
+TEST(ParserTests, RequiresVariableNamesForUpdates) {
+  for (const char* source : {"print ++1", "print 1--", "print (x)++", "print f()--",
+                             "x++ + 1", "x++--", "x +=", "print x += 1", "1 -= 2"}) {
+    EXPECT_THROW(parse(source), std::invalid_argument) << source;
+  }
+}
+
 TEST(ParserTests, ParsesRememberAndPrintInOrder) {
   const auto program = parse("remember x = 42\r\n\nprint x");
   ASSERT_EQ(program.size(), 2u);
@@ -117,6 +144,42 @@ TEST(ParserTests, ParsesParameterlessFunctionDeclarationAndFollowingStatement) {
 
 TEST(ParserTests, AcceptsFunctionEndImmediatelyBeforeEof) {
   EXPECT_EQ(parse("function f() -> 1 end").size(), 1u);
+}
+
+TEST(ParserTests, SeparatesMultilineFunctionBodyFromFinalReturnExpression) {
+  const auto program = parse(
+      "function f(x) ->\r\n"
+      "  remember y = x + 1\r\n"
+      "  when y > 1\r\n"
+      "    remember y = y * 2\r\n"
+      "  end\r\n"
+      "  return y\r\n"
+      "\r\n"
+      "end");
+  ASSERT_EQ(program.size(), 1u);
+  const auto* function = dynamic_cast<const ast::Function*>(program[0].get());
+  ASSERT_NE(function, nullptr);
+  ASSERT_EQ(function->body.size(), 2u);
+  EXPECT_NE(dynamic_cast<const ast::Remember*>(function->body[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::When*>(function->body[1].get()), nullptr);
+  const auto* result = dynamic_cast<const ast::Identifier*>(function->result.getRoot());
+  ASSERT_NE(result, nullptr);
+  EXPECT_EQ(result->name, "y");
+}
+
+TEST(ParserTests, RejectsMissingMisplacedOrRepeatedFunctionReturn) {
+  for (const char* source : {
+      "return 1",
+      "function f() ->\nremember x = 1\nend",
+      "function f() ->\nwhen 1 < 2\nreturn 1\nend\nreturn 0\nend",
+      "function f() ->\nfor i in range(1)\nreturn i\nend\nreturn 0\nend",
+      "function f() ->\nreturn\nend",
+      "function f() ->\nreturn 1 end",
+      "function f() ->\nreturn 1\nreturn 2\nend",
+      "function f() ->\nreturn 1\nprint 2\nend",
+      "function f() ->\nreturn 1\n"}) {
+    EXPECT_THROW(parse(source), std::invalid_argument) << source;
+  }
 }
 
 TEST(ParserTests, ParsesFunctionParametersInDeclarationOrder) {
@@ -483,10 +546,21 @@ public:
     }
   }
 
+  void visit(const ast::Update& node) override {
+    lastExpression = &node;
+    events.push_back("update:" + node.variable);
+  }
+
   void visit(const ast::Remember& node) override {
     lastStatement = &node;
     events.push_back("remember:" + node.variable);
     if (visitChildren) node.right.getRoot()->accept(*this);
+  }
+
+  void visit(const ast::UpdateStatement& node) override {
+    lastStatement = &node;
+    events.push_back("update statement");
+    if (visitChildren) node.expression.getRoot()->accept(*this);
   }
 
   void visit(const ast::Print& node) override {
@@ -526,7 +600,10 @@ public:
   void visit(const ast::Function& node) override {
     lastStatement = &node;
     events.push_back("function:" + node.name);
-    if (visitChildren) node.result.getRoot()->accept(*this);
+    if (visitChildren) {
+      for (std::size_t i = 0; i < node.body.size(); ++i) node.body[i]->accept(*this);
+      node.result.getRoot()->accept(*this);
+    }
   }
 };
 }

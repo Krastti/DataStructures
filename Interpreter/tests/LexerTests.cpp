@@ -73,6 +73,16 @@ TEST(LexerTests, RecognizesArrowOnlyWithAdjacentSymbols) {
   }
 }
 
+TEST(LexerTests, RecognizesReturnAsAnExactKeyword) {
+  const auto tokens = Lexer::tokenize("return returnValue \"return\"");
+  ASSERT_EQ(tokens.size(), 4u);
+  EXPECT_EQ(tokens[0].type, TokenType::Return);
+  EXPECT_EQ(tokens[0].lexeme, "return");
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[2].type, TokenType::String);
+  EXPECT_EQ(tokens[3].type, TokenType::EndOfFile);
+}
+
 TEST(LexerTests, KeepsTokenBoundariesWithoutWhitespace) {
   const auto tokens = Lexer::tokenize("print2<=12_x==7>3");
   const Token expected[] = {
@@ -126,17 +136,38 @@ TEST(LexerTests, EmptyInputAndRepeatedCallsHaveIndependentResults) {
 
 TEST(LexerTests, RejectsUnsupportedCharactersAndIncompleteOperators) {
   Lexer lexer;
-  for (const std::string source : {"!", "\r", "@", "1.5"}) {
+  for (const std::string source : {"!", "\r", "@"}) {
     EXPECT_THROW(lexer.tokenize(source), std::invalid_argument) << source;
   }
 }
 
+TEST(LexerTests, TokenizesDecimalsAndUpdateOperators) {
+  const auto tokens = Lexer::tokenize("0.25++ -- += -= -> + -");
+  const Token expected[] = {
+    {TokenType::Number, "0.25"}, {TokenType::Increment, "++"},
+    {TokenType::Decrement, "--"}, {TokenType::PlusEquals, "+="},
+    {TokenType::MinusEquals, "-="}, {TokenType::Arrow, "->"},
+    {TokenType::Plus, "+"}, {TokenType::Minus, "-"}, {TokenType::EndOfFile, ""}
+  };
+  ASSERT_EQ(tokens.size(), sizeof(expected) / sizeof(expected[0]));
+  for (std::size_t i = 0; i < tokens.size(); ++i) {
+    EXPECT_EQ(tokens[i].type, expected[i].type);
+    EXPECT_EQ(tokens[i].lexeme, expected[i].lexeme);
+  }
+}
+
+TEST(LexerTests, RejectsDecimalPointsWithoutDigitsOnBothSides) {
+  for (const char* source : {".5", "1.", "1..5", "1.2.3", "1. 5"}) {
+    EXPECT_THROW(Lexer::tokenize(source), std::invalid_argument) << source;
+  }
+}
+
 TEST(LexerTests, TokenizesStringWithSpacesAndOperatorsAsOneToken) {
-  const auto tokens = Lexer::tokenize("print \"remember x = 1 + (2) != 3 -> -\"");
+  const auto tokens = Lexer::tokenize("print \"remember x = 1 + (2) != 3 -> - 0.25 ++ +=\"");
   ASSERT_EQ(tokens.size(), 3u);
   EXPECT_EQ(tokens[0].type, TokenType::Print);
   EXPECT_EQ(tokens[1].type, TokenType::String);
-  EXPECT_EQ(tokens[1].lexeme, "\"remember x = 1 + (2) != 3 -> -\"");
+  EXPECT_EQ(tokens[1].lexeme, "\"remember x = 1 + (2) != 3 -> - 0.25 ++ +=\"");
   EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
 }
 

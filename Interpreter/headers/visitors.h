@@ -14,6 +14,8 @@ struct RepeatWhile;
 struct For;
 struct Call;
 struct Function;
+struct Update;
+struct UpdateStatement;
 
 struct ExprVisitor {
   virtual ~ExprVisitor() = default;
@@ -23,6 +25,7 @@ struct ExprVisitor {
   virtual void visit(const StringLiteral& node) = 0;
   virtual void visit(const Call& node) = 0;
   virtual void visit(const Binary& node) = 0;
+  virtual void visit(const Update& node) = 0;
 };
 
 struct StatementVisitor {
@@ -34,6 +37,7 @@ struct StatementVisitor {
   virtual void visit(const RepeatWhile& node) = 0;
   virtual void visit(const For& node) = 0;
   virtual void visit(const Function& node) = 0;
+  virtual void visit(const UpdateStatement& node) = 0;
 };
 
 }

@@ -4,6 +4,8 @@
 enum class LexerState {
   Start,
   ReadingNumber,
+  AfterDecimalPoint,
+  ReadingFraction,
   ReadingWord,
   ReadingString,
   StringClosed,
@@ -11,6 +13,7 @@ enum class LexerState {
   AfterEquals,
   AfterLess,
   AfterGreater,
+  AfterPlus,
   AfterMinus,
   AfterBang,
   TwoCharOperator,

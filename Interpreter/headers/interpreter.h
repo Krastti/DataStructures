@@ -9,6 +9,7 @@
 #include "visitors.h"
 
 #include <iosfwd>
+#include <string>
 
 class Interpreter : public ast::ExprVisitor, public ast::StatementVisitor {
 public:
@@ -23,7 +24,7 @@ public:
     virtual void leaveCall(const Value* value) = 0;
   };
 
-  // Каждый запуск начинает с пустой таблицы переменных. Поток должен жить до конца вызова.
+  // Каждый запуск начинает с пустых таблиц переменных и функций. Поток должен жить до конца вызова.
   void execute(const Array<UniquePtr<ast::Statement>>& statements, std::ostream& output,
                Observer* trace = nullptr);
 
@@ -32,8 +33,10 @@ public:
   void visit(const ast::StringLiteral& node) override;
   void visit(const ast::Call& node) override;
   void visit(const ast::Binary& node) override;
+  void visit(const ast::Update& node) override;
 
   void visit(const ast::Remember& node) override;
+  void visit(const ast::UpdateStatement& node) override;
   void visit(const ast::Print& node) override;
   void visit(const ast::When& node) override;
   void visit(const ast::RepeatWhile& node) override;
@@ -41,7 +44,10 @@ public:
   void visit(const ast::Function& node) override;
 
 private:
+  using FunctionTable = Map<std::string, const ast::Function*>;
+
   minilang::Environment environment;
+  FunctionTable* functions = nullptr;
 
   // visit возвращает void, поэтому результат выражения сохраняем отдельно.
   Optional<Value> lastValue;
@@ -50,6 +56,7 @@ private:
 
   // Забирает результат после accept, до перехода к следующему выражению.
   Value evaluate(const ast::Expr& expression);
+  double lookupNumber(const std::string& name) const;
   bool evaluateCondition(const ast::ExpressionTree& condition, const char* instruction);
   void executeStatements(const Array<UniquePtr<ast::Statement>>& statements);
   void executeStatement(const ast::Statement& statement);

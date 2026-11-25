@@ -16,6 +16,7 @@ class Interpreter : public ast::ExprVisitor, public ast::StatementVisitor {
 public:
   // Значение MiniLang при выполнении: число, логическое значение или строка.
   using Value = std::variant<double, bool, std::string>;
+  using Variables = Map<std::string, Value>;
 
   // Каждый запуск начинает с пустой таблицы переменных. Поток должен жить до конца вызова.
   void execute(const Array<UniquePtr<ast::Statement>>& statements, std::ostream& output);
@@ -32,10 +33,8 @@ public:
   void visit(const ast::For& node) override;
 
 private:
-  struct LoopVariable;
-
-  Map<std::string, Value> variables;
-  LoopVariable* activeLoopVariable = nullptr;
+  Variables variables; // Общая таблица программы
+  Array<Variables*> localScopes; // Таблицы активных циклов
 
   // visit возвращает void, поэтому результат выражения сохраняем отдельно.
   Optional<Value> lastValue;
@@ -45,7 +44,10 @@ private:
   Value evaluate(const ast::Expr& expression);
   bool evaluateCondition(const ast::ExpressionTree& condition, const char* instruction);
   void executeStatements(const Array<UniquePtr<ast::Statement>>& statements);
-  Value* findLoopVariable(const std::string& name);
+
+  // Поиск локальной переменной
+  [[nodiscard]] Value* findLoopVariable(const std::string& name) const;
+
   void storeVariable(const std::string& name, Value value);
 };
 

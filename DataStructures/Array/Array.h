@@ -27,6 +27,8 @@ public:
   const T& operator[](size_t index) const noexcept;
 
   void push_back(T value);
+  // Удаляет последний элемент. Для пустого массива выбрасывает std::out_of_range.
+  void pop_back();
 
   ~Array();
 };

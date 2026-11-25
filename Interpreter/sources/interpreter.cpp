@@ -4,6 +4,7 @@
 
 #include <charconv>
 #include <cmath>
+#include <cstdint>
 #include <ostream>
 #include <stdexcept>
 #include <system_error>
@@ -46,26 +47,6 @@ Interpreter::Value applyNumericOperation(const TokenType operation, const double
   }
 }
 }
-
-struct Interpreter::LoopVariable {
-  const std::string& name;
-  Value value{0.0};
-  LoopVariable* const outer;
-  LoopVariable*& active;
-
-  LoopVariable(const std::string& name, LoopVariable*& active) noexcept
-      : name(name), outer(active), active(active) {
-    active = this;
-  }
-
-  LoopVariable(const LoopVariable&) = delete;
-  LoopVariable& operator=(const LoopVariable&) = delete;
-
-  ~LoopVariable() {
-    // Возвращаем внешнюю переменную в область поиска и при выходе с ошибкой.
-    active = outer;
-  }
-};
 
 void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, std::ostream& outputStream) {
   variables = Map<std::string, Value>{};
@@ -163,9 +144,10 @@ void Interpreter::visit(const ast::Remember& node) {
   storeVariable(node.variable, evaluate(*expression));
 }
 
-Interpreter::Value* Interpreter::findLoopVariable(const std::string& name) {
-  for (auto* local = activeLoopVariable; local; local = local->outer) {
-    if (local->name == name) return &local->value;
+Interpreter::Value* Interpreter::findLoopVariable(const std::string& name) const {
+  for (std::size_t i = localScopes.size(); i > 0; --i) {
+    auto& scope = *localScopes[i - 1];
+    if (scope.containsKey(name)) return &scope.at(name);
   }
   return nullptr;
 }
@@ -208,15 +190,31 @@ void Interpreter::visit(const ast::For& node) {
 
   const Value value = evaluate(*expression);
   const auto* stop = std::get_if<double>(&value);
-  // До 2^53 счётчик double точно представляет каждый целый шаг.
+
+  // До 2^53 каждое значение счётчика точно представимо в double.
   constexpr double maxStop = 0x1p53;
   if (!stop || !std::isfinite(*stop) || std::trunc(*stop) != *stop || std::abs(*stop) > maxStop) {
     throw std::invalid_argument("Ошибка выполнения: граница range должна быть конечным целым числом от -2^53 до 2^53");
   }
 
-  LoopVariable variable(node.variable, activeLoopVariable);
-  for (double index = 0.0; index < *stop; ++index) {
-    variable.value = index;
-    executeStatements(node.body);
+  if (*stop <= 0.0) return;
+  const auto limit = static_cast<std::uint64_t>(*stop);
+
+  Variables local;
+  local.insert(node.variable, Value{0.0});
+  auto& counter = local.at(node.variable);
+
+  localScopes.push_back(&local);
+
+  try {
+    for (std::uint64_t index = 0; index < limit; ++index) {
+      counter = static_cast<double>(index);
+      executeStatements(node.body);
+    }
+  } catch (...) {
+    localScopes.pop_back();
+    throw;
   }
+
+  localScopes.pop_back();
 }

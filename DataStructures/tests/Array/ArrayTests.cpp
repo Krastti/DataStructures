@@ -91,6 +91,21 @@ TEST(ArrayTests, CanAppendAnElementFromTheSameArrayDuringGrowth) {
   EXPECT_EQ(toVector(values), (std::vector<int>{10, 20, 30, 10}));
 }
 
+TEST(ArrayTests, PopBackRemovesLastElementAndRejectsEmptyArray) {
+  Array<int> values;
+  EXPECT_THROW(values.pop_back(), std::out_of_range);
+  values.push_back(10);
+  values.push_back(20);
+  values.pop_back();
+  EXPECT_EQ(toVector(values), (std::vector<int>{10}));
+  values.push_back(30);
+  EXPECT_EQ(toVector(values), (std::vector<int>{10, 30}));
+  values.pop_back();
+  values.pop_back();
+  EXPECT_EQ(values.size(), 0u);
+  EXPECT_THROW(values.pop_back(), std::out_of_range);
+}
+
 TEST(ArrayTests, SupportsDefaultConstructibleCopyAssignableElements) {
   Array<CopyOnlyValue> copyOnly;
   for (int value = 0; value < 5; ++value) {
@@ -166,6 +181,23 @@ TEST(ArrayTests, GrowsWithMoveOnlyOwnersAndReleasesResourcesOnce) {
     Array<MoveOnlyValue> moved(std::move(values));
     EXPECT_EQ(values.size(), 0u);
     EXPECT_EQ(moved.size(), 100u);
+  }
+  EXPECT_EQ(MoveOnlyValue::resources, 0);
+}
+
+TEST(ArrayTests, PopBackReleasesRemovedMoveOnlyOwnerImmediately) {
+  ASSERT_EQ(MoveOnlyValue::resources, 0);
+  {
+    Array<MoveOnlyValue> values;
+    values.push_back(MoveOnlyValue(1));
+    values.push_back(MoveOnlyValue(2));
+    values.pop_back();
+    ASSERT_EQ(values.size(), 1u);
+    EXPECT_EQ(MoveOnlyValue::resources, 1);
+    EXPECT_EQ(*values[0].value, 1);
+    values.pop_back();
+    EXPECT_EQ(values.size(), 0u);
+    EXPECT_EQ(MoveOnlyValue::resources, 0);
   }
   EXPECT_EQ(MoveOnlyValue::resources, 0);
 }

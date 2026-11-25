@@ -100,6 +100,17 @@ void Array<T>::push_back(T value) {
 }
 
 template<typename T>
+void Array<T>::pop_back() {
+  if (count == 0) throw std::out_of_range("Array is empty");
+
+  // Буфер хранит уже сконструированные элементы, поэтому сбрасываем последний слот.
+  T empty{};
+  if constexpr (std::is_move_assignable_v<T>) storage[count - 1] = std::move(empty);
+  else storage[count - 1] = empty;
+  --count;
+}
+
+template<typename T>
 Array<T>::~Array() {
   delete[] storage;
 }

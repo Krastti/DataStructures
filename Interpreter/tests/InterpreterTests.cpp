@@ -125,12 +125,43 @@ TEST(InterpreterTests, ForRestoresPreviousValueAfterShadowing) {
       "print i"), "0.0\n10.0\n1.0\n11.0\nдо цикла\n");
 }
 
+TEST(InterpreterTests, RememberInNestedForUpdatesTheVisibleCounterAndCreatesGlobalNames) {
+  EXPECT_EQ(runProgram(
+      "for i in range(1)\n"
+      "  for j in range(1)\n"
+      "    remember i = i + 5\n"
+      "    remember total = i + j\n"
+      "  end\n"
+      "  print i\n"
+      "end\n"
+      "print total"), "5.0\n5.0\n");
+}
+
 TEST(InterpreterTests, ForCounterWithoutPreviousValueIsUnknownAfterEnd) {
   Interpreter interpreter;
   std::ostringstream output;
   EXPECT_THROW(interpreter.execute(parseProgram(
       "for i in range(1)\nprint i\nend\nprint i"), output), std::invalid_argument);
   EXPECT_EQ(output.str(), "0.0\n");
+}
+
+TEST(InterpreterTests, ClearsNestedForScopesAfterAnError) {
+  Interpreter interpreter;
+  std::ostringstream failed;
+  EXPECT_THROW(interpreter.execute(parseProgram(
+      "for i in range(2)\n"
+      "  for j in range(2)\n"
+      "    print i + j\n"
+      "    print missing\n"
+      "  end\n"
+      "end"), failed), std::invalid_argument);
+  EXPECT_EQ(failed.str(), "0.0\n");
+
+  std::ostringstream output;
+  interpreter.execute(parseProgram(
+      "remember i = 10\nremember j = 20\n"
+      "for i in range(1)\nprint i + j\nend\nprint i\nprint j"), output);
+  EXPECT_EQ(output.str(), "20.0\n10.0\n20.0\n");
 }
 
 TEST(InterpreterTests, NestedBlocksShareVariablesAndRepeatWhileChecksEachIteration) {

@@ -58,6 +58,15 @@ struct For : Statement {
   void accept(StatementVisitor& visitor) const override;
 };
 
+struct Function : Statement {
+  std::string name;
+  Array<std::string> parameters;
+  ExpressionTree result;
+
+  Function(std::string name, Array<std::string> parameters, ExpressionTree result);
+  void accept(StatementVisitor& visitor) const override;
+};
+
 }
 
 #endif //DATASTRUCTURES_AST_STATEMENTS_H

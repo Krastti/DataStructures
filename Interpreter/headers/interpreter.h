@@ -30,6 +30,7 @@ public:
   void visit(const ast::NumberLiteral& node) override;
   void visit(const ast::Identifier& node) override;
   void visit(const ast::StringLiteral& node) override;
+  void visit(const ast::Call& node) override;
   void visit(const ast::Binary& node) override;
 
   void visit(const ast::Remember& node) override;
@@ -37,6 +38,7 @@ public:
   void visit(const ast::When& node) override;
   void visit(const ast::RepeatWhile& node) override;
   void visit(const ast::For& node) override;
+  void visit(const ast::Function& node) override;
 
 private:
   minilang::Environment environment;

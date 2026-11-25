@@ -29,7 +29,9 @@ Array<UniquePtr<ast::Statement>> Parser::parse(const Array<Token>& tokens) {
     }
 
     // ReSharper disable once CppLocalVariableMayBeConst
-    auto parsedStatement = parseStatement(tokens, position);
+    auto parsedStatement = type == TokenType::Function
+      ? parseFunction(tokens, position)
+      : parseStatement(tokens, position);
     requireStatementEnd(tokens, parsedStatement.nextPosition);
     statements.push_back(std::move(parsedStatement.statement));
     position = parsedStatement.nextPosition;
@@ -125,6 +127,8 @@ Parser::ParsedStatement Parser::parseStatement(const Array<Token>& tokens, const
         .nextPosition = body.nextPosition + 1
       };
     }
+    case TokenType::Function:
+      throw std::invalid_argument("Объявление функции допустимо только на верхнем уровне программы");
     case TokenType::Otherwise:
       throw std::invalid_argument("Неожиданный otherwise вне блока when");
     case TokenType::End:
@@ -132,6 +136,43 @@ Parser::ParsedStatement Parser::parseStatement(const Array<Token>& tokens, const
     default:
       throw std::invalid_argument("Неожиданный токен в начале инструкции");
   }
+}
+
+Parser::ParsedStatement Parser::parseFunction(const Array<Token>& tokens, const std::size_t position) {
+  const Token& name = requireToken(tokens, position + 1, TokenType::Identifier,
+                                  "Ожидалось имя функции после function");
+  requireToken(tokens, position + 2, TokenType::LeftParen,
+               "Ожидалась открывающая скобка после имени функции");
+
+  Array<std::string> parameters;
+  std::size_t next = position + 3;
+  if (next < tokens.size() && tokens[next].type != TokenType::RightParen) {
+    while (true) {
+      const Token& parameter = requireToken(tokens, next, TokenType::Identifier,
+                                           "Ожидалось имя параметра функции");
+      for (std::size_t i = 0; i < parameters.size(); ++i) {
+        if (parameters[i] == parameter.lexeme) {
+          throw std::invalid_argument("Повторяющееся имя параметра: " + parameter.lexeme);
+        }
+      }
+      parameters.push_back(parameter.lexeme);
+      ++next;
+      if (next >= tokens.size() || tokens[next].type != TokenType::Comma) break;
+      ++next;
+    }
+  }
+  requireToken(tokens, next, TokenType::RightParen,
+               "Ожидалась закрывающая скобка после списка параметров");
+  requireToken(tokens, next + 1, TokenType::Arrow,
+               "Ожидалась стрелка -> после списка параметров");
+
+  auto result = parseEquality(tokens, next + 2);
+  requireToken(tokens, result.nextPosition, TokenType::End, "Ожидался end после выражения функции");
+  return {
+    .statement = UniquePtr<ast::Statement>(
+      new ast::Function(name.lexeme, std::move(parameters), std::move(result.expression))),
+    .nextPosition = result.nextPosition + 1
+  };
 }
 
 Parser::ParsedBody Parser::parseBody(const Array<Token>& tokens, std::size_t position,
@@ -192,6 +233,29 @@ ast::ExpressionTree Parser::parseOperand(const Array<Token>& tokens, const std::
 }
 
 Parser::ParsedExpr Parser::parsePrimary(const Array<Token>& tokens, const std::size_t position) {
+  if (position < tokens.size() && tokens[position].type == TokenType::Identifier &&
+      position + 1 < tokens.size() && tokens[position + 1].type == TokenType::LeftParen) {
+
+    Array<ast::ExpressionTree> arguments;
+    std::size_t next = position + 2;
+
+    if (next < tokens.size() && tokens[next].type != TokenType::RightParen) {
+      while (true) {
+        auto argument = parseEquality(tokens, next);
+        arguments.push_back(std::move(argument.expression));
+        next = argument.nextPosition;
+        if (next >= tokens.size() || tokens[next].type != TokenType::Comma) break;
+        ++next;
+      }
+    }
+    requireToken(tokens, next, TokenType::RightParen, "Ожидалась закрывающая скобка вызова");
+    return {
+      .expression = ast::ExpressionTree::makeLeaf(
+        UniquePtr<ast::Expr>(new ast::Call(tokens[position].lexeme, std::move(arguments)))),
+      .nextPosition = next + 1
+    };
+  }
+
   // Если текущий токен является открывающей скобкой, то разбираем всё выражение внутри скобок.
   if (position < tokens.size() && tokens[position].type == TokenType::LeftParen) {
     auto inner = parseEquality(tokens, position + 1);

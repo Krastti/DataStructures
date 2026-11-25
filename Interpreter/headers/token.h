@@ -37,7 +37,11 @@ enum class TokenType {
 
   For,
   In,
-  Range
+  Range,
+
+  Function,
+  Arrow,
+  Comma,
 };
 
 struct Token {

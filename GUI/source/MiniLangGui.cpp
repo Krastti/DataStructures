@@ -386,6 +386,17 @@ private:
     addBranch("body", statementItem->text(0) + ".", node.body, statementItem, astItem);
   }
 
+  void visit(const ast::Function& node) override {
+    QString signature = QString::fromStdString(node.name) + "(";
+    for (std::size_t i = 0; i < node.parameters.size(); ++i) {
+      if (i > 0) signature += ", ";
+      signature += QString::fromStdString(node.parameters[i]);
+    }
+    signature += ")";
+    addStatement(node, "Function", signature);
+    addExpression("result", node.result);
+  }
+
   void visit(const ast::NumberLiteral& node) override {
     addExprNode(node, "NumberLiteral", QString::fromStdString(node.lexeme));
   }
@@ -396,6 +407,16 @@ private:
 
   void visit(const ast::Identifier& node) override {
     addExprNode(node, "Identifier", QString::fromStdString(node.name));
+  }
+
+  void visit(const ast::Call& node) override {
+    addExprNode(node, "Call", QString::fromStdString(node.name));
+    auto* parent = astItem;
+    for (std::size_t i = 0; i < node.arguments.size(); ++i) {
+      astItem = addExpressionChild(parent, "argument " + QString::number(i + 1));
+      node.arguments[i].getRoot()->accept(*this);
+    }
+    astItem = parent;
   }
 
   void visit(const ast::Binary& node) override {

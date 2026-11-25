@@ -47,6 +47,8 @@ private:
   // Разбирает одну инструкцию и возвращает позицию после неё.
   static ParsedStatement parseStatement(const Array<Token>& tokens, std::size_t position);
 
+  static ParsedStatement parseFunction(const Array<Token>& tokens, std::size_t position);
+
   // Собирает инструкции блока и оставляет позицию на маркере его окончания.
   static ParsedBody parseBody(const Array<Token>& tokens, std::size_t position,
                               std::initializer_list<TokenType> terminators, const char* blockName);

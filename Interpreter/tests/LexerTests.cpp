@@ -54,6 +54,25 @@ TEST(LexerTests, RecognizesEveryOperatorAndParenthesis) {
   EXPECT_EQ(tokens[13].type, TokenType::EndOfFile);
 }
 
+TEST(LexerTests, RecognizesArrowOnlyWithAdjacentSymbols) {
+  const auto tokens = Lexer::tokenize("a->b - > >= -");
+  const Token expected[] = {
+    {TokenType::Identifier, "a"},
+    {TokenType::Arrow, "->"},
+    {TokenType::Identifier, "b"},
+    {TokenType::Minus, "-"},
+    {TokenType::Greater, ">"},
+    {TokenType::GreaterEqual, ">="},
+    {TokenType::Minus, "-"},
+    {TokenType::EndOfFile, ""}
+  };
+  ASSERT_EQ(tokens.size(), sizeof(expected) / sizeof(expected[0]));
+  for (std::size_t i = 0; i < tokens.size(); ++i) {
+    EXPECT_EQ(tokens[i].type, expected[i].type);
+    EXPECT_EQ(tokens[i].lexeme, expected[i].lexeme);
+  }
+}
+
 TEST(LexerTests, KeepsTokenBoundariesWithoutWhitespace) {
   const auto tokens = Lexer::tokenize("print2<=12_x==7>3");
   const Token expected[] = {
@@ -113,11 +132,11 @@ TEST(LexerTests, RejectsUnsupportedCharactersAndIncompleteOperators) {
 }
 
 TEST(LexerTests, TokenizesStringWithSpacesAndOperatorsAsOneToken) {
-  const auto tokens = Lexer::tokenize("print \"remember x = 1 + (2) != 3\"");
+  const auto tokens = Lexer::tokenize("print \"remember x = 1 + (2) != 3 -> -\"");
   ASSERT_EQ(tokens.size(), 3u);
   EXPECT_EQ(tokens[0].type, TokenType::Print);
   EXPECT_EQ(tokens[1].type, TokenType::String);
-  EXPECT_EQ(tokens[1].lexeme, "\"remember x = 1 + (2) != 3\"");
+  EXPECT_EQ(tokens[1].lexeme, "\"remember x = 1 + (2) != 3 -> -\"");
   EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
 }
 

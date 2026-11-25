@@ -1,6 +1,7 @@
 #ifndef DATASTRUCTURES_AST_EXPRESSIONS_H
 #define DATASTRUCTURES_AST_EXPRESSIONS_H
 
+#include "Array/Array.h"
 #include "token.h"
 
 #include <string>
@@ -52,6 +53,15 @@ struct StringLiteral : Expr {
   std::string lexeme;
 
   explicit StringLiteral(std::string lexeme);
+  void accept(ExprVisitor& visitor) const override;
+};
+
+struct Call : Expr {
+  std::string name;
+  Array<ExpressionTree> arguments;
+
+  Call(std::string name, Array<ExpressionTree> arguments);
+  ~Call() override;
   void accept(ExprVisitor& visitor) const override;
 };
 

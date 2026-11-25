@@ -132,6 +132,10 @@ void Interpreter::visit(const ast::StringLiteral& node) {
   lastValue = Value{node.lexeme.substr(1, node.lexeme.size() - 2)};
 }
 
+void Interpreter::visit(const ast::Call&) {
+  throw std::logic_error("Вычисление вызовов функций ещё не реализовано");
+}
+
 void Interpreter::visit(const ast::Binary& node) {
   // Сохраняем левое значение до обхода правого: тот тоже использует lastValue.
   const Value leftValue = evaluate(*node.leftOperand());
@@ -142,6 +146,10 @@ void Interpreter::visit(const ast::Binary& node) {
     throw std::invalid_argument("Ошибка выполнения: оператор ожидает два числа");
   }
   lastValue = applyNumericOperation(node.operation, *left, *right);
+}
+
+void Interpreter::visit(const ast::Function&) {
+  throw std::logic_error("Выполнение объявлений функций ещё не реализовано");
 }
 
 void Interpreter::visit(const ast::Remember& node) {

@@ -11,6 +11,7 @@ enum class LexerState {
   AfterEquals,
   AfterLess,
   AfterGreater,
+  AfterMinus,
   AfterBang,
   TwoCharOperator,
   SingleSymbol,

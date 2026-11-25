@@ -36,6 +36,127 @@ TEST(ParserTests, ParsesRememberAndPrintInOrder) {
   EXPECT_EQ(name->name, "x");
 }
 
+TEST(ParserTests, DistinguishesEmptyCallFromIdentifier) {
+  const auto program = parse("print f()\nprint f");
+  ASSERT_EQ(program.size(), 2u);
+
+  const auto* callPrint = dynamic_cast<const ast::Print*>(program[0].get());
+  ASSERT_NE(callPrint, nullptr);
+  const auto* call = dynamic_cast<const ast::Call*>(callPrint->forOutput.getRoot());
+  ASSERT_NE(call, nullptr);
+  EXPECT_EQ(call->name, "f");
+  EXPECT_EQ(call->arguments.size(), 0u);
+
+  const auto* namePrint = dynamic_cast<const ast::Print*>(program[1].get());
+  ASSERT_NE(namePrint, nullptr);
+  const auto* name = dynamic_cast<const ast::Identifier*>(namePrint->forOutput.getRoot());
+  ASSERT_NE(name, nullptr);
+  EXPECT_EQ(name->name, "f");
+}
+
+TEST(ParserTests, ContinuesParsingExpressionAfterEmptyCall) {
+  const auto program = parse("print f() + 2");
+  ASSERT_EQ(program.size(), 1u);
+  const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
+  ASSERT_NE(print, nullptr);
+  const auto* sum = dynamic_cast<const ast::Binary*>(print->forOutput.getRoot());
+  ASSERT_NE(sum, nullptr);
+  EXPECT_EQ(sum->operation, TokenType::Plus);
+  EXPECT_NE(dynamic_cast<const ast::Call*>(sum->leftOperand()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::NumberLiteral*>(sum->rightOperand()), nullptr);
+}
+
+TEST(ParserTests, RequiresClosingParenthesisForCall) {
+  EXPECT_THROW(parse("print f("), std::invalid_argument);
+  EXPECT_THROW(parse("print f(1"), std::invalid_argument);
+}
+
+TEST(ParserTests, ParsesCallArgumentsAsExpressionsInOrder) {
+  const auto program = parse("print 2 * f(3 + 4, g(5))");
+  ASSERT_EQ(program.size(), 1u);
+  const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
+  ASSERT_NE(print, nullptr);
+  const auto* product = dynamic_cast<const ast::Binary*>(print->forOutput.getRoot());
+  ASSERT_NE(product, nullptr);
+  EXPECT_EQ(product->operation, TokenType::Star);
+  const auto* call = dynamic_cast<const ast::Call*>(product->rightOperand());
+  ASSERT_NE(call, nullptr);
+  EXPECT_EQ(call->name, "f");
+  ASSERT_EQ(call->arguments.size(), 2u);
+
+  const auto* sum = dynamic_cast<const ast::Binary*>(call->arguments[0].getRoot());
+  ASSERT_NE(sum, nullptr);
+  EXPECT_EQ(sum->operation, TokenType::Plus);
+  const auto* nested = dynamic_cast<const ast::Call*>(call->arguments[1].getRoot());
+  ASSERT_NE(nested, nullptr);
+  EXPECT_EQ(nested->name, "g");
+  ASSERT_EQ(nested->arguments.size(), 1u);
+  const auto* number = dynamic_cast<const ast::NumberLiteral*>(nested->arguments[0].getRoot());
+  ASSERT_NE(number, nullptr);
+  EXPECT_EQ(number->lexeme, "5");
+}
+
+TEST(ParserTests, RejectsMalformedCallArgumentLists) {
+  for (const char* source : {"print f(,1)", "print f(1,)", "print f(1,,2)", "print f(1 2)"}) {
+    EXPECT_THROW(parse(source), std::invalid_argument) << source;
+  }
+}
+
+TEST(ParserTests, ParsesParameterlessFunctionDeclarationAndFollowingStatement) {
+  const auto program = parse("function f() -> g() end\nprint f()");
+  ASSERT_EQ(program.size(), 2u);
+  const auto* function = dynamic_cast<const ast::Function*>(program[0].get());
+  ASSERT_NE(function, nullptr);
+  EXPECT_EQ(function->name, "f");
+  EXPECT_EQ(function->parameters.size(), 0u);
+  const auto* call = dynamic_cast<const ast::Call*>(function->result.getRoot());
+  ASSERT_NE(call, nullptr);
+  EXPECT_EQ(call->name, "g");
+  EXPECT_NE(dynamic_cast<const ast::Print*>(program[1].get()), nullptr);
+}
+
+TEST(ParserTests, AcceptsFunctionEndImmediatelyBeforeEof) {
+  EXPECT_EQ(parse("function f() -> 1 end").size(), 1u);
+}
+
+TEST(ParserTests, ParsesFunctionParametersInDeclarationOrder) {
+  const auto program = parse("function add(a, b) -> a + b end");
+  ASSERT_EQ(program.size(), 1u);
+  const auto* function = dynamic_cast<const ast::Function*>(program[0].get());
+  ASSERT_NE(function, nullptr);
+  EXPECT_EQ(function->name, "add");
+  ASSERT_EQ(function->parameters.size(), 2u);
+  EXPECT_EQ(function->parameters[0], "a");
+  EXPECT_EQ(function->parameters[1], "b");
+  const auto* sum = dynamic_cast<const ast::Binary*>(function->result.getRoot());
+  ASSERT_NE(sum, nullptr);
+  EXPECT_EQ(sum->operation, TokenType::Plus);
+}
+
+TEST(ParserTests, RejectsRepeatedFunctionParameterNames) {
+  EXPECT_THROW(parse("function f(a, b, a) -> a end"), std::invalid_argument);
+}
+
+TEST(ParserTests, RejectsMalformedFunctionParameterLists) {
+  for (const char* source : {"function f(,a) -> a end", "function f(a,) -> a end",
+                             "function f(a,,b) -> a end", "function f(a b) -> a end",
+                             "function f(a + 1) -> a end", "function f(1) -> 1 end",
+                             "function f(print) -> 1 end"}) {
+    EXPECT_THROW(parse(source), std::invalid_argument) << source;
+  }
+}
+
+TEST(ParserTests, RejectsMalformedFunctionDeclarations) {
+  for (const char* source : {"function () -> 1 end", "function f( -> 1 end", "function f() 1 end",
+                             "function f() -> end", "function f() -> 1", "function f() -> 1 end print 2"}) {
+    EXPECT_THROW(parse(source), std::invalid_argument) << source;
+  }
+}
+
+TEST(ParserTests, RejectsNestedFunctionDeclaration) {
+  EXPECT_THROW(parse("when 1 == 1\nfunction f() -> 1 end\nend"), std::invalid_argument);
+}
+
 TEST(ParserTests, ParsesNestedWhenAndKeepsEachBranchAtItsOwnLevel) {
   const auto program = parse(
       "when (x + 1) < 3\n"
@@ -343,6 +464,16 @@ public:
     events.push_back("string:" + node.lexeme);
   }
 
+  void visit(const ast::Call& node) override {
+    lastExpression = &node;
+    events.push_back("call:" + node.name);
+    if (visitChildren) {
+      for (std::size_t i = 0; i < node.arguments.size(); ++i) {
+        node.arguments[i].getRoot()->accept(*this);
+      }
+    }
+  }
+
   void visit(const ast::Binary& node) override {
     lastExpression = &node;
     events.push_back("binary");
@@ -391,7 +522,35 @@ public:
       for (std::size_t i = 0; i < node.body.size(); ++i) node.body[i]->accept(*this);
     }
   }
+
+  void visit(const ast::Function& node) override {
+    lastStatement = &node;
+    events.push_back("function:" + node.name);
+    if (visitChildren) node.result.getRoot()->accept(*this);
+  }
 };
+}
+
+TEST(ParserTests, VisitorTraversesFunctionResultAndCallArgumentsInOrder) {
+  Array<ast::ExpressionTree> arguments;
+  arguments.push_back(ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::Identifier("x"))));
+  arguments.push_back(ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("2"))));
+  Array<std::string> parameters;
+  parameters.push_back("x");
+  const ast::Function function("twice", std::move(parameters), ast::ExpressionTree::makeLeaf(
+      UniquePtr<ast::Expr>(new ast::Call("multiply", std::move(arguments)))));
+
+  RecordingVisitor visitor;
+  visitor.visitChildren = true;
+  const ast::Statement& statement = function;
+  statement.accept(visitor);
+
+  EXPECT_EQ(visitor.lastStatement, &function);
+  ASSERT_EQ(visitor.events.size(), 4u);
+  EXPECT_EQ(visitor.events[0], "function:twice");
+  EXPECT_EQ(visitor.events[1], "call:multiply");
+  EXPECT_EQ(visitor.events[2], "identifier:x");
+  EXPECT_EQ(visitor.events[3], "number:2");
 }
 
 TEST(ParserTests, AcceptDispatchesEachExpressionThroughConstBaseReference) {

@@ -34,14 +34,16 @@ LexerEvent classify(const char symbol) {
       return LexerEvent::LessSign;
     case '>':
       return LexerEvent::GreaterSign;
+    case '-':
+      return LexerEvent::MinusSign;
     case '!':
       return LexerEvent::Bang;
     case '+':
-    case '-':
     case '*':
     case '/':
     case '(':
     case ')':
+    case ',':
       return LexerEvent::SingleSymbol;
     case '\r':
       return LexerEvent::CR;
@@ -65,7 +67,8 @@ StateMachine<State, Event> makeLexerMachine() {
 
   constexpr Event stringContentEvents[] = {
     Event::WordStart, Event::Digit, Event::Space, Event::EqualsSign,
-    Event::LessSign, Event::GreaterSign, Event::Bang, Event::SingleSymbol, Event::Other
+    Event::LessSign, Event::GreaterSign, Event::MinusSign, Event::Bang,
+    Event::SingleSymbol, Event::Other
   };
   for (Event event : stringContentEvents) {
     machine.addTransition(State::ReadingString, State::ReadingString, event);
@@ -74,11 +77,13 @@ StateMachine<State, Event> makeLexerMachine() {
   machine.addTransition(State::Start, State::AfterEquals, Event::EqualsSign);
   machine.addTransition(State::Start, State::AfterLess, Event::LessSign);
   machine.addTransition(State::Start, State::AfterGreater, Event::GreaterSign);
+  machine.addTransition(State::Start, State::AfterMinus, Event::MinusSign);
   machine.addTransition(State::Start, State::AfterBang, Event::Bang);
   machine.addTransition(State::Start, State::SingleSymbol, Event::SingleSymbol);
   machine.addTransition(State::AfterEquals, State::TwoCharOperator, Event::EqualsSign);
   machine.addTransition(State::AfterLess, State::TwoCharOperator, Event::EqualsSign);
   machine.addTransition(State::AfterGreater, State::TwoCharOperator, Event::EqualsSign);
+  machine.addTransition(State::AfterMinus, State::TwoCharOperator, Event::GreaterSign);
   machine.addTransition(State::AfterBang, State::TwoCharOperator, Event::EqualsSign);
 
   machine.addTransition(State::Start, State::Newline, Event::LF);
@@ -94,6 +99,7 @@ TokenType twoCharOperatorType(const char firstSymbol) {
     case '!': return TokenType::BangEqual;
     case '<': return TokenType::LessEqual;
     case '>': return TokenType::GreaterEqual;
+    case '-': return TokenType::Arrow;
     default: throw std::logic_error("Неизвестный двухсимвольный оператор");
   }
 }
@@ -134,6 +140,7 @@ Array<Token> Lexer::tokenize(const std::string& source) {
         else if (source.compare(start, length, "for") == 0) type = TokenType::For;
         else if (source.compare(start, length,"in") == 0) type = TokenType::In;
         else if (source.compare(start, length, "range") == 0) type = TokenType::Range;
+        else if (source.compare(start, length, "function") == 0) type = TokenType::Function;
         break;
       case State::StringClosed:
         type = TokenType::String;
@@ -148,6 +155,7 @@ Array<Token> Lexer::tokenize(const std::string& source) {
       case State::AfterEquals:
       case State::AfterLess:
       case State::AfterGreater:
+      case State::AfterMinus:
         type = singleSymbolType(source[start]);
         break;
       case State::Start:
@@ -182,6 +190,7 @@ TokenType Lexer::singleSymbolType(const char symbol) {
     case '>': return TokenType::Greater;
     case '(': return TokenType::LeftParen;
     case ')': return TokenType::RightParen;
+    case ',': return TokenType::Comma;
     default:
       throw std::logic_error("Неизвестный односимвольный токен");
   }

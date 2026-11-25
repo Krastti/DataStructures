@@ -1,6 +1,10 @@
 remember i = 99
 
-for i in range(3)
+remember helloName = "Привет Илья"
+
+remember define = "define"
+
+for i in range(1)
     print "i ="
     print i
 
@@ -8,6 +12,19 @@ for i in range(3)
         print "i + j = "
         print i + j
     end
+
+    when i == 1
+        print helloName
+    otherwise
+        print i
+    end
+end
+
+
+function () -> age
+
 end
 
 print i
+
+print define

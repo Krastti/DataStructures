@@ -73,7 +73,7 @@ mini main.mini
 
 ## CMake и тесты
 
-Общие исходники лексера, парсера, AST и исполнителя собираются в `MiniLangCore`. Эту библиотеку используют `MiniLangCpp` и `InterpreterTests`.
+Общие исходники лексера, парсера, AST, окружения и исполнителя собираются в `MiniLangCore`. С библиотекой связаны `MiniLangCpp`, `MiniLangGui` и `InterpreterTests`.
 
 `BUILD_TESTING` по умолчанию включён. В этом режиме GoogleTest берётся из системы или загружается CMake. Для сборки и проверки без Qt:
 

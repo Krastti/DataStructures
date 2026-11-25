@@ -11,6 +11,7 @@ struct Remember;
 struct Print;
 struct When;
 struct RepeatWhile;
+struct For;
 
 struct ExprVisitor {
   virtual ~ExprVisitor() = default;
@@ -28,6 +29,7 @@ struct StatementVisitor {
   virtual void visit(const Print& node) = 0;
   virtual void visit(const When& node) = 0;
   virtual void visit(const RepeatWhile& node) = 0;
+  virtual void visit(const For& node) = 0;
 };
 
 }

@@ -139,6 +139,28 @@ TEST(ParserTests, ParsesRepeatWhileInsideWhen) {
   EXPECT_EQ(emptyLoop->body.size(), 0u);
 }
 
+TEST(ParserTests, ParsesForRangeVariableStopAndBody) {
+  const auto program = parse("for index in range((1 + 2))\nprint index\nend\nprint index");
+  ASSERT_EQ(program.size(), 2u);
+  const auto* loop = dynamic_cast<const ast::For*>(program[0].get());
+  ASSERT_NE(loop, nullptr);
+  EXPECT_EQ(loop->variable, "index");
+  const auto* stop = dynamic_cast<const ast::Binary*>(loop->stop.getRoot());
+  ASSERT_NE(stop, nullptr);
+  EXPECT_EQ(stop->operation, TokenType::Plus);
+  ASSERT_EQ(loop->body.size(), 1u);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(loop->body[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(program[1].get()), nullptr);
+}
+
+TEST(ParserTests, RejectsMalformedForRangeHeadersAndBlocks) {
+  for (const auto* source : {"for in range(3)\nend", "for i range(3)\nend", "for i in (3)\nend",
+                             "for i in range()\nend", "for i in range(3\nend",
+                             "for i in range(3) print i\nend", "for i in range(3)\nprint i"}) {
+    EXPECT_THROW(parse(source), std::invalid_argument) << source;
+  }
+}
+
 TEST(ParserTests, RejectsMalformedRepeatWhileWithBlockDiagnostics) {
   const std::pair<const char*, const char*> cases[] = {
     {"repeat", "Ожидался while после repeat"},
@@ -360,6 +382,15 @@ public:
       for (std::size_t i = 0; i < node.body.size(); ++i) node.body[i]->accept(*this);
     }
   }
+
+  void visit(const ast::For& node) override {
+    lastStatement = &node;
+    events.push_back("for:" + node.variable);
+    if (visitChildren) {
+      node.stop.getRoot()->accept(*this);
+      for (std::size_t i = 0; i < node.body.size(); ++i) node.body[i]->accept(*this);
+    }
+  }
 };
 }
 
@@ -384,13 +415,13 @@ TEST(ParserTests, AcceptDispatchesEachExpressionThroughConstBaseReference) {
 }
 
 TEST(ParserTests, AcceptDispatchesStatementsWithoutVisitingChildrenAutomatically) {
-  const auto program = parse("remember x = 1\nprint x");
-  ASSERT_EQ(program.size(), 2u);
+  const auto program = parse("remember x = 1\nprint x\nfor i in range(2)\nprint i\nend");
+  ASSERT_EQ(program.size(), 3u);
   const ast::When when(ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::Identifier("flag"))),
                        {}, {});
   const ast::RepeatWhile repeat(ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::Identifier("flag"))),
                                 {});
-  const ast::Statement* statements[] = {program[0].get(), program[1].get(), &when, &repeat};
+  const ast::Statement* statements[] = {program[0].get(), program[1].get(), &when, &repeat, program[2].get()};
 
   RecordingVisitor visitor;
   ast::StatementVisitor& statementVisitor = visitor;
@@ -398,11 +429,12 @@ TEST(ParserTests, AcceptDispatchesStatementsWithoutVisitingChildrenAutomatically
     statement->accept(statementVisitor);
     EXPECT_EQ(visitor.lastStatement, statement);
   }
-  ASSERT_EQ(visitor.events.size(), 4u);
+  ASSERT_EQ(visitor.events.size(), 5u);
   EXPECT_EQ(visitor.events[0], "remember:x");
   EXPECT_EQ(visitor.events[1], "print");
   EXPECT_EQ(visitor.events[2], "when");
   EXPECT_EQ(visitor.events[3], "repeat while");
+  EXPECT_EQ(visitor.events[4], "for:i");
   EXPECT_EQ(visitor.lastExpression, nullptr);
 }
 

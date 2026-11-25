@@ -28,6 +28,9 @@ When::When(ExpressionTree condition, Array<UniquePtr<Statement>> thenBranch,
 RepeatWhile::RepeatWhile(ExpressionTree condition, Array<UniquePtr<Statement>> body)
     : condition(std::move(condition)), body(std::move(body)) {}
 
+For::For(std::string variable, ExpressionTree stop, Array<UniquePtr<Statement>> body)
+    : variable(std::move(variable)), stop(std::move(stop)), body(std::move(body)) {}
+
 void NumberLiteral::accept(ExprVisitor& visitor) const {
   visitor.visit(*this);
 }
@@ -57,6 +60,10 @@ void When::accept(StatementVisitor& visitor) const {
 }
 
 void RepeatWhile::accept(StatementVisitor& visitor) const {
+  visitor.visit(*this);
+}
+
+void For::accept(StatementVisitor& visitor) const {
   visitor.visit(*this);
 }
 

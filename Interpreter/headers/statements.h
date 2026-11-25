@@ -49,6 +49,15 @@ struct RepeatWhile : Statement {
   void accept(StatementVisitor& visitor) const override;
 };
 
+struct For : Statement {
+  std::string variable;
+  ExpressionTree stop;
+  Array<UniquePtr<Statement>> body;
+
+  For(std::string variable, ExpressionTree stop, Array<UniquePtr<Statement>> body);
+  void accept(StatementVisitor& visitor) const override;
+};
+
 }
 
 #endif //DATASTRUCTURES_AST_STATEMENTS_H

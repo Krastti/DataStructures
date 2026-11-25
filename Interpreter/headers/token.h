@@ -33,7 +33,11 @@ enum class TokenType {
   Otherwise,
   Repeat,
   While,
-  End
+  End,
+
+  For,
+  In,
+  Range
 };
 
 struct Token {

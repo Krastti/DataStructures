@@ -29,9 +29,13 @@ public:
   void visit(const ast::Print& node) override;
   void visit(const ast::When& node) override;
   void visit(const ast::RepeatWhile& node) override;
+  void visit(const ast::For& node) override;
 
 private:
+  struct LoopVariable;
+
   Map<std::string, Value> variables;
+  LoopVariable* activeLoopVariable = nullptr;
 
   // visit возвращает void, поэтому результат выражения сохраняем отдельно.
   Optional<Value> lastValue;
@@ -41,6 +45,8 @@ private:
   Value evaluate(const ast::Expr& expression);
   bool evaluateCondition(const ast::ExpressionTree& condition, const char* instruction);
   void executeStatements(const Array<UniquePtr<ast::Statement>>& statements);
+  Value* findLoopVariable(const std::string& name);
+  void storeVariable(const std::string& name, Value value);
 };
 
 #endif //DATASTRUCTURES_INTERPRETER_H

@@ -107,6 +107,24 @@ Parser::ParsedStatement Parser::parseStatement(const Array<Token>& tokens, const
         .nextPosition = body.nextPosition + 1
       };
     }
+    case TokenType::For: {
+      const Token& name = requireToken(tokens, position + 1, TokenType::Identifier,
+                                      "Ожидалось имя переменной после for");
+      requireToken(tokens, position + 2, TokenType::In, "Ожидалось in после имени переменной");
+      requireToken(tokens, position + 3, TokenType::Range, "Ожидалось range после in");
+      requireToken(tokens, position + 4, TokenType::LeftParen, "Ожидалась открывающая скобка после range");
+
+      auto stop = parseEquality(tokens, position + 5);
+      requireToken(tokens, stop.nextPosition, TokenType::RightParen, "Ожидалась закрывающая скобка после аргумента range");
+      requireToken(tokens, stop.nextPosition + 1, TokenType::Newline,
+                   "Ожидался перевод строки после заголовка for");
+
+      auto body = parseBody(tokens, stop.nextPosition + 2, {TokenType::End}, "for");
+      return {.statement = UniquePtr<ast::Statement>(
+        new ast::For(name.lexeme, std::move(stop.expression), std::move(body.statements))),
+        .nextPosition = body.nextPosition + 1
+      };
+    }
     case TokenType::Otherwise:
       throw std::invalid_argument("Неожиданный otherwise вне блока when");
     case TokenType::End:

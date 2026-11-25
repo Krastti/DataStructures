@@ -73,6 +73,66 @@ TEST(InterpreterTests, RepeatWhileSkipsTheBodyWhenInitiallyFalse) {
   EXPECT_EQ(runProgram("repeat while 1 > 2\nprint missing\nend\nprint 3"), "3.0\n");
 }
 
+TEST(InterpreterTests, ForWithNonPositiveRangeSkipsBodyAndPreservesLoopVariable) {
+  EXPECT_EQ(runProgram("remember i = 7\n"
+                       "for i in range(0)\nprint missing\nend\n"
+                       "for i in range(0 - 2)\nprint missing\nend\n"
+                       "print i"), "7.0\n");
+  EXPECT_THROW(runProgram("for i in range(0)\nend\nprint i"), std::invalid_argument);
+}
+
+TEST(InterpreterTests, ForRejectsInvalidRangeStopsBeforeExecutingTheBody) {
+  for (const auto* stop : {"\"text\"", "1 < 2", "3 / 2", "9007199254740994"}) {
+    const std::string source = std::string("for i in range(") + stop + ")\nprint 1\nend";
+    Interpreter interpreter;
+    std::ostringstream output;
+    EXPECT_THROW(interpreter.execute(parseProgram(source), output), std::invalid_argument) << source;
+    EXPECT_TRUE(output.str().empty()) << source;
+  }
+}
+
+TEST(InterpreterTests, ForEvaluatesRangeOnceAndSharesLoopVariableWithNestedWhen) {
+  EXPECT_EQ(runProgram(
+      "remember limit = 3\n"
+      "for i in range(limit)\n"
+      "  when i == 1\n"
+      "    print \"середина\"\n"
+      "  otherwise\n"
+      "    print i\n"
+      "  end\n"
+      "  remember limit = 0\n"
+      "end"), "0.0\nсередина\n2.0\n");
+}
+
+TEST(InterpreterTests, NestedForWithSameNameRestoresOuterCounter) {
+  EXPECT_EQ(runProgram(
+      "for i in range(2)\n"
+      "  for i in range(i + 2)\n"
+      "    print i\n"
+      "  end\n"
+      "  print i\n"
+      "end"), "0.0\n1.0\n0.0\n0.0\n1.0\n2.0\n1.0\n");
+}
+
+TEST(InterpreterTests, ForRestoresPreviousValueAfterShadowing) {
+  EXPECT_EQ(runProgram(
+      "remember i = \"до цикла\"\n"
+      "for i in range(2)\n"
+      "  print i\n"
+      "  remember i = i + 10\n"
+      "  print i\n"
+      "end\n"
+      "print i"), "0.0\n10.0\n1.0\n11.0\nдо цикла\n");
+}
+
+TEST(InterpreterTests, ForCounterWithoutPreviousValueIsUnknownAfterEnd) {
+  Interpreter interpreter;
+  std::ostringstream output;
+  EXPECT_THROW(interpreter.execute(parseProgram(
+      "for i in range(1)\nprint i\nend\nprint i"), output), std::invalid_argument);
+  EXPECT_EQ(output.str(), "0.0\n");
+}
+
 TEST(InterpreterTests, NestedBlocksShareVariablesAndRepeatWhileChecksEachIteration) {
   EXPECT_EQ(runProgram(
       "remember n = 0\n"

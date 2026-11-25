@@ -47,6 +47,26 @@ Interpreter::Value applyNumericOperation(const TokenType operation, const double
 }
 }
 
+struct Interpreter::LoopVariable {
+  const std::string& name;
+  Value value{0.0};
+  LoopVariable* const outer;
+  LoopVariable*& active;
+
+  LoopVariable(const std::string& name, LoopVariable*& active) noexcept
+      : name(name), outer(active), active(active) {
+    active = this;
+  }
+
+  LoopVariable(const LoopVariable&) = delete;
+  LoopVariable& operator=(const LoopVariable&) = delete;
+
+  ~LoopVariable() {
+    // Возвращаем внешнюю переменную в область поиска и при выходе с ошибкой.
+    active = outer;
+  }
+};
+
 void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, std::ostream& outputStream) {
   variables = Map<std::string, Value>{};
   lastValue.reset();
@@ -107,6 +127,10 @@ void Interpreter::visit(const ast::NumberLiteral& node) {
 }
 
 void Interpreter::visit(const ast::Identifier& node) {
+  if (const auto* local = findLoopVariable(node.name)) {
+    lastValue = *local;
+    return;
+  }
   if (!variables.containsKey(node.name)) {
     throw std::invalid_argument("Ошибка выполнения: неизвестная переменная: " + node.name);
   }
@@ -136,9 +160,23 @@ void Interpreter::visit(const ast::Remember& node) {
   const auto* expression = node.right.getRoot();
   if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение remember");
   // Сначала вычисляем правую часть, чтобы при ошибке сохранить старое значение переменной.
-  Value value = evaluate(*expression);
-  if (variables.containsKey(node.variable)) variables.replace(node.variable, std::move(value));
-  else variables.insert(node.variable, std::move(value));
+  storeVariable(node.variable, evaluate(*expression));
+}
+
+Interpreter::Value* Interpreter::findLoopVariable(const std::string& name) {
+  for (auto* local = activeLoopVariable; local; local = local->outer) {
+    if (local->name == name) return &local->value;
+  }
+  return nullptr;
+}
+
+void Interpreter::storeVariable(const std::string& name, Value value) {
+  if (auto* local = findLoopVariable(name)) {
+    *local = std::move(value);
+    return;
+  }
+  if (variables.containsKey(name)) variables.replace(name, std::move(value));
+  else variables.insert(name, std::move(value));
 }
 
 void Interpreter::visit(const ast::Print& node) {
@@ -160,6 +198,25 @@ void Interpreter::visit(const ast::When& node) {
 
 void Interpreter::visit(const ast::RepeatWhile& node) {
   while (evaluateCondition(node.condition, "repeat while")) {
+    executeStatements(node.body);
+  }
+}
+
+void Interpreter::visit(const ast::For& node) {
+  const auto* expression = node.stop.getRoot();
+  if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует граница range");
+
+  const Value value = evaluate(*expression);
+  const auto* stop = std::get_if<double>(&value);
+  // До 2^53 счётчик double точно представляет каждый целый шаг.
+  constexpr double maxStop = 0x1p53;
+  if (!stop || !std::isfinite(*stop) || std::trunc(*stop) != *stop || std::abs(*stop) > maxStop) {
+    throw std::invalid_argument("Ошибка выполнения: граница range должна быть конечным целым числом от -2^53 до 2^53");
+  }
+
+  LoopVariable variable(node.variable, activeLoopVariable);
+  for (double index = 0.0; index < *stop; ++index) {
+    variable.value = index;
     executeStatements(node.body);
   }
 }

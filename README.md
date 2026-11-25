@@ -41,6 +41,20 @@ ctest --test-dir /tmp/ds-build --output-on-failure
 
 Для сборки без графического интерфейса задайте `-DBUILD_GUI=OFF`. Для сборки без тестов задайте `-DBUILD_TESTING=OFF`. При включённых тестах CMake использует установленный GoogleTest или загружает его автоматически. В сборке с GUI тесты интерфейса запускаются через Qt offscreen.
 
+### Обновление команды `mini`
+
+После изменений в исходниках MiniLang соберите CLI заново и установите его в `~/.local/bin`. Выполните команды из корня проекта.
+
+```bash
+cmake -S . -B /tmp/ds-build/minilang-cli -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=OFF -DBUILD_TESTING=OFF
+cmake --build /tmp/ds-build/minilang-cli --target MiniLangCpp --parallel 2
+cmake --install /tmp/ds-build/minilang-cli --prefix "$HOME/.local"
+command -v mini
+mini Interpreter/examples/main.mini
+```
+
+Команда `command -v mini` должна показать путь к `~/.local/bin/mini`. Если каталог отсутствует в `PATH`, добавьте его по инструкции. [Документация CLI MiniLang](Interpreter/docs/cli.md)
+
 ### Замеры
 
 В лабораторных работах можно запустить сравнение алгоритмов на одних данных и сохранить замеры в CSV. GUI измеряет один запуск с учётом формирования ответа. Отрисовка выполняется после замера.

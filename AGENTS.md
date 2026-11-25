@@ -28,7 +28,7 @@
 - [Дизайн](Interpreter/docs/design.md) — постановка задачи, архитектура и функциональные требования к интерпретатору и GUI.
 - [Спецификация](Interpreter/docs/specification.md) — правила лексики, грамматика EBNF, семантика и ошибки.
 - [Архитектура](Interpreter/docs/architecture.md) — лексер, парсер, AST, окружение, исполнитель и трассировка.
-- [CLI MiniLangCpp](Interpreter/docs/cli.md) — сборка, установка, запуск и проверка.
+- [CLI MiniLangCpp](README.md#обновление-команды-mini) — сборка, установка и запуск.
 - [Расширение языка](Interpreter/docs/extending-language.md) — пример добавления оператора и порядок работы с новыми узлами AST.
 - [План реализации](Interpreter/docs/implementation-plan.md) — открытые задачи и будущие проверки.
 

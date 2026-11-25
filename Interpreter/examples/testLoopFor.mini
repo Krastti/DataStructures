@@ -20,11 +20,6 @@ for i in range(1)
     end
 end
 
-
-function () -> age
-
-end
-
 print i
 
 print define

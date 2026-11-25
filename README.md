@@ -53,7 +53,7 @@ command -v mini
 mini Interpreter/examples/main.mini
 ```
 
-Команда `command -v mini` должна показать путь к `~/.local/bin/mini`. Если каталог отсутствует в `PATH`, добавьте его по инструкции. [Документация CLI MiniLang](Interpreter/docs/cli.md)
+Команда `command -v mini` должна показать путь к `~/.local/bin/mini`. Если каталог отсутствует в `PATH`, добавьте туда `~/.local/bin`.
 
 ### Замеры
 
@@ -77,7 +77,7 @@ mini Interpreter/examples/main.mini
 
 В GUI можно построить указатель для текста из TXT, найти людей по диапазону годов рождения или сравнить алгоритмы поиска пути и увидеть найденный путь на графе.
 
-[Пример MiniLang](Interpreter/examples/main.mini) вычисляет выражения, сохраняет значения в переменных и выводит `36.0`, `true` и `18.0` на отдельных строках.
+[Пример MiniLang](Interpreter/examples/main.mini) показывает префиксный и постфиксный инкремент и вычисляет факториал числа 5. В выводе появляются результаты `2.0`, `1.0` и `120.0`.
 
 ```bash
 /tmp/ds-build/MiniLangCpp Interpreter/examples/main.mini

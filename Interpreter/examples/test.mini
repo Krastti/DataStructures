@@ -10,4 +10,9 @@ repeat while n < 3
     remember n = n + 1
 end
 
+repeat while n < 10
+    print n
+    remember n = n + 1
+end
+
 print n

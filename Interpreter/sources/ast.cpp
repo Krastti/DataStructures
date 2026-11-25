@@ -12,7 +12,7 @@ StringLiteral::StringLiteral(std::string lexeme) : lexeme(std::move(lexeme)) {}
 
 Identifier::Identifier(std::string name) : name(std::move(name)) {}
 
-Binary::Binary(TokenType operation) : operation(operation) {}
+Binary::Binary(const TokenType operation) : operation(operation) {}
 
 Remember::Remember(std::string variable, ExpressionTree right)
     : variable(std::move(variable)), right(std::move(right)) {}

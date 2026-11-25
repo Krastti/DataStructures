@@ -102,7 +102,7 @@ target_link_libraries(SecondLabIndexes PUBLIC Array BinaryTree SmartPointer)
 add_executable(DataStructures main.cpp)
 target_link_libraries(DataStructures PRIVATE SecondLabIndexes ThirdLabPaths Array)
 
-# Общая реализация для CLI и тестов интерпретатора.
+# Общая реализация для CLI, GUI и тестов интерпретатора.
 add_library(MiniLangCore STATIC
         FirstLab/headers/BinaryTreeBase.h
         FirstLab/headers/BinaryTreeBase.tpp
@@ -111,6 +111,7 @@ add_library(MiniLangCore STATIC
         Interpreter/headers/expressionTree.h
         Interpreter/sources/expressionTree.cpp
         Interpreter/sources/ast.cpp
+        Interpreter/sources/environment.cpp
         Interpreter/sources/interpreter.cpp
 )
 target_include_directories(MiniLangCore PUBLIC Interpreter/headers)
@@ -199,6 +200,9 @@ if(BUILD_GUI)
   find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets Concurrent)
   add_executable(TreesGui GUI/source/TreesGui.cpp)
   target_link_libraries(TreesGui PRIVATE BinaryTree Qt6::Widgets Qt6::Concurrent)
+
+  add_executable(MiniLangGui GUI/source/MiniLangGui.cpp)
+  target_link_libraries(MiniLangGui PRIVATE MiniLangCore Qt6::Widgets)
 
   add_library(DataStructuresGuiWidgets STATIC
           GUI/source/AlphabeticalIndexWidget.cpp

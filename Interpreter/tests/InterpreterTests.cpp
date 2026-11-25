@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 
 namespace {
 auto parseProgram(const std::string& source) {
@@ -162,6 +163,37 @@ TEST(InterpreterTests, ClearsNestedForScopesAfterAnError) {
       "remember i = 10\nremember j = 20\n"
       "for i in range(1)\nprint i + j\nend\nprint i\nprint j"), output);
   EXPECT_EQ(output.str(), "20.0\n10.0\n20.0\n");
+}
+
+TEST(InterpreterTests, ReportsObserverEventsInOrderAcrossForScope) {
+  struct RecordingObserver : Interpreter::Observer {
+    std::ostringstream events;
+
+    void enterStatement(const ast::Statement&) override { events << "statement\n"; }
+    void enterExpression(const ast::Expr&) override { events << "expression\n"; }
+    void leaveCall(const Interpreter::Value* value) override {
+      if (value) events << "value " << std::get<double>(*value) << '\n';
+      else events << "end statement\n";
+    }
+  };
+
+  Interpreter interpreter;
+  RecordingObserver observer;
+  std::ostringstream output;
+  interpreter.execute(parseProgram(
+      "remember i = 1\n"
+      "for i in range(i)\n"
+      "  print i + 2\n"
+      "end\n"
+      "print i"), output, &observer);
+
+  EXPECT_EQ(output.str(), "2.0\n1.0\n");
+  EXPECT_EQ(observer.events.str(),
+            "statement\nexpression\nvalue 1\nend statement\n"
+            "statement\nexpression\nvalue 1\n"
+            "statement\nexpression\nexpression\nvalue 0\nexpression\nvalue 2\nvalue 2\nend statement\n"
+            "end statement\n"
+            "statement\nexpression\nvalue 1\nend statement\n");
 }
 
 TEST(InterpreterTests, NestedBlocksShareVariablesAndRepeatWhileChecksEachIteration) {

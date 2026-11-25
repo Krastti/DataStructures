@@ -88,7 +88,7 @@ StateMachine<State, Event> makeLexerMachine() {
   return machine;
 }
 
-TokenType twoCharOperatorType(char firstSymbol) {
+TokenType twoCharOperatorType(const char firstSymbol) {
   switch (firstSymbol) {
     case '=': return TokenType::EqualEqual;
     case '!': return TokenType::BangEqual;

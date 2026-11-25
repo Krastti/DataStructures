@@ -1,0 +1,13 @@
+remember i = 99
+
+for i in range(3)
+    print "i ="
+    print i
+
+    for j in range(10)
+        print "i + j = "
+        print i + j
+    end
+end
+
+print i

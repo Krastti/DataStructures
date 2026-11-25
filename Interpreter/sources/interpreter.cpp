@@ -7,8 +7,10 @@
 #include <cstdint>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 #include <system_error>
 #include <utility>
+#include <variant>
 
 namespace {
 std::string formatValue(const Interpreter::Value& value) {
@@ -48,31 +50,42 @@ Interpreter::Value applyNumericOperation(const TokenType operation, const double
 }
 }
 
-void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, std::ostream& outputStream) {
-  variables = Map<std::string, Value>{};
+void Interpreter::execute(const Array<UniquePtr<ast::Statement>>& statements, std::ostream& outputStream,
+                          Observer* trace) {
+  environment.reset();
   lastValue.reset();
   output = &outputStream;
+  observer = trace;
 
   try {
     executeStatements(statements);
   } catch (...) {
-    // Поток принадлежит вызывающему коду, поэтому не сохраняем ссылку на него после запуска.
+    // Поток и наблюдатель принадлежат вызывающему коду.
     output = nullptr;
+    observer = nullptr;
     lastValue.reset();
     throw;
   }
   output = nullptr;
+  observer = nullptr;
   lastValue.reset();
 }
 
 void Interpreter::executeStatements(const Array<UniquePtr<ast::Statement>>& statements) {
   for (std::size_t i = 0; i < statements.size(); ++i) {
     if (!statements[i]) throw std::invalid_argument("Ошибка выполнения: пустая инструкция");
-    statements[i]->accept(*this);
+    executeStatement(*statements[i]);
   }
 }
 
+void Interpreter::executeStatement(const ast::Statement& statement) {
+  if (observer) observer->enterStatement(statement);
+  statement.accept(*this);
+  if (observer) observer->leaveCall(nullptr);
+}
+
 Interpreter::Value Interpreter::evaluate(const ast::Expr& expression) {
+  if (observer) observer->enterExpression(expression);
   lastValue.reset();
   expression.accept(*this);
   if (!lastValue.has_value()) {
@@ -80,6 +93,7 @@ Interpreter::Value Interpreter::evaluate(const ast::Expr& expression) {
   }
   Value result = std::move(lastValue.value());
   lastValue.reset();
+  if (observer) observer->leaveCall(&result);
   return result;
 }
 
@@ -108,14 +122,7 @@ void Interpreter::visit(const ast::NumberLiteral& node) {
 }
 
 void Interpreter::visit(const ast::Identifier& node) {
-  if (const auto* local = findLoopVariable(node.name)) {
-    lastValue = *local;
-    return;
-  }
-  if (!variables.containsKey(node.name)) {
-    throw std::invalid_argument("Ошибка выполнения: неизвестная переменная: " + node.name);
-  }
-  lastValue = variables.at(node.name);
+  lastValue = environment.lookup(node.name);
 }
 
 void Interpreter::visit(const ast::StringLiteral& node) {
@@ -141,24 +148,7 @@ void Interpreter::visit(const ast::Remember& node) {
   const auto* expression = node.right.getRoot();
   if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует выражение remember");
   // Сначала вычисляем правую часть, чтобы при ошибке сохранить старое значение переменной.
-  storeVariable(node.variable, evaluate(*expression));
-}
-
-Interpreter::Value* Interpreter::findLoopVariable(const std::string& name) const {
-  for (std::size_t i = localScopes.size(); i > 0; --i) {
-    auto& scope = *localScopes[i - 1];
-    if (scope.containsKey(name)) return &scope.at(name);
-  }
-  return nullptr;
-}
-
-void Interpreter::storeVariable(const std::string& name, Value value) {
-  if (auto* local = findLoopVariable(name)) {
-    *local = std::move(value);
-    return;
-  }
-  if (variables.containsKey(name)) variables.replace(name, std::move(value));
-  else variables.insert(name, std::move(value));
+  environment.assign(node.variable, evaluate(*expression));
 }
 
 void Interpreter::visit(const ast::Print& node) {
@@ -185,36 +175,31 @@ void Interpreter::visit(const ast::RepeatWhile& node) {
 }
 
 void Interpreter::visit(const ast::For& node) {
+  // node.stop хранит дерево аргумента range, например 1 + 2.
   const auto* expression = node.stop.getRoot();
   if (!expression) throw std::invalid_argument("Ошибка выполнения: отсутствует граница range");
 
   const Value value = evaluate(*expression);
+  // Stop указывает на вычисленное число внутри value.
+  // Если значение имеет другой тип, get_if вернёт nullptr.
   const auto* stop = std::get_if<double>(&value);
 
   // До 2^53 каждое значение счётчика точно представимо в double.
   constexpr double maxStop = 0x1p53;
+  // isfinite исключает NaN и бесконечности. Сравнение с trunc выявляет дробную часть, abs даёт модуль.
   if (!stop || !std::isfinite(*stop) || std::trunc(*stop) != *stop || std::abs(*stop) > maxStop) {
     throw std::invalid_argument("Ошибка выполнения: граница range должна быть конечным целым числом от -2^53 до 2^53");
   }
 
   if (*stop <= 0.0) return;
+
+  // Переводим проверенную границу в целое число для сравнения со счётчиком.
   const auto limit = static_cast<std::uint64_t>(*stop);
 
-  Variables local;
-  local.insert(node.variable, Value{0.0});
-  auto& counter = local.at(node.variable);
-
-  localScopes.push_back(&local);
-
-  try {
+  environment.withLoopVariable(node.variable, [&](Value& counter) {
     for (std::uint64_t index = 0; index < limit; ++index) {
       counter = static_cast<double>(index);
       executeStatements(node.body);
     }
-  } catch (...) {
-    localScopes.pop_back();
-    throw;
-  }
-
-  localScopes.pop_back();
+  });
 }

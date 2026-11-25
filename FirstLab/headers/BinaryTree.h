@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <utility>
 
+// TODO Необходимо ограничить Key, что он сравним
+
 template<typename Key, typename Data>
 class BinaryTree {
 protected:
@@ -35,6 +37,7 @@ protected:
 
   Node* getSuccessor(Node* node);
   const Node* getSuccessor(const Node* node) const;
+
   Node* findNode(const Key& key);
   const Node* findNode(const Key& key) const;
 

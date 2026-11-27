@@ -198,3 +198,16 @@ TEST(LexerTests, RejectsUnterminatedAndMultilineStrings) {
     EXPECT_THROW(Lexer::tokenize(source), std::invalid_argument) << source;
   }
 }
+
+TEST(LexerTests, RecognizesUsingAndPreservesQuotedPath) {
+  const auto tokens = Lexer::tokenize("using \"lib/my math.mini\"\r\nusingValue Using");
+  ASSERT_EQ(tokens.size(), 6u);
+  EXPECT_EQ(tokens[0].type, TokenType::Using);
+  EXPECT_EQ(tokens[0].lexeme, "using");
+  EXPECT_EQ(tokens[1].type, TokenType::String);
+  EXPECT_EQ(tokens[1].lexeme, "\"lib/my math.mini\"");
+  EXPECT_EQ(tokens[2].type, TokenType::Newline);
+  EXPECT_EQ(tokens[3].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[4].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[5].type, TokenType::EndOfFile);
+}

@@ -14,11 +14,19 @@ bool isUpdateOperator(const TokenType type) {
 }
 
 Array<UniquePtr<ast::Statement>> Parser::parse(const Array<Token>& tokens) {
+  auto file = parseFile(tokens);
+  if (file.imports.size() != 0) {
+    throw std::invalid_argument("Для программы с using используйте загрузчик библиотек");
+  }
+  return std::move(file.statements);
+}
+
+Parser::ParsedFile Parser::parseFile(const Array<Token>& tokens, const SourceKind kind) {
   if (tokens.size() == 0 || tokens[tokens.size() - 1].type != TokenType::EndOfFile) {
     throw std::invalid_argument("Ожидался токен конца файла");
   }
 
-  Array<UniquePtr<ast::Statement>> statements;
+  ParsedFile file;
   std::size_t position = 0;
 
   while (position < tokens.size()) {
@@ -31,7 +39,24 @@ Array<UniquePtr<ast::Statement>> Parser::parse(const Array<Token>& tokens) {
       if (position != tokens.size() - 1) {
         throw std::invalid_argument("Лишние токены после конца файла");
       }
-      return statements;
+      return file;
+    }
+    if (type == TokenType::Using) {
+      if (file.statements.size() != 0) {
+        throw std::invalid_argument("using допускается только перед инструкциями и объявлениями функций");
+      }
+      const auto& path = requireToken(tokens, position + 1, TokenType::String,
+                                      "Ожидался путь в двойных кавычках после using");
+      if (path.lexeme.size() < 3 || path.lexeme.front() != '"' || path.lexeme.back() != '"') {
+        throw std::invalid_argument("Ожидался непустой путь в двойных кавычках после using");
+      }
+      position += 2;
+      requireStatementEnd(tokens, position);
+      file.imports.push_back(path.lexeme.substr(1, path.lexeme.size() - 2));
+      continue;
+    }
+    if (kind == SourceKind::Library && type != TokenType::Function) {
+      throw std::invalid_argument("На верхнем уровне библиотеки допускаются только using и объявления функций");
     }
 
     // ReSharper disable once CppLocalVariableMayBeConst
@@ -39,7 +64,7 @@ Array<UniquePtr<ast::Statement>> Parser::parse(const Array<Token>& tokens) {
       ? parseFunction(tokens, position)
       : parseStatement(tokens, position);
     requireStatementEnd(tokens, parsedStatement.nextPosition);
-    statements.push_back(std::move(parsedStatement.statement));
+    file.statements.push_back(std::move(parsedStatement.statement));
     position = parsedStatement.nextPosition;
   }
   throw std::invalid_argument("Ожидался токен конца файла");
@@ -156,6 +181,8 @@ Parser::ParsedStatement Parser::parseStatement(const Array<Token>& tokens, const
         .nextPosition = body.nextPosition + 1
       };
     }
+    case TokenType::Using:
+      throw std::invalid_argument("using допускается только в начале файла на верхнем уровне");
     case TokenType::Function:
       throw std::invalid_argument("Объявление функции допустимо только на верхнем уровне программы");
     case TokenType::Return:

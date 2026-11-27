@@ -82,6 +82,7 @@ QString tokenName(const TokenType type) {
     case TokenType::Arrow: return "Arrow";
     case TokenType::Comma: return "Comma";
     case TokenType::Return: return "Return";
+    case TokenType::Using: return "Using";
     case TokenType::Increment: return "Increment";
     case TokenType::Decrement: return "Decrement";
     case TokenType::PlusEquals: return "PlusEquals";

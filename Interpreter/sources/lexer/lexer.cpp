@@ -159,6 +159,7 @@ Array<Token> Lexer::tokenize(const std::string& source) {
         else if (source.compare(start, length, "range") == 0) type = TokenType::Range;
         else if (source.compare(start, length, "function") == 0) type = TokenType::Function;
         else if (source.compare(start, length, "return") == 0) type = TokenType::Return;
+        else if (source.compare(start, length, "using") == 0) type = TokenType::Using;
         break;
       case State::StringClosed:
         type = TokenType::String;

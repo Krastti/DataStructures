@@ -689,3 +689,86 @@ TEST(ParserTests, VisitorCanTraverseParsedTreeInChosenOrder) {
     EXPECT_EQ(visitor.events[i], expected[i]);
   }
 }
+
+TEST(ParserTests, SeparatesInitialImportsFromStatements) {
+  const auto file = Parser::parseFile(Lexer::tokenize(
+    "\nusing \"lib/my math.mini\"\r\n\nusing \"text.mini\"\n"
+    "remember x = 5\nprint square(x)"));
+  ASSERT_EQ(file.imports.size(), 2u);
+  EXPECT_EQ(file.imports[0], "lib/my math.mini");
+  EXPECT_EQ(file.imports[1], "text.mini");
+  ASSERT_EQ(file.statements.size(), 2u);
+  EXPECT_NE(dynamic_cast<const ast::Remember*>(file.statements[0].get()), nullptr);
+  EXPECT_NE(dynamic_cast<const ast::Print*>(file.statements[1].get()), nullptr);
+}
+
+TEST(ParserTests, ParsesImportsAtEndOfFileInBothSourceKinds) {
+  for (const auto kind : {Parser::SourceKind::Main, Parser::SourceKind::Library}) {
+    const auto file = Parser::parseFile(Lexer::tokenize("using \"a.mini\"\nusing \"b.mini\""), kind);
+    ASSERT_EQ(file.imports.size(), 2u);
+    EXPECT_EQ(file.imports[1], "b.mini");
+    EXPECT_EQ(file.statements.size(), 0u);
+  }
+}
+
+TEST(ParserTests, ParsesFilesWithoutImportsInBothSourceKinds) {
+  for (const auto kind : {Parser::SourceKind::Main, Parser::SourceKind::Library}) {
+    for (const char* source : {"", "\n\r\n", "function f() -> 1 end\n"}) {
+      const auto file = Parser::parseFile(Lexer::tokenize(source), kind);
+      EXPECT_EQ(file.imports.size(), 0u);
+      EXPECT_EQ(file.statements.size(), source[0] == 'f' ? 1u : 0u);
+    }
+  }
+}
+
+TEST(ParserTests, ParsesLibraryImportsAndFunctionBodies) {
+  const auto file = Parser::parseFile(Lexer::tokenize(
+    "using \"constants.mini\"\nfunction square(x) ->\n"
+    "remember result = x * x\nprint result\nreturn result\nend"), Parser::SourceKind::Library);
+  ASSERT_EQ(file.imports.size(), 1u);
+  ASSERT_EQ(file.statements.size(), 1u);
+  EXPECT_NE(dynamic_cast<const ast::Function*>(file.statements[0].get()), nullptr);
+}
+
+TEST(ParserTests, RejectsInvalidImportArgumentsAndExtraTokens) {
+  for (const char* source : {"using", "using\n", "using 1", "using path", "using \"\"",
+                             "using \"a\" \"b\"", "using \"a\" print 1", "using \"a\" using \"b\""}) {
+    EXPECT_THROW(Parser::parseFile(Lexer::tokenize(source)), std::invalid_argument) << source;
+  }
+}
+
+TEST(ParserTests, RejectsImportsAfterStatementsAndInsideBlocks) {
+  for (const char* source : {"print 1\nusing \"a\"", "function f() -> 1 end\nusing \"a\"",
+                             "when 1 == 1\nusing \"a\"\nend",
+                             "repeat while 1 == 2\nusing \"a\"\nend",
+                             "for i in range(1)\nusing \"a\"\nend",
+                             "function f() ->\nusing \"a\"\nreturn 1\nend"}) {
+    EXPECT_THROW(Parser::parseFile(Lexer::tokenize(source)), std::invalid_argument) << source;
+  }
+}
+
+TEST(ParserTests, RejectsTopLevelInstructionsInLibraries) {
+  for (const char* source : {"print 1", "remember x = 1", "x++", "x += 1",
+                             "when 1 == 1\nend", "repeat while 1 == 2\nend",
+                             "for i in range(1)\nend", "function f() -> 1 end\nprint 1"}) {
+    EXPECT_THROW(Parser::parseFile(Lexer::tokenize(source), Parser::SourceKind::Library),
+                 std::invalid_argument) << source;
+  }
+}
+
+TEST(ParserTests, DirectsLegacyParserToLoaderForImports) {
+  try {
+    parse("using \"lib/math.mini\"\nprint square(5)");
+    FAIL() << "Ожидалась ошибка с указанием загрузчика";
+  } catch (const std::invalid_argument& error) {
+    EXPECT_NE(std::string(error.what()).find("загрузчик"), std::string::npos);
+  }
+}
+
+TEST(ParserTests, RequiresSingleFinalEofWhenParsingFiles) {
+  Array<Token> missingEof;
+  EXPECT_THROW(Parser::parseFile(missingEof), std::invalid_argument);
+  auto tokens = Lexer::tokenize("using \"a.mini\"");
+  tokens.push_back({TokenType::EndOfFile, ""});
+  EXPECT_THROW(Parser::parseFile(tokens), std::invalid_argument);
+}

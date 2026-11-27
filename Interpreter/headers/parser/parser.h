@@ -8,10 +8,21 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <string>
 
 // Собирает дерево программы из токенов.
 class Parser {
 public:
+  enum class SourceKind { Main, Library };
+
+  struct ParsedFile {
+    Array<std::string> imports;
+    Array<UniquePtr<ast::Statement>> statements;
+  };
+
+  // Отделяет начальные подключения от инструкций, проверяет содержимое библиотеки.
+  static ParsedFile parseFile(const Array<Token>& tokens, SourceKind kind = SourceKind::Main);
+
   // Собирает инструкции программы по порядку. В конце массива токенов ожидает EOF.
   static Array<UniquePtr<ast::Statement>> parse(const Array<Token>& tokens);
 

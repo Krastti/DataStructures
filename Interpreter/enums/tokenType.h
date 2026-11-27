@@ -45,6 +45,7 @@ enum class TokenType {
   Decrement,
   PlusEquals,
   MinusEquals,
+  Using,
 };
 
 #endif // DATASTRUCTURES_TOKEN_TYPE_H

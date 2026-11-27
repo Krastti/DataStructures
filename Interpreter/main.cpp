@@ -1,6 +1,6 @@
-#include "headers/interpreter.h"
-#include "headers/lexer.h"
-#include "headers/parser.h"
+#include "runtime/interpreter.h"
+#include "lexer/lexer.h"
+#include "parser/parser.h"
 
 #include <exception>
 #include <fstream>

@@ -1,6 +1,6 @@
 #include "../../DataStructures/tests/AllocationFailure.h"
-#include "lexer.h"
-#include "parser.h"
+#include "lexer/lexer.h"
+#include "parser/parser.h"
 #include <gtest/gtest.h>
 
 #include <cstddef>

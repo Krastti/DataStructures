@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "../headers/expressionTree.h"
-#include "../headers/interpreter.h"
+#include "ast/expressionTree.h"
+#include "runtime/interpreter.h"
 
 #include <sstream>
 #include <stdexcept>

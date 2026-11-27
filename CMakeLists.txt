@@ -33,12 +33,12 @@ add_library(Sequence INTERFACE
 )
 
 add_library(BinaryTree INTERFACE
-        FirstLab/headers/BinaryTree.h
-        FirstLab/headers/BinaryTree.tpp
-        FirstLab/headers/RedBlackTree.h
-        FirstLab/headers/RedBlackTree.tpp
-        FirstLab/headers/Set.h
-        FirstLab/headers/Set.tpp
+        Labs/FirstLab/headers/BinaryTree.h
+        Labs/FirstLab/headers/BinaryTree.tpp
+        Labs/FirstLab/headers/RedBlackTree.h
+        Labs/FirstLab/headers/RedBlackTree.tpp
+        Labs/FirstLab/headers/Set.h
+        Labs/FirstLab/headers/Set.tpp
 )
 
 add_library(Stack INTERFACE
@@ -52,10 +52,10 @@ add_library(Array INTERFACE
 )
 
 add_library(SmartPointer INTERFACE
-        SmartPointers/include/UniquePtr.h
-        SmartPointers/include/UniquePtr.tpp
-        SmartPointers/include/SharedPtr.h
-        SmartPointers/include/SharedPtr.tpp
+        Labs/SmartPointers/include/UniquePtr.h
+        Labs/SmartPointers/include/UniquePtr.tpp
+        Labs/SmartPointers/include/SharedPtr.h
+        Labs/SmartPointers/include/SharedPtr.tpp
 )
 
 add_library(Optional INTERFACE
@@ -70,33 +70,33 @@ add_library(Graph INTERFACE
 )
 
 add_library(ThirdLabPaths INTERFACE
-        ThirdLab/headers/algoritms/ShortestPath.h
-        ThirdLab/headers/algoritms/ShortestPath.tpp
+        Labs/ThirdLab/headers/algoritms/ShortestPath.h
+        Labs/ThirdLab/headers/algoritms/ShortestPath.tpp
 )
 
 add_library(ThirdLabStateMachine INTERFACE
-        ThirdLab/headers/StateMachine/StateMachine.h
-        ThirdLab/headers/StateMachine/StateMachine.tpp
+        Labs/ThirdLab/headers/StateMachine/StateMachine.h
+        Labs/ThirdLab/headers/StateMachine/StateMachine.tpp
 )
 
 foreach(module IN ITEMS Array Sequence Stack Optional Graph)
   target_include_directories(${module} INTERFACE DataStructures)
 endforeach()
-target_include_directories(SmartPointer INTERFACE SmartPointers/include)
+target_include_directories(SmartPointer INTERFACE Labs/SmartPointers/include)
 
-target_include_directories(BinaryTree INTERFACE FirstLab/headers)
+target_include_directories(BinaryTree INTERFACE Labs/FirstLab/headers)
 target_link_libraries(BinaryTree INTERFACE Array Stack)
 target_link_libraries(Graph INTERFACE Array BinaryTree)
-target_include_directories(ThirdLabPaths INTERFACE ThirdLab/headers/algoritms)
+target_include_directories(ThirdLabPaths INTERFACE Labs/ThirdLab/headers/algoritms)
 target_link_libraries(ThirdLabPaths INTERFACE Graph Optional)
-target_include_directories(ThirdLabStateMachine INTERFACE ThirdLab/headers)
+target_include_directories(ThirdLabStateMachine INTERFACE Labs/ThirdLab/headers)
 target_link_libraries(ThirdLabStateMachine INTERFACE Array Graph)
 
 add_library(SecondLabIndexes STATIC
-        SecondLab/source/AlphabeticalIndex.cpp
-        SecondLab/source/PersonIndex.cpp
+        Labs/SecondLab/source/AlphabeticalIndex.cpp
+        Labs/SecondLab/source/PersonIndex.cpp
 )
-target_include_directories(SecondLabIndexes PUBLIC SecondLab/include)
+target_include_directories(SecondLabIndexes PUBLIC Labs/SecondLab/include)
 target_link_libraries(SecondLabIndexes PUBLIC Array BinaryTree SmartPointer)
 
 add_executable(DataStructures main.cpp)
@@ -104,17 +104,18 @@ target_link_libraries(DataStructures PRIVATE SecondLabIndexes ThirdLabPaths Arra
 
 # Общая реализация для CLI, GUI и тестов интерпретатора.
 add_library(MiniLangCore STATIC
-        FirstLab/headers/BinaryTreeBase.h
-        FirstLab/headers/BinaryTreeBase.tpp
-        Interpreter/sources/lexer.cpp
-        Interpreter/sources/parser.cpp
-        Interpreter/headers/expressionTree.h
-        Interpreter/sources/expressionTree.cpp
-        Interpreter/sources/ast.cpp
-        Interpreter/sources/environment.cpp
-        Interpreter/sources/interpreter.cpp
+        Labs/FirstLab/headers/BinaryTreeBase.h
+        Labs/FirstLab/headers/BinaryTreeBase.tpp
+        Interpreter/sources/lexer/lexer.cpp
+        Interpreter/sources/parser/parser.cpp
+        Interpreter/enums/tokenType.h
+        Interpreter/headers/ast/expressionTree.h
+        Interpreter/sources/ast/expressionTree.cpp
+        Interpreter/sources/ast/ast.cpp
+        Interpreter/sources/runtime/environment.cpp
+        Interpreter/sources/runtime/interpreter.cpp
 )
-target_include_directories(MiniLangCore PUBLIC Interpreter/headers)
+target_include_directories(MiniLangCore PUBLIC Interpreter/headers Interpreter/enums)
 target_link_libraries(MiniLangCore PUBLIC Array BinaryTree Optional SmartPointer)
 target_link_libraries(MiniLangCore PRIVATE ThirdLabStateMachine)
 
@@ -137,9 +138,9 @@ if(BUILD_TESTING)
   gtest_discover_tests(StackTests PROPERTIES LABELS Stack)
 
   add_executable(TreesTests
-          FirstLab/tests/BinaryTreeTests.cpp
-          FirstLab/tests/RedBlackTree.cpp
-          FirstLab/tests/SetTests.cpp
+          Labs/FirstLab/tests/BinaryTreeTests.cpp
+          Labs/FirstLab/tests/RedBlackTree.cpp
+          Labs/FirstLab/tests/SetTests.cpp
           DataStructures/tests/AllocationFailure.cpp
   )
   target_link_libraries(TreesTests PRIVATE BinaryTree GTest::gtest_main)
@@ -158,21 +159,21 @@ if(BUILD_TESTING)
   gtest_discover_tests(InterpreterTests PROPERTIES LABELS Interpreter)
 
   add_executable(SmartPointersTests
-          SmartPointers/tests/SharedPtrTests.cpp
-          SmartPointers/tests/UniquePtrTests.cpp
-          SmartPointers/tests/SmartPointerSafetyTests.cpp
-          SmartPointers/tests/SharedPtrAllocationTests.cpp
+          Labs/SmartPointers/tests/SharedPtrTests.cpp
+          Labs/SmartPointers/tests/UniquePtrTests.cpp
+          Labs/SmartPointers/tests/SmartPointerSafetyTests.cpp
+          Labs/SmartPointers/tests/SharedPtrAllocationTests.cpp
   )
   target_link_libraries(SmartPointersTests PRIVATE SmartPointer Threads::Threads GTest::gtest_main)
   gtest_discover_tests(SmartPointersTests PROPERTIES LABELS SmartPointers)
 
-  add_executable(SecondLabTests SecondLab/tests/AlphabeticalIndexTests.cpp)
+  add_executable(SecondLabTests Labs/SecondLab/tests/AlphabeticalIndexTests.cpp)
   target_link_libraries(SecondLabTests PRIVATE SecondLabIndexes GTest::gtest_main)
   add_dependencies(SecondLabTests DataStructures)
   gtest_discover_tests(SecondLabTests PROPERTIES LABELS SecondLab)
 
   add_executable(ThirdLabTests
-          ThirdLab/tests/StateMachineTests.cpp
+          Labs/ThirdLab/tests/StateMachineTests.cpp
   )
   target_link_libraries(ThirdLabTests PRIVATE ThirdLabPaths ThirdLabStateMachine GTest::gtest_main)
   gtest_discover_tests(ThirdLabTests PROPERTIES LABELS ThirdLab)
@@ -193,7 +194,7 @@ if(BUILD_TESTING)
     COMMAND ${CMAKE_COMMAND}
       "-DSECOND_LAB_EXECUTABLE=$<TARGET_FILE:DataStructures>"
       "-DTEST_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/second-lab-cli-tests"
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/SecondLab/tests/CliTests.cmake"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/Labs/SecondLab/tests/CliTests.cmake"
   )
   set_tests_properties(SecondLabCliTests PROPERTIES LABELS SecondLab)
 endif()

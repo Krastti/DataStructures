@@ -111,14 +111,14 @@
 
 ## Модули проекта
 
-Исходники находятся в [FirstLab/headers](../../../../FirstLab/headers): объявления — в `.h`, реализации — в `.tpp`.
+Исходники находятся в [Labs/FirstLab/headers](../../../../Labs/FirstLab/headers): объявления — в `.h`, реализации — в `.tpp`.
 
 | Модуль | Использование |
 |---|---|
-| `SecondLab/include/AlphabeticalIndex.h` | `Map`: слово → номера страниц |
-| `SecondLab/include/PersonIndex.h` | `Map`: составной ключ → записи; год рождения → записи |
+| `Labs/SecondLab/include/AlphabeticalIndex.h` | `Map`: слово → номера страниц |
+| `Labs/SecondLab/include/PersonIndex.h` | `Map`: составной ключ → записи; год рождения → записи |
 | `Graph/AGraph` | `Map`: вершина → список смежных рёбер |
-| `../../../../ThirdLab/headers` | `Map`: расстояния, предшественники, посещённые вершины |
-| `FirstLab/tests` | Проверки операций, владения памятью, исключений и инвариантов |
+| `../../../../Labs/ThirdLab/headers` | `Map`: расстояния, предшественники, посещённые вершины |
+| `Labs/FirstLab/tests` | Проверки операций, владения памятью, исключений и инвариантов |
 
 Теория и случаи балансировки: [шпаргалка](theory.md).

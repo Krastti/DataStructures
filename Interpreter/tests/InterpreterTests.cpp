@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "../headers/environment.h"
-#include "../headers/interpreter.h"
-#include "../headers/lexer.h"
-#include "../headers/parser.h"
+#include "runtime/environment.h"
+#include "runtime/interpreter.h"
+#include "lexer/lexer.h"
+#include "parser/parser.h"
 
 #include <iomanip>
 #include <locale>

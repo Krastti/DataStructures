@@ -14,24 +14,17 @@
 Interpreter/
 ├── main.cpp           — точка входа CLI
 ├── examples/          — примеры .mini
-├── enums/             — состояния и события лексера
+├── enums/             — TokenType, LexerState и LexerEvent
 ├── headers/
-│   ├── token.h         — токены
-│   ├── lexer.h         — интерфейс лексера
-│   ├── parser.h        — интерфейс и методы разбора
-│   ├── expressions.h   — узлы выражений
-│   ├── expressionTree.h — владение деревом выражения
-│   ├── statements.h    — узлы инструкций
-│   ├── visitors.h      — интерфейсы посетителей
-│   ├── environment.h и environment.tpp — окружение и локальные области
-│   └── interpreter.h   — интерфейс исполнителя
+│   ├── lexer/         — лексер и токены
+│   ├── parser/        — интерфейс и методы разбора
+│   ├── ast/           — узлы AST, дерево выражений и посетители
+│   └── runtime/       — исполнитель и окружение
 └── sources/
-    ├── lexer.cpp
-    ├── parser.cpp
-    ├── ast.cpp         — конструкторы узлов и accept
-    ├── expressionTree.cpp — сборка дерева выражения
-    ├── environment.cpp — поиск и присваивание переменных
-    └── interpreter.cpp — выполнение AST
+    ├── lexer/         — преобразование текста в токены
+    ├── parser/        — разбор токенов
+    ├── ast/           — конструкторы узлов, accept и сборка дерева выражений
+    └── runtime/       — выполнение AST и работа с переменными
 ```
 
 ## Лексер
@@ -84,7 +77,7 @@ Interpreter/
 
 ## Посетитель для AST
 
-В `../headers/visitors.h` объявлены два интерфейса в пространстве имён `ast`: `ExprVisitor` для выражений и `StatementVisitor` для инструкций. Для каждого конкретного узла предусмотрена своя перегрузка `visit(const Node&)`.
+В [visitors.h](../headers/ast/visitors.h) объявлены два интерфейса в пространстве имён `ast`: `ExprVisitor` для выражений и `StatementVisitor` для инструкций. Для каждого конкретного узла предусмотрена своя перегрузка `visit(const Node&)`.
 
 Базовые `Expr` и `Statement` объявляют чисто виртуальный `accept`, а конкретный узел вызывает в нём `visitor.visit(*this)`. Даже при обращении через базовый тип обработчик выбирается по фактическому типу узла:
 

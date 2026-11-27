@@ -2,7 +2,7 @@
 #define DATASTRUCTURES_AGRAPH_H
 
 #include "Graph.h"
-#include "../../FirstLab/headers/RedBlackTree.h"
+#include "../../Labs/FirstLab/headers/RedBlackTree.h"
 
 template<typename Vertex, typename Weight>
 class AGraph : public Graph<Vertex, Weight> {

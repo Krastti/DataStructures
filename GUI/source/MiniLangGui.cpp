@@ -1,6 +1,6 @@
-#include "interpreter.h"
-#include "lexer.h"
-#include "parser.h"
+#include "runtime/interpreter.h"
+#include "lexer/lexer.h"
+#include "parser/parser.h"
 
 #include <QApplication>
 #include <QColor>

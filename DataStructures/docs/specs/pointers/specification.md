@@ -130,14 +130,14 @@
 
 ## Модули проекта
 
-Объявления находятся в `SmartPointers/include/*.h`, реализации — в соответствующих `.tpp`. Отдельного файла ограничений и механизма `deleter` нет.
+Объявления находятся в `Labs/SmartPointers/include/*.h`, реализации — в соответствующих `.tpp`. Отдельного файла ограничений и механизма `deleter` нет.
 
 | Модуль | Назначение |
 |---|---|
 | `UniquePtr.h`, `UniquePtr.tpp` | Единоличное владение объектом и массивом |
 | `SharedPtr.h`, `SharedPtr.tpp` | Совместное владение и атомарный счётчик |
-| `SmartPointers/tests/UniquePtrTests.cpp`, `SmartPointers/tests/SharedPtrTests.cpp` | Основные операции и сравнения времени со стандартными указателями |
-| `SmartPointers/tests/SmartPointerSafetyTests.cpp` | Вложенное присваивание, массивы, виртуальное удаление и совместное владение между потоками |
-| `SmartPointers/tests/SharedPtrAllocationTests.cpp` | Отказы выделения памяти для общего блока |
+| `Labs/SmartPointers/tests/UniquePtrTests.cpp`, `Labs/SmartPointers/tests/SharedPtrTests.cpp` | Основные операции и сравнения времени со стандартными указателями |
+| `Labs/SmartPointers/tests/SmartPointerSafetyTests.cpp` | Вложенное присваивание, массивы, виртуальное удаление и совместное владение между потоками |
+| `Labs/SmartPointers/tests/SharedPtrAllocationTests.cpp` | Отказы выделения памяти для общего блока |
 
 Теория, примеры передачи владения и типичные ошибки: [шпаргалка](theory.md).

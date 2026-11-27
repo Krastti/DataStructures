@@ -58,7 +58,7 @@
 
 ## Модули и проверки
 
-Объявления: `../../../../SecondLab/include/PersonIndex.h`, реализация: `../../../../SecondLab/source/PersonIndex.cpp`. Тест `PersonIndexTests.FindsCompositeKeysAndInclusiveYearRanges` находится в `../../../../SecondLab/tests/AlphabeticalIndexTests.cpp`.
+Объявления: `../../../../Labs/SecondLab/include/PersonIndex.h`, реализация: `../../../../Labs/SecondLab/source/PersonIndex.cpp`. Тест `PersonIndexTests.FindsCompositeKeysAndInclusiveYearRanges` находится в `../../../../Labs/SecondLab/tests/AlphabeticalIndexTests.cpp`.
 
 Он проверяет группу одинаковых составных ключей, отсутствие точного совпадения, диапазон и обратные границы. Для полной проверки нужны пустой индекс, попадание на обе границы, одинаковые границы, порядок `all()`, повторные `id` и независимость возвращённых копий.
 

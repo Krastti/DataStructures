@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common.h"
-#include "../../ThirdLab/headers/algoritms/ShortestPath.h"
+#include "../../Labs/ThirdLab/headers/algoritms/ShortestPath.h"
 #include <cmath>
 #include <map>
 #include <memory>

@@ -1,0 +1,88 @@
+#ifndef DATASTRUCTURES_BST_H
+#define DATASTRUCTURES_BST_H
+
+#include "../../../DataStructures/Stack/stack.h"
+#include "../../../DataStructures/Array/Array.h"
+#include <cstddef>
+#include <utility>
+
+// TODO Необходимо ограничить Key, что он сравним
+
+template<typename Key, typename Data>
+class BinaryTree {
+protected:
+  struct Node {
+    Key key;
+    Data data;
+    Node *left, *right;
+    Node *parent;
+
+    explicit Node(Key key, Data data, Node* left=nullptr, Node* right=nullptr, Node* parent=nullptr) : key(key), data(data) {
+      this->left = left;
+      this->right = right;
+      this->parent = parent;
+    }
+
+    virtual ~Node() = default;
+  };
+
+  Node* root;
+  size_t nodeCount;
+
+  void clear() noexcept;
+  void transplant(Node* oldNode, Node* newNode) noexcept;
+
+  template<typename CloneNode>
+  void copyNodes(const Node* source, CloneNode cloneNode);
+
+  Node* getSuccessor(Node* node);
+  const Node* getSuccessor(const Node* node) const;
+
+  Node* findNode(const Key& key);
+  const Node* findNode(const Key& key) const;
+
+private:
+  static Node* clonePlainNode(const Node& source);
+
+public:
+  // Порождающие конструкторы
+  BinaryTree();
+  explicit BinaryTree(Key key);
+  explicit BinaryTree(Key key, Data data);
+
+  // Копирующие конструкторы
+  BinaryTree(const BinaryTree& other);
+  BinaryTree& operator=(const BinaryTree& other);
+
+  // Перемещающие конструкторы
+  BinaryTree(BinaryTree&& other) noexcept;
+  BinaryTree& operator=(BinaryTree&& other) noexcept;
+
+  virtual void insert(Key key, Data data);
+  virtual void remove(Key key);
+  void replace(Key key, Data data);
+
+  Data get_root() const;
+  Data& at(const Key& key);
+  const Data& at(const Key& key) const;
+
+  [[nodiscard]] bool containsKey(const Key& key) const;
+  [[nodiscard]] bool containsSubtree(const BinaryTree& subtree) const;
+  [[nodiscard]] BinaryTree extractSubtree(const Key& key) const;
+  [[nodiscard]] size_t size() const noexcept;
+
+  Array<std::pair<Key, Data>> entries() const;
+  Array<Key> keys() const;
+  Array<std::pair<Key, Data>> range(const Key& first, const Key& last) const;
+
+  Data min() const;
+  Data max() const;
+
+  void print() const;
+
+  virtual ~BinaryTree();
+};
+
+#include "BinaryTree.tpp"
+
+#endif // DATASTRUCTURES_BST_H

@@ -62,7 +62,7 @@
 
 ## Модули и проверки
 
-Объявления: `../../../../SecondLab/include/AlphabeticalIndex.h`, реализация: `../../../../SecondLab/source/AlphabeticalIndex.cpp`. Тесты: `../../../../SecondLab/tests/AlphabeticalIndexTests.cpp`.
+Объявления: `../../../../Labs/SecondLab/include/AlphabeticalIndex.h`, реализация: `../../../../Labs/SecondLab/source/AlphabeticalIndex.cpp`. Тесты: `../../../../Labs/SecondLab/tests/AlphabeticalIndexTests.cpp`.
 
 Имеющиеся тесты проверяют UTF-8, границы строк, совпадение двух поисков, отсутствие слова, уменьшенные страницы, перенос длинного слова через первую и десятую страницы и некорректные размеры. Для полной проверки нужны также повторы на одной странице, пустой ввод и пунктуация.
 

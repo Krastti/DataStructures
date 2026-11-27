@@ -309,6 +309,15 @@ ast::ExpressionTree Parser::parseOperand(const Array<Token>& tokens, const std::
 }
 
 Parser::ParsedExpr Parser::parsePrimary(const Array<Token>& tokens, const std::size_t position) {
+  if (position < tokens.size() && tokens[position].type == TokenType::Minus) {
+    const auto& number = requireToken(tokens, position + 1, TokenType::Number,
+                                      "Ожидалось число после минуса в отрицательном литерале");
+    return {
+      .expression = ast::ExpressionTree::makeLeaf(
+        UniquePtr<ast::Expr>(new ast::NumberLiteral("-" + number.lexeme))),
+      .nextPosition = position + 2
+    };
+  }
   if (position < tokens.size() && tokens[position].type == TokenType::Identifier &&
       position + 1 < tokens.size() && tokens[position + 1].type == TokenType::LeftParen) {
 

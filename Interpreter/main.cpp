@@ -1,6 +1,5 @@
 #include "runtime/interpreter.h"
-#include "lexer/lexer.h"
-#include "parser/parser.h"
+#include "loader/programLoader.h"
 
 #include <exception>
 #include <fstream>
@@ -24,21 +23,18 @@ int main(int argc, char* argv[]) {
     const std::string source((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
     if (input.bad()) throw std::runtime_error(std::string("Не удалось прочитать файл: ") + argv[1]);
 
-    stage = "лексического анализа";
-    const auto tokens = Lexer::tokenize(source);
-    stage = "синтаксического анализа";
-    Parser parser;
-    const auto program = parser.parse(tokens);
+    stage = "загрузки программы";
+    const auto program = minilang::ProgramLoader::load(source, {.sourcePath = argv[1]});
 
     stage = "выполнения";
     Interpreter interpreter;
-    interpreter.execute(program, std::cout);
+    interpreter.execute(program.statements, std::cout);
     std::cout.flush();
     if (!std::cout) throw std::runtime_error("Не удалось записать результат");
     return 0;
   } catch (const std::exception& error) {
     const std::string message = error.what();
-    // Исполнитель уже добавляет этап к своим сообщениям об ошибках.
+    // Загрузчик и исполнитель уже добавляют этап к своим сообщениям об ошибках.
     if (!message.starts_with("Ошибка ")) std::cerr << "Ошибка " << stage << ": ";
     std::cerr << message << '\n';
     return 1;

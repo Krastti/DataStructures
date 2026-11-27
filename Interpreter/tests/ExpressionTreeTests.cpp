@@ -108,3 +108,16 @@ TEST(ExpressionTreeTests, ProgramOwnsTreeAfterExecutionError) {
   }
   EXPECT_EQ(live, 0);
 }
+
+TEST(ExpressionTreeTests, StoresSignedLiteralInSingleMovableLeaf) {
+  auto tree = ast::ExpressionTree::makeLeaf(UniquePtr<ast::Expr>(new ast::NumberLiteral("-0.5")));
+  const auto* number = dynamic_cast<const ast::NumberLiteral*>(tree.getRoot());
+  ASSERT_NE(number, nullptr);
+  EXPECT_EQ(number->lexeme, "-0.5");
+  EXPECT_EQ(tree.size(), 1u);
+  auto moved = std::move(tree);
+  EXPECT_EQ(moved.getRoot(), number);
+  EXPECT_EQ(moved.size(), 1u);
+  EXPECT_EQ(tree.getRoot(), nullptr);
+  EXPECT_EQ(tree.size(), 0u);
+}

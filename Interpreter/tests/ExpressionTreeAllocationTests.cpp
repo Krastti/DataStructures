@@ -45,3 +45,16 @@ TEST(ExpressionTreeAllocationTests, ParseErrorReleasesPartialProgram) {
 }
 
 }
+
+TEST(ExpressionTreeAllocationTests, ParseErrorReleasesSignedLiteralLeaves) {
+  const auto tokens = Lexer::tokenize("remember x = -2\nprint (-3 *");
+  std::ptrdiff_t balance = 0;
+  bool failed = false;
+  {
+    test::TrackAllocations guard(balance);
+    try { Parser::parse(tokens); }
+    catch (const std::invalid_argument&) { failed = true; }
+  }
+  EXPECT_TRUE(failed);
+  EXPECT_EQ(balance, 0);
+}

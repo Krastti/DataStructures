@@ -480,7 +480,7 @@ TEST(ParserTests, GrowsAndMovesProgramWithoutLosingStatements) {
 TEST(ParserTests, RejectsMalformedStatementsAndExpressions) {
   for (const auto* source : {"remember", "remember = 1", "remember x 1", "remember x =",
       "print", "print ()", "print (1 + 2", "print 1 +", "print 1 2", "print 1 print 2",
-      "1 + 2", "print -1", "print 1)", "print 1 + * 2", "print 1\nremember x = ("}) {
+      "1 + 2", "print -", "print 1)", "print 1 + * 2", "print 1\nremember x = ("}) {
     EXPECT_THROW(parse(source), std::invalid_argument) << source;
   }
 }
@@ -771,4 +771,41 @@ TEST(ParserTests, RequiresSingleFinalEofWhenParsingFiles) {
   auto tokens = Lexer::tokenize("using \"a.mini\"");
   tokens.push_back({TokenType::EndOfFile, ""});
   EXPECT_THROW(Parser::parseFile(tokens), std::invalid_argument);
+}
+
+TEST(ParserTests, StoresSignedNumbersAsLeavesInBinaryExpressions) {
+  const auto program = parse("print -2 * -3.5");
+  const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
+  ASSERT_NE(print, nullptr);
+  EXPECT_EQ(print->forOutput.size(), 3u);
+  const auto* product = dynamic_cast<const ast::Binary*>(print->forOutput.getRoot());
+  ASSERT_NE(product, nullptr);
+  EXPECT_EQ(product->operation, TokenType::Star);
+  const auto* left = dynamic_cast<const ast::NumberLiteral*>(product->leftOperand());
+  const auto* right = dynamic_cast<const ast::NumberLiteral*>(product->rightOperand());
+  ASSERT_NE(left, nullptr);
+  ASSERT_NE(right, nullptr);
+  EXPECT_EQ(left->lexeme, "-2");
+  EXPECT_EQ(right->lexeme, "-3.5");
+}
+
+TEST(ParserTests, RequiresNumberAfterMinusInOperandPosition) {
+  for (const auto* source : {"print -", "print -(2 + 3)", "print -x", "print -f(1)",
+                             "print - -5", "print -+1", "print -1++", "print ++-x",
+                             "print -\n1", "print -f(1, -)", "print -\"hello\""}) {
+    EXPECT_THROW(parse(source), std::invalid_argument) << source;
+  }
+}
+
+TEST(ParserTests, SignedNumberDispatchesDirectlyToNumberVisitor) {
+  const auto program = parse("print - 5");
+  const auto* print = dynamic_cast<const ast::Print*>(program[0].get());
+  ASSERT_NE(print, nullptr);
+  EXPECT_EQ(print->forOutput.size(), 1u);
+  RecordingVisitor visitor;
+  visitor.visitChildren = true;
+  program[0]->accept(visitor);
+  ASSERT_EQ(visitor.events.size(), 2u);
+  EXPECT_EQ(visitor.events[0], "print");
+  EXPECT_EQ(visitor.events[1], "number:-5");
 }

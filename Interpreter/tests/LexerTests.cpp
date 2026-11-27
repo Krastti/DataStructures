@@ -211,3 +211,17 @@ TEST(LexerTests, RecognizesUsingAndPreservesQuotedPath) {
   EXPECT_EQ(tokens[4].type, TokenType::Identifier);
   EXPECT_EQ(tokens[5].type, TokenType::EndOfFile);
 }
+
+TEST(LexerTests, KeepsMinusSeparateFromNumbersAndRecognizesDecrement) {
+  const auto tokens = Lexer::tokenize("-5 -0.5 1-2 --x - -x");
+  const TokenType expected[] = {
+    TokenType::Minus, TokenType::Number, TokenType::Minus, TokenType::Number,
+    TokenType::Number, TokenType::Minus, TokenType::Number,
+    TokenType::Decrement, TokenType::Identifier,
+    TokenType::Minus, TokenType::Minus, TokenType::Identifier, TokenType::EndOfFile
+  };
+  ASSERT_EQ(tokens.size(), 13u);
+  for (std::size_t i = 0; i < 13; ++i) EXPECT_EQ(tokens[i].type, expected[i]);
+  EXPECT_EQ(tokens[1].lexeme, "5");
+  EXPECT_EQ(tokens[3].lexeme, "0.5");
+}

@@ -108,6 +108,9 @@ add_library(MiniLangCore STATIC
         Labs/FirstLab/headers/BinaryTreeBase.tpp
         Interpreter/sources/lexer/lexer.cpp
         Interpreter/sources/parser/parser.cpp
+        Interpreter/headers/loader/loadState.h
+        Interpreter/headers/loader/programLoader.h
+        Interpreter/sources/loader/programLoader.cpp
         Interpreter/enums/tokenType.h
         Interpreter/headers/ast/expressionTree.h
         Interpreter/sources/ast/expressionTree.cpp
@@ -151,6 +154,7 @@ if(BUILD_TESTING)
           Interpreter/tests/ExpressionTreeTests.cpp
           Interpreter/tests/ExpressionTreeAllocationTests.cpp
           Interpreter/tests/ParserTests.cpp
+          Interpreter/tests/ProgramLoaderTests.cpp
           Interpreter/tests/InterpreterTests.cpp
           DataStructures/tests/AllocationFailure.cpp
   )
@@ -223,6 +227,12 @@ if(BUILD_GUI)
   add_executable(DataStructuresGui GUI/source/main.cpp)
   target_link_libraries(DataStructuresGui PRIVATE DataStructuresGuiWidgets)
   if(BUILD_TESTING)
+    add_executable(MiniLangGuiTests GUI/tests/MiniLangGuiTests.cpp)
+    target_link_libraries(MiniLangGuiTests PRIVATE MiniLangCore Qt6::Widgets GTest::gtest)
+    add_test(NAME MiniLangGuiTests COMMAND MiniLangGuiTests)
+    add_dependencies(UnitTests MiniLangGuiTests)
+    set_tests_properties(MiniLangGuiTests PROPERTIES LABELS "GUI;Interpreter"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 60)
     add_executable(GuiTests GUI/tests/GuiTests.cpp)
     target_link_libraries(GuiTests PRIVATE DataStructuresGuiWidgets GTest::gtest)
     add_test(NAME GuiTests COMMAND GuiTests)

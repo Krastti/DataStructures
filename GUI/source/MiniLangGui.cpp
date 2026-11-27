@@ -1,11 +1,13 @@
 #include "runtime/interpreter.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "loader/programLoader.h"
 
 #include <QApplication>
 #include <QColor>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QFontMetrics>
 #include <QFrame>
@@ -39,6 +41,7 @@
 #include <cstddef>
 #include <exception>
 #include <functional>
+#include <filesystem>
 #include <initializer_list>
 #include <memory>
 #include <sstream>
@@ -807,6 +810,9 @@ private:
   AstDiagram* ast;
   QWidget* astTab;
   QTreeWidget* trace;
+  QString sourcePath;
+  QString baseDirectory;
+  minilang::PreparedProgram preparedProgram;
   std::unique_ptr<ExecutionTrace> executionTrace;
   std::shared_ptr<StepControl> stepControl;
   std::unique_ptr<QThread> stepWorker;
@@ -882,6 +888,8 @@ private:
       status->setText("Ошибка чтения файла. " + file.errorString());
       return;
     }
+    sourcePath = QFileInfo(path).absoluteFilePath();
+    baseDirectory.clear();
     source->setPlainText(QString::fromUtf8(bytes));
     runProgram();
   }
@@ -890,13 +898,15 @@ private:
     executionTrace.reset();
     for (auto* view : {tokens, statements, expressions, trace}) view->clear();
     ast->clear();
+    preparedProgram = {};
     output->clear();
     stepInfo->hide();
 
     QString stage = "лексического анализа";
     QWidget* errorTab = tokens;
     try {
-      const auto lexed = Lexer::tokenize(source->toPlainText().toStdString());
+      const auto sourceText = source->toPlainText().toStdString();
+      const auto lexed = Lexer::tokenize(sourceText);
       for (std::size_t i = 0; i < lexed.size(); ++i) {
         const auto& token = lexed[i];
         const QString lexeme = token.lexeme.empty() ? QStringLiteral("\"\"") : visibleText(token.lexeme);
@@ -905,7 +915,29 @@ private:
 
       stage = "синтаксического анализа";
       errorTab = statements;
-      auto program = Parser::parse(lexed);
+      minilang::LoadContext context;
+      if (!sourcePath.isEmpty()) {
+        context.sourcePath = sourcePath.toStdString();
+      } else {
+        // Проверяем директивы до выбора каталога, чтобы сразу показать ошибку синтаксиса.
+        const auto parsed = Parser::parseFile(lexed);
+        bool needsDirectory = false;
+        for (std::size_t i = 0; i < parsed.imports.size(); ++i) {
+          if (std::filesystem::path(parsed.imports[i]).is_relative()) needsDirectory = true;
+        }
+        if (needsDirectory && baseDirectory.isEmpty()) {
+          const auto selected = QFileDialog::getExistingDirectory(this, "Каталог библиотек MiniLang");
+          if (selected.isEmpty()) {
+            status->setText("Запуск отменён. Базовый каталог не выбран.");
+            return;
+          }
+          baseDirectory = selected;
+        }
+        context.baseDirectory = baseDirectory.toStdString();
+      }
+      stage = "загрузки программы";
+      preparedProgram = minilang::ProgramLoader::load(sourceText, context);
+      const auto& program = preparedProgram.statements;
       const AstViews views(program, *statements, *expressions, *ast);
       statements->expandAll();
       expressions->expandAll();
@@ -916,7 +948,7 @@ private:
         .arg(lexed.size()).arg(program.size());
       executionTrace = std::make_unique<ExecutionTrace>(*trace, *ast);
       if (stepping) {
-        startStepping(std::move(program), summary);
+        startStepping(summary);
         return;
       }
 
@@ -937,7 +969,8 @@ private:
       status->setText(summary);
     } catch (const std::exception& error) {
       const QString message = QString::fromUtf8(error.what());
-      status->setText(message.startsWith("Ошибка ") ? message : "Ошибка " + stage + ". " + message);
+      const QString location = sourcePath.isEmpty() ? QStringLiteral("<редактор>") : sourcePath;
+      status->setText(message.startsWith("Ошибка ") ? message : "Ошибка " + stage + " в " + location + ". " + message);
       tabs->setCurrentWidget(errorTab);
     }
   }
@@ -965,9 +998,9 @@ private:
     stop->setEnabled(active);
   }
 
-  void startStepping(Program program, const QString& summary) {
+  void startStepping(const QString& summary) {
     auto control = std::make_shared<StepControl>();
-    stepWorker.reset(QThread::create([this, control, program = std::move(program), summary] {
+    stepWorker.reset(QThread::create([this, control, summary] {
       std::ostringstream stream;
       std::size_t printed = 0;
       const auto takeOutput = [&] {
@@ -980,7 +1013,7 @@ private:
       QString error;
       bool stopped = false;
       try {
-        ExecutionObserver::run(program, stream, [&](const CallEvent& event) {
+        ExecutionObserver::run(preparedProgram.statements, stream, [&](const CallEvent& event) {
           QMetaObject::invokeMethod(this, [this, event, text = takeOutput()] {
             appendOutput(text);
             showStepMessage(executionTrace->apply(event, true));
@@ -1019,6 +1052,7 @@ private:
 
 }
 
+#ifndef MINILANG_GUI_TESTING
 int main(int argc, char* argv[]) {
   QApplication app(argc, argv);
   app.setApplicationName("MiniLang");
@@ -1026,3 +1060,4 @@ int main(int argc, char* argv[]) {
   window.show();
   return app.exec();
 }
+#endif // MINILANG_GUI_TESTING

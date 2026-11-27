@@ -658,3 +658,28 @@ TEST(InterpreterTests, FormatsSmallFractionsLargeNumbersAndNegativeZero) {
   const ast::NumberLiteral overflow(std::string(400, '9'));
   EXPECT_THROW(overflow.accept(interpreter), std::invalid_argument);
 }
+
+TEST(InterpreterTests, EvaluatesSignedNumbersAndBinaryArithmetic) {
+  EXPECT_EQ(runProgram("remember x = -2.5\nprint -5\nprint x\nprint 0 - x\n"
+                       "print -2 * -3\nprint 2 - -3\nprint 2+-3\n"
+                       "print -0\nprint -0.0\nprint -0.5 < 0"),
+            "-5.0\n-2.5\n2.5\n6.0\n5.0\n-1.0\n-0.0\n-0.0\ntrue\n");
+}
+
+TEST(InterpreterTests, PreservesUpdatesAlongsideSignedLiterals) {
+  EXPECT_EQ(runProgram("remember x = -2\nprint x++\nprint x\nprint ++x\nprint --x\n"
+                       "function identity(n) -> n end\nprint identity(-3)"),
+            "-2.0\n-1.0\n0.0\n-1.0\n-3.0\n");
+}
+
+TEST(InterpreterTests, RejectsDivisionByNegativeZeroLiteral) {
+  for (const auto* source : {"print 1 / -0", "print 1 / -0.0"}) {
+    EXPECT_THROW(runProgram(source), std::invalid_argument) << source;
+  }
+}
+
+TEST(InterpreterTests, AcceptsNegativeFunctionArgumentsAndLoopBounds) {
+  EXPECT_EQ(runProgram("function identity(x) -> x end\nprint identity(-3.5)\n"
+                       "for i in range(-3)\nprint 123\nend\nprint identity(-2)"),
+            "-3.5\n-2.0\n");
+}

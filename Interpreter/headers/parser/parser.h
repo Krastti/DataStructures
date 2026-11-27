@@ -67,7 +67,7 @@ private:
   // Создаёт лист дерева из токена числа, строки или имени переменной.
   static ast::ExpressionTree parseOperand(const Array<Token>& tokens, std::size_t position);
 
-  // Разбирает простой операнд или выражение в скобках.
+  // Разбирает простой операнд, отрицательное число или выражение в скобках.
   static ParsedExpr parsePrimary(const Array<Token>& tokens, std::size_t position);
 
   // Разбирает префиксное и постфиксное изменение переменной.

@@ -1,3 +1,3 @@
-for i in range(3)
-    print i
-end
+using "math.mini"
+
+print sqrt(4)

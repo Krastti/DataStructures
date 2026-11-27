@@ -34,6 +34,7 @@ private:
   Expr* parent = nullptr;
 };
 
+// Хранит запись числа, включая минус отрицательного литерала.
 struct NumberLiteral : Expr {
   std::string lexeme;
 

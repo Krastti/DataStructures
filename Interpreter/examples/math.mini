@@ -1,0 +1,26 @@
+function square(x) ->
+    return x * x
+end
+
+function abs(n) ->
+    remember result = n
+    when n < 0
+        remember result = 0 - n
+    end
+    return result
+end
+
+function sqrt(x) ->
+    remember result = x
+    when result == 0
+        remember result = 0
+    end
+
+    remember guess = result / 2.0
+    remember epsilon = 0.0000000001
+    repeat while abs(guess * guess - x) > epsilon
+        remember guess = (guess + x / guess) / 2.0
+    end
+
+    return guess
+end
